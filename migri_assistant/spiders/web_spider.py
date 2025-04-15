@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import re
 import signal
 from datetime import datetime
@@ -10,12 +11,40 @@ from scrapy import Spider, signals
 from scrapy.http import Request
 
 from migri_assistant.models.document import Document
-from migri_assistant.utils import chunk_text, is_pdf_url
+from migri_assistant.utils import chunk_html_content, is_pdf_url
 from migri_assistant.vectorstore.chroma_store import ChromaStore
 
 
 class WebSpider(Spider):
     name = "web_spider"
+
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        """Connect the spider_closed signal before initializing the spider"""
+        spider = super(WebSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+
+        # Add SIGINT handling through Scrapy's shutdown mechanism
+        # which is more reliable than direct signal handling
+        def sigint_handler(signum, frame):
+            crawler.engine.close_spider(spider, reason="SIGINT received")
+            logging.info("Interrupted by Ctrl+C. Shutting down gracefully...")
+            # After trying the clean shutdown, wait a bit then force exit if needed
+            import threading
+
+            def force_exit():
+                import time
+
+                time.sleep(3)  # Wait 3 seconds for clean shutdown
+                logging.info("Forcing shutdown...")
+                os._exit(1)  # Force exit if graceful shutdown doesn't complete
+
+            threading.Thread(target=force_exit).start()
+
+        # Register signal handler
+        signal.signal(signal.SIGINT, sigint_handler)
+
+        return spider
 
     def __init__(
         self,
@@ -27,6 +56,8 @@ class WebSpider(Spider):
         pdf_output_file=None,
         chunk_size=1000,
         chunk_overlap=200,
+        html_splitter="semantic",
+        max_chunks_per_page=50,  # Add maximum chunks per page limit
         *args,
         **kwargs,
     ):
@@ -54,6 +85,8 @@ class WebSpider(Spider):
         # Chunking parameters
         self.chunk_size = int(chunk_size)
         self.chunk_overlap = int(chunk_overlap)
+        self.html_splitter = html_splitter
+        self.max_chunks_per_page = int(max_chunks_per_page)
 
         # Output file settings
         self.output_file = output_file
@@ -64,24 +97,14 @@ class WebSpider(Spider):
         self.pdf_urls: List[Dict] = []
         self.visited_urls: Set[str] = set()
 
-        # Register the spider_closed signal handler
-        self.crawler.signals.connect(self.spider_closed, signal=signals.spider_closed)
-
-        # Register SIGINT handler for graceful shutdown on Ctrl+C
-        signal.signal(signal.SIGINT, self.handle_sigint)
-
         logging.info(
             f"Starting spider with max depth {self.max_depth} for URLs: {self.start_urls}"
         )
         logging.info(f"Allowed domains: {self.allowed_domains}")
+        logging.info(f"HTML splitter type: {self.html_splitter}")
         logging.info(
-            f"Text chunking: size={self.chunk_size}, overlap={self.chunk_overlap}"
+            f"Text chunking: size={self.chunk_size}, overlap={self.chunk_overlap}, max_chunks={self.max_chunks_per_page}"
         )
-
-    def handle_sigint(self, sig, frame):
-        """Handle SIGINT (Ctrl+C) by closing the spider gracefully"""
-        logging.info("Received interrupt signal. Shutting down gracefully...")
-        self.crawler.engine.close_spider(self, "Interrupted by user")
 
     def start_requests(self):
         for url in self.start_urls:
@@ -111,10 +134,11 @@ class WebSpider(Spider):
 
             # Extract useful content
             title = self._extract_title(response)
-            content = self._extract_content(response)
+            html_content = self._extract_html_content(response)
+            plain_text = self._extract_content(response)  # Fallback plain text
 
-            # Create metadata
-            metadata = {
+            # Create base metadata
+            base_metadata = {
                 "url": url,
                 "title": title,
                 "depth": current_depth,
@@ -123,27 +147,53 @@ class WebSpider(Spider):
                 "content_type": content_type,
             }
 
-            # Create document with chunked content if needed
-            if content and self.chunk_size > 0 and len(content) > self.chunk_size:
-                chunks = chunk_text(content, self.chunk_size, self.chunk_overlap)
-                logging.info(f"Split content into {len(chunks)} chunks")
+            # Use LangChain to chunk the HTML content
+            if self.chunk_size > 0:
+                chunks = chunk_html_content(
+                    html_content=html_content,
+                    content_type=content_type,
+                    chunk_size=self.chunk_size,
+                    chunk_overlap=self.chunk_overlap,
+                    splitter_type=self.html_splitter,
+                    max_chunks=self.max_chunks_per_page,
+                )
+
+                chunk_count = len(chunks)
+                logging.info(
+                    f"Split content into {chunk_count} chunks using {self.html_splitter} splitter"
+                )
+
+                # Safety check - if too many chunks are produced, something might be wrong
+                if chunk_count >= self.max_chunks_per_page:
+                    logging.warning(
+                        f"Hit chunk limit ({chunk_count} chunks) for {url}, consider reviewing the content structure"
+                    )
 
                 for i, chunk in enumerate(chunks):
-                    chunk_metadata = metadata.copy()
+                    # Merge the base metadata with the chunk-specific metadata
+                    chunk_metadata = {**base_metadata, **chunk.get("metadata", {})}
                     chunk_metadata["chunk_index"] = i
-                    chunk_metadata["chunk_count"] = len(chunks)
+                    chunk_metadata["chunk_count"] = chunk_count
 
+                    # Ensure the content is stored in the metadata for ChromaDB
+                    chunk_metadata["content"] = chunk["content"]
+
+                    # Create a document for each chunk
                     document = Document(
-                        url=f"{url}#chunk{i}", content=chunk, metadata=chunk_metadata
+                        url=f"{url}#chunk{i}",
+                        content=chunk["content"],
+                        metadata=chunk_metadata,
                     )
+
                     self._store_document(document)
 
                     # Also save to results list for interruptibility
                     doc_dict = document.to_dict()
                     self.results.append(doc_dict)
             else:
-                # Store as a single document
-                document = Document(url=url, content=content, metadata=metadata)
+                # Store as a single document (no chunking)
+                base_metadata["content"] = plain_text  # Ensure content is in metadata
+                document = Document(url=url, content=plain_text, metadata=base_metadata)
                 self._store_document(document)
 
                 # Also save to results list for interruptibility
@@ -180,8 +230,17 @@ class WebSpider(Spider):
         title = response.css("title::text").get() or ""
         return title.strip()
 
+    def _extract_html_content(self, response):
+        """
+        Extract the HTML content from the response.
+        For LangChain's HTML splitters, we need the HTML content, not just the text.
+        """
+        # Get the HTML content from the body
+        body_content = response.css("body").get() or response.text
+        return body_content
+
     def _extract_content(self, response):
-        """Extract cleaned main content from the page"""
+        """Extract cleaned main content from the page (used as fallback)"""
         # Try to get main content
         main_content = (
             response.css("main").extract() or response.css("article").extract()

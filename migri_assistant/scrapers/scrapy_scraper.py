@@ -25,6 +25,7 @@ class ScrapyScraper(BaseScraper):
         pdf_output_file: str = "pdfs.json",
         chunk_size: int = 1000,
         chunk_overlap: int = 200,
+        html_splitter: str = "semantic",
     ):
         """
         Initialize Scrapy scraper with collection name for storing documents
@@ -35,12 +36,14 @@ class ScrapyScraper(BaseScraper):
             pdf_output_file: Path to save PDF URLs as JSON
             chunk_size: Size of text chunks in characters
             chunk_overlap: Overlap between chunks in characters
+            html_splitter: Type of HTML splitter to use ("semantic", "header", "section")
         """
         self.collection_name = collection_name
         self.output_file = output_file
         self.pdf_output_file = pdf_output_file
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
+        self.html_splitter = html_splitter
         self.process = None
         self.setup_logging()
 
@@ -68,6 +71,7 @@ class ScrapyScraper(BaseScraper):
             List of document dictionaries containing the scraped content
         """
         self.logger.info(f"Starting scrape of {url} with depth {depth}")
+        self.logger.info(f"Using {self.html_splitter} HTML splitter")
         self.logger.info(
             f"Text chunking: size={self.chunk_size}, overlap={self.chunk_overlap}"
         )
@@ -107,6 +111,7 @@ class ScrapyScraper(BaseScraper):
             pdf_output_file=self.pdf_output_file,
             chunk_size=self.chunk_size,
             chunk_overlap=self.chunk_overlap,
+            html_splitter=self.html_splitter,
         )
         self.process.start()  # This will block until crawling is finished
 

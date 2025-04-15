@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
+from typing_extensions import Annotated
 
 from migri_assistant.scrapers.scrapy_scraper import ScrapyScraper
 
@@ -13,6 +14,13 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Suppress the ONNX provider warnings
+logging.getLogger("onnxruntime").setLevel(logging.ERROR)  # Suppress ONNX warnings
+logging.getLogger("transformers").setLevel(
+    logging.ERROR
+)  # Suppress potential transformers warnings
+logging.getLogger("chromadb").setLevel(logging.WARNING)  # Reduce ChromaDB debug noise
 
 app = typer.Typer(help="Migri Assistant CLI - Web scraping and vector embeddings tool")
 
@@ -50,6 +58,14 @@ def scrape(
     chunk_overlap: int = typer.Option(
         200, "--chunk-overlap", help="Number of characters to overlap between chunks"
     ),
+    html_splitter: Annotated[
+        str,
+        typer.Option(
+            "--html-splitter",
+            "-H",
+            help="HTML splitter type to use for chunking HTML content",
+        ),
+    ] = "semantic",
     disable_chunking: bool = typer.Option(
         False, "--disable-chunking", help="Disable text chunking"
     ),
@@ -63,6 +79,11 @@ def scrape(
     The scraper is interruptible - press Ctrl+C to stop and save current results.
     PDFs are not parsed but their URLs are saved to a separate file for later processing.
 
+    HTML splitter options:
+      - semantic: Preserves semantic structure like tables, lists (default)
+      - header: Splits by headers (h1, h2, etc.)
+      - section: Splits by document sections
+
     Example:
         $ python -m migri_assistant.cli scrape https://migri.fi -d 2 -c migri_data
     """
@@ -71,6 +92,13 @@ def scrape(
         logging.getLogger().setLevel(logging.DEBUG)
 
     typer.echo(f"🕸️ Starting web scraper on {url} with depth {depth}")
+
+    # Validate HTML splitter choice
+    valid_splitters = ["semantic", "header", "section"]
+    if html_splitter not in valid_splitters:
+        typer.echo(f"❌ Invalid HTML splitter: {html_splitter}")
+        typer.echo(f"Valid options are: {', '.join(valid_splitters)}")
+        raise typer.Exit(code=1)
 
     # Adjust chunk size if chunking is disabled
     final_chunk_size = 0 if disable_chunking else chunk_size
@@ -83,6 +111,7 @@ def scrape(
             pdf_output_file=str(pdf_output),
             chunk_size=final_chunk_size,
             chunk_overlap=chunk_overlap,
+            html_splitter=html_splitter,
         )
 
         # Inform user about chunking settings
@@ -90,7 +119,7 @@ def scrape(
             typer.echo("📄 Text chunking is disabled")
         else:
             typer.echo(
-                f"📄 Text will be chunked with size={chunk_size}, overlap={chunk_overlap}"
+                f"📄 Text will be chunked using {html_splitter} splitter with size={chunk_size}, overlap={chunk_overlap}"
             )
 
         typer.echo(
