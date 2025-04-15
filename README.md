@@ -37,11 +37,6 @@ source .venv/bin/activate  # On Unix/macOS
 uv sync
 ```
 
-4. Install the project in development mode:
-```bash
-uv install --editable .
-```
-
 ## Usage
 
 ### Running the CLI
