@@ -1,6 +1,5 @@
 import json
 import logging
-from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -42,12 +41,27 @@ def scrape(
     output: Optional[Path] = typer.Option(
         None, "--output", "-o", help="Path to save scraped results as JSON"
     ),
+    pdf_output: Optional[Path] = typer.Option(
+        "pdfs.json", "--pdf-output", "-p", help="Path to save found PDF URLs as JSON"
+    ),
+    chunk_size: int = typer.Option(
+        1000, "--chunk-size", "-s", help="Maximum size of text chunks in characters"
+    ),
+    chunk_overlap: int = typer.Option(
+        200, "--chunk-overlap", help="Number of characters to overlap between chunks"
+    ),
+    disable_chunking: bool = typer.Option(
+        False, "--disable-chunking", help="Disable text chunking"
+    ),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose output"
     ),
 ):
     """
     Scrape a website to a configurable depth and store content in ChromaDB.
+
+    The scraper is interruptible - press Ctrl+C to stop and save current results.
+    PDFs are not parsed but their URLs are saved to a separate file for later processing.
 
     Example:
         $ python -m migri_assistant.cli scrape https://migri.fi -d 2 -c migri_data
@@ -58,43 +72,60 @@ def scrape(
 
     typer.echo(f"🕸️ Starting web scraper on {url} with depth {depth}")
 
+    # Adjust chunk size if chunking is disabled
+    final_chunk_size = 0 if disable_chunking else chunk_size
+
     try:
-        # Initialize scraper
-        scraper = ScrapyScraper(collection_name=collection)
+        # Initialize scraper with chunking parameters
+        scraper = ScrapyScraper(
+            collection_name=collection,
+            output_file=str(output) if output else None,
+            pdf_output_file=str(pdf_output),
+            chunk_size=final_chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
+
+        # Inform user about chunking settings
+        if disable_chunking:
+            typer.echo("📄 Text chunking is disabled")
+        else:
+            typer.echo(
+                f"📄 Text will be chunked with size={chunk_size}, overlap={chunk_overlap}"
+            )
+
+        typer.echo(
+            "⚠️ Press Ctrl+C at any time to interrupt crawling and save current results"
+        )
 
         # Start scraping
-        with typer.progressbar(length=100, label="Scraping website") as progress:
-            # Update progress periodically (approximate since we don't know total pages)
-            progress.update(10)
-            results = scraper.scrape(
-                url=url, depth=depth, allowed_domains=allowed_domains
-            )
-            progress.update(90)
+        results = scraper.scrape(url=url, depth=depth, allowed_domains=allowed_domains)
 
         # Output information
-        typer.echo(f"✅ Scraping completed! Processed {len(results)} pages.")
+        typer.echo(f"✅ Scraping completed! Processed {len(results)} documents.")
 
-        # Save results to file if requested
+        # Check if PDF file was created and show info
+        if pdf_output and pdf_output.exists():
+            try:
+                with open(pdf_output, "r") as f:
+                    pdf_data = json.load(f)
+                    pdf_count = pdf_data.get("pdf_count", 0)
+                    typer.echo(
+                        f"📁 Found {pdf_count} PDF files, URLs saved to {pdf_output}"
+                    )
+            except (json.JSONDecodeError, FileNotFoundError):
+                pass
+
+        # Output information about the results file
         if output:
-            # Create directory if it doesn't exist
-            output.parent.mkdir(parents=True, exist_ok=True)
-
-            # Add timestamp to results
-            results_with_meta = {
-                "timestamp": datetime.now().isoformat(),
-                "url": url,
-                "depth": depth,
-                "collection": collection,
-                "pages_scraped": len(results),
-                "results": results,
-            }
-
-            # Save to file
-            with open(output, "w", encoding="utf-8") as f:
-                json.dump(results_with_meta, f, indent=2, ensure_ascii=False)
-
             typer.echo(f"📄 Results saved to {output}")
 
+    except KeyboardInterrupt:
+        typer.echo("\n🛑 Scraping interrupted by user")
+        typer.echo("✅ Partial results have been saved")
+        if output:
+            typer.echo(f"📄 Results saved to {output}")
+        if pdf_output and pdf_output.exists():
+            typer.echo(f"📁 PDF URLs saved to {pdf_output}")
     except Exception as e:
         typer.echo(f"❌ Error during scraping: {str(e)}", err=True)
         raise typer.Exit(code=1)
