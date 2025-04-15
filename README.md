@@ -45,27 +45,29 @@ After installation, you can use the CLI in two ways:
 
 1. Using the entry point:
 ```bash
-migri-scrape scrape https://migri.fi/en/home --depth 2 --output results.json
+migri-scrape scrape https://migri.fi/en/home
 ```
 
 2. Using uv run:
 ```bash
-uv run -m migri_assistant.cli scrape https://migri.fi/en/home --depth 2
+uv run -m migri_assistant.cli scrape https://migri.fi/en/home
 ```
 
-### CLI Options
+### Getting Help with CLI Commands
 
+The CLI is self-documenting. To view available commands and options:
+
+1. Show general help and available commands:
+```bash
+uv run -m migri_assistant.cli --help
 ```
-Options:
-  -d, --depth INTEGER              Maximum link-following depth (1 is just the
-                                   provided URL)
-  -c, --collection TEXT            ChromaDB collection name to store documents
-  -D, --domain TEXT                Domains to restrict scraping to (defaults to
-                                   URL's domain)
-  -o, --output PATH                Path to save scraped results as JSON
-  -v, --verbose                    Enable verbose output
-  --help                           Show this message and exit.
+
+2. Get detailed help for a specific command (e.g., the "scrape" command):
+```bash
+uv run -m migri_assistant.cli scrape --help
 ```
+
+This will display all available options, their descriptions, default values, and usage examples.
 
 ### Examples
 
