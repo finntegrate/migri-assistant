@@ -5,14 +5,14 @@ import re
 import signal
 from datetime import datetime
 from typing import Dict, List, Set
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
+import html2text
+import yaml
 from scrapy import Spider, signals
 from scrapy.http import Request
 
-from migri_assistant.models.document import Document
-from migri_assistant.utils import chunk_html_content, is_pdf_url
-from migri_assistant.vectorstore.chroma_store import ChromaStore
+from migri_assistant.utils import is_pdf_url
 
 
 class WebSpider(Spider):
@@ -51,13 +51,9 @@ class WebSpider(Spider):
         start_urls=None,
         allowed_domains=None,
         depth=1,
-        collection_name="migri_documents",
+        output_dir="scraped_content",
         output_file=None,
         pdf_output_file=None,
-        chunk_size=1000,
-        chunk_overlap=200,
-        html_splitter="semantic",
-        max_chunks_per_page=50,  # Add maximum chunks per page limit
         *args,
         **kwargs,
     ):
@@ -79,18 +75,14 @@ class WebSpider(Spider):
             self.allowed_domains = allowed_domains
 
         self.max_depth = int(depth)
-        self.collection_name = collection_name
-        self.chroma_store = ChromaStore(collection_name=collection_name)
 
-        # Chunking parameters
-        self.chunk_size = int(chunk_size)
-        self.chunk_overlap = int(chunk_overlap)
-        self.html_splitter = html_splitter
-        self.max_chunks_per_page = int(max_chunks_per_page)
-
-        # Output file settings
+        # Output settings
+        self.output_dir = output_dir
         self.output_file = output_file
         self.pdf_output_file = pdf_output_file or "pdfs.json"
+
+        # Create output directory if it doesn't exist
+        os.makedirs(self.output_dir, exist_ok=True)
 
         # Track scraped results to make interruption possible
         self.results = []
@@ -101,13 +93,20 @@ class WebSpider(Spider):
             f"Starting spider with max depth {self.max_depth} for URLs: {self.start_urls}"
         )
         logging.info(f"Allowed domains: {self.allowed_domains}")
-        logging.info(f"HTML splitter type: {self.html_splitter}")
-        logging.info(
-            f"Text chunking: size={self.chunk_size}, overlap={self.chunk_overlap}, max_chunks={self.max_chunks_per_page}"
-        )
+        logging.info(f"Saving Markdown files to: {self.output_dir}")
 
     def start_requests(self):
+        """
+        Start the crawling process with the provided URLs.
+        Check if URLs are PDFs before making requests to save resources.
+        """
         for url in self.start_urls:
+            # Check if the start URL is a PDF
+            if is_pdf_url(url):
+                logging.info(f"Detected PDF URL in start URLs: {url}")
+                self._save_pdf_url(url, 0)
+                continue
+
             yield Request(url=url, callback=self.parse, cb_kwargs={"current_depth": 0})
 
     def parse(self, response, current_depth=0):
@@ -127,18 +126,18 @@ class WebSpider(Spider):
                 .lower()
             )
 
-            if "application/pdf" in content_type or is_pdf_url(url):
-                logging.info(f"Skipping PDF: {url}")
+            if "application/pdf" in content_type:
+                logging.info(f"Skipping PDF (detected by content type): {url}")
                 self._save_pdf_url(url, current_depth)
                 return
 
             # Extract useful content
             title = self._extract_title(response)
             html_content = self._extract_html_content(response)
-            plain_text = self._extract_content(response)  # Fallback plain text
+            plain_text = self._extract_content(response)
 
-            # Create base metadata
-            base_metadata = {
+            # Create metadata for frontmatter
+            metadata = {
                 "url": url,
                 "title": title,
                 "depth": current_depth,
@@ -147,58 +146,17 @@ class WebSpider(Spider):
                 "content_type": content_type,
             }
 
-            # Use LangChain to chunk the HTML content
-            if self.chunk_size > 0:
-                chunks = chunk_html_content(
-                    html_content=html_content,
-                    content_type=content_type,
-                    chunk_size=self.chunk_size,
-                    chunk_overlap=self.chunk_overlap,
-                    splitter_type=self.html_splitter,
-                    max_chunks=self.max_chunks_per_page,
-                )
+            # Save the content as Markdown with frontmatter
+            self._save_as_markdown(url, title, plain_text, html_content, metadata)
 
-                chunk_count = len(chunks)
-                logging.info(
-                    f"Split content into {chunk_count} chunks using {self.html_splitter} splitter"
-                )
-
-                # Safety check - if too many chunks are produced, something might be wrong
-                if chunk_count >= self.max_chunks_per_page:
-                    logging.warning(
-                        f"Hit chunk limit ({chunk_count} chunks) for {url}, consider reviewing the content structure"
-                    )
-
-                for i, chunk in enumerate(chunks):
-                    # Merge the base metadata with the chunk-specific metadata
-                    chunk_metadata = {**base_metadata, **chunk.get("metadata", {})}
-                    chunk_metadata["chunk_index"] = i
-                    chunk_metadata["chunk_count"] = chunk_count
-
-                    # Ensure the content is stored in the metadata for ChromaDB
-                    chunk_metadata["content"] = chunk["content"]
-
-                    # Create a document for each chunk
-                    document = Document(
-                        url=f"{url}#chunk{i}",
-                        content=chunk["content"],
-                        metadata=chunk_metadata,
-                    )
-
-                    self._store_document(document)
-
-                    # Also save to results list for interruptibility
-                    doc_dict = document.to_dict()
-                    self.results.append(doc_dict)
-            else:
-                # Store as a single document (no chunking)
-                base_metadata["content"] = plain_text  # Ensure content is in metadata
-                document = Document(url=url, content=plain_text, metadata=base_metadata)
-                self._store_document(document)
-
-                # Also save to results list for interruptibility
-                doc_dict = document.to_dict()
-                self.results.append(doc_dict)
+            # Also save basic info to results list for interruptibility
+            result_entry = {
+                "url": url,
+                "title": title,
+                "depth": current_depth,
+                "timestamp": datetime.now().isoformat(),
+            }
+            self.results.append(result_entry)
 
             # Save results after each page to enable interruption
             self._save_results()
@@ -206,11 +164,15 @@ class WebSpider(Spider):
             # Follow links if we haven't reached max depth
             if current_depth < self.max_depth:
                 for href in self._extract_links(response):
+                    # Skip PDFs - detect them by URL pattern and don't make requests to them
                     if is_pdf_url(href):
-                        logging.info(f"Found PDF link: {href}")
+                        logging.info(
+                            f"Found PDF link - recording without requesting: {href}"
+                        )
                         self._save_pdf_url(href, current_depth + 1)
                         continue
 
+                    # For non-PDF links, follow as usual
                     yield response.follow(
                         href,
                         callback=self.parse,
@@ -220,85 +182,59 @@ class WebSpider(Spider):
         except Exception as e:
             logging.error(f"Error processing {url}: {str(e)}")
 
-    def errback_handler(self, failure):
-        """Handle request failures gracefully"""
-        request = failure.request
-        logging.warning(f"Error on {request.url}: {failure.value}")
+    def _save_as_markdown(self, url, title, plain_text, html_content, metadata):
+        """Save the content as Markdown with YAML frontmatter"""
+        # Create a safe filename from the URL
+        filename = self._url_to_safe_filename(url)
 
-    def _extract_title(self, response):
-        """Extract page title"""
-        title = response.css("title::text").get() or ""
-        return title.strip()
+        # Prepare the markdown content with frontmatter
+        frontmatter = yaml.dump(metadata, default_flow_style=False)
 
-    def _extract_html_content(self, response):
-        """
-        Extract the HTML content from the response.
-        For LangChain's HTML splitters, we need the HTML content, not just the text.
-        """
-        # Get the HTML content from the body
-        body_content = response.css("body").get() or response.text
-        return body_content
+        # Construct the full markdown content
+        markdown_content = f"---\n{frontmatter}---\n\n# {title}\n\n{plain_text}\n"
 
-    def _extract_content(self, response):
-        """Extract cleaned main content from the page (used as fallback)"""
-        # Try to get main content
-        main_content = (
-            response.css("main").extract() or response.css("article").extract()
-        )
+        # Save the markdown file
+        file_path = os.path.join(self.output_dir, f"{filename}.md")
 
-        if main_content:
-            # Use the first main content area found
-            text = self._clean_html(main_content[0])
-        else:
-            # Fallback to body content, excluding navigation, footer, etc.
-            body_content = response.css("body").extract_first()
-            if body_content:
-                # Remove common non-content elements
-                clean_html = re.sub(
-                    r"<(nav|header|footer|script|style|aside)[^>]*>.*?</\1>",
-                    "",
-                    body_content,
-                    flags=re.DOTALL,
-                )
-                text = self._clean_html(clean_html)
-            else:
-                # Last resort, just get text from the whole body
-                text = " ".join(response.css("body ::text").getall())
+        # Create parent directories if needed
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-        return " ".join(text.split())  # Normalize whitespace
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(markdown_content)
 
-    def _clean_html(self, html_content):
-        """Remove HTML tags and normalize whitespace"""
-        # Simple regex to remove HTML tags
-        clean_text = re.sub(r"<[^>]+>", " ", html_content)
-        # Remove extra whitespace
-        clean_text = re.sub(r"\s+", " ", clean_text).strip()
-        return clean_text
+        # Also save the original HTML if it exists
+        if html_content:
+            html_path = os.path.join(self.output_dir, f"{filename}.html")
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
 
-    def _extract_links(self, response):
-        """Extract valid links to follow"""
-        # Focus on content areas for links when possible
-        content_areas = response.css(
-            "main a::attr(href), article a::attr(href)"
-        ).getall()
+        logging.info(f"Saved content to {file_path}")
 
-        # If no links found in main content, fall back to all links
-        if not content_areas:
-            content_areas = response.css("a::attr(href)").getall()
+        # Add file path to metadata for tracking
+        metadata["file_path"] = file_path
+        return file_path
 
-        return content_areas
+    def _url_to_safe_filename(self, url):
+        """Convert a URL to a safe filename"""
+        # Parse the URL and remove the scheme
+        parsed = urlparse(url)
+        path = parsed.path
 
-    def _store_document(self, document):
-        """Store the document in ChromaDB"""
-        try:
-            self.chroma_store.add_document(
-                document_id=document.url,
-                embedding=None,  # We'll generate embeddings later
-                metadata=document.metadata,
-            )
-            logging.info(f"Successfully stored document: {document.url}")
-        except Exception as e:
-            logging.error(f"Failed to store document {document.url}: {str(e)}")
+        # Handle empty path or just "/"
+        if not path or path == "/":
+            path = "index"
+
+        # Create directory structure based on domain and path
+        domain_part = parsed.netloc
+        path_part = path.lstrip("/").replace("/", "_")
+
+        # Handle query parameters by appending a hash of them
+        if parsed.query:
+            path_part += f"_{quote(parsed.query, safe='')[:50]}"  # Limit length
+
+        # Create a filename safe for all operating systems
+        safe_name = f"{domain_part}/{path_part}"
+        return safe_name
 
     def _save_pdf_url(self, url, depth):
         """Save PDF URL to the PDF list"""
@@ -321,6 +257,9 @@ class WebSpider(Spider):
                 f,
                 indent=2,
             )
+        logging.info(
+            f"Added PDF URL to tracking list (total: {len(self.pdf_urls)}): {url}"
+        )
 
     def _save_results(self):
         """Save current results to the output file if specified"""
@@ -336,7 +275,6 @@ class WebSpider(Spider):
                     "timestamp": datetime.now().isoformat(),
                     "url": url,
                     "depth": self.max_depth,
-                    "collection": self.collection_name,
                     "pages_scraped": len(self.visited_urls),
                     "results": self.results,
                 },
@@ -362,3 +300,63 @@ class WebSpider(Spider):
                     f,
                     indent=2,
                 )
+
+    def errback_handler(self, failure):
+        """Handle request failures gracefully"""
+        request = failure.request
+        logging.warning(f"Error on {request.url}: {failure.value}")
+
+    def _extract_title(self, response):
+        """Extract page title"""
+        title = response.css("title::text").get() or ""
+        return title.strip()
+
+    def _extract_html_content(self, response):
+        """
+        Extract the HTML content from the response.
+        """
+        # Get the HTML content from the body
+        body_content = response.css("body").get() or response.text
+        return body_content
+
+    def _extract_content(self, response):
+        """
+        Extract content from the page with proper Markdown formatting to preserve structure.
+        Uses html2text library to maintain headings, paragraphs, lists, and other formatting.
+        """
+        html_content = response.text
+
+        # Configure html2text for optimal conversion
+        text_maker = html2text.HTML2Text()
+        text_maker.ignore_links = False  # Preserve links in the output
+        text_maker.body_width = 0  # Don't wrap text at a specific width
+        text_maker.protect_links = True  # Don't wrap links at the end of lines
+        text_maker.unicode_snob = True  # Use Unicode instead of ASCII
+        text_maker.ignore_images = False  # Include images in the output
+        text_maker.ignore_tables = False  # Include tables in the output
+
+        # Convert HTML to Markdown preserving structure
+        markdown_text = text_maker.handle(html_content)
+
+        return markdown_text
+
+    def _clean_html(self, html_content):
+        """Remove HTML tags and normalize whitespace"""
+        # Simple regex to remove HTML tags
+        clean_text = re.sub(r"<[^>]+>", " ", html_content)
+        # Remove extra whitespace
+        clean_text = re.sub(r"\s+", " ", clean_text).strip()
+        return clean_text
+
+    def _extract_links(self, response):
+        """Extract valid links to follow"""
+        # Focus on content areas for links when possible
+        content_areas = response.css(
+            "main a::attr(href), article a::attr(href)"
+        ).getall()
+
+        # If no links found in main content, fall back to all links
+        if not content_areas:
+            content_areas = response.css("a::attr(href)").getall()
+
+        return content_areas

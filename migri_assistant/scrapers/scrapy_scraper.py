@@ -3,7 +3,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
@@ -15,35 +15,26 @@ from migri_assistant.spiders.web_spider import WebSpider
 class ScrapyScraper(BaseScraper):
     """
     Scraper implementation using Scrapy framework to scrape web content
-    with configurable depth.
+    with configurable depth and save output as Markdown files.
     """
 
     def __init__(
         self,
-        collection_name: str = "migri_documents",
+        output_dir: str = "scraped_content",
         output_file: str = None,
         pdf_output_file: str = "pdfs.json",
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
-        html_splitter: str = "semantic",
     ):
         """
-        Initialize Scrapy scraper with collection name for storing documents
+        Initialize Scrapy scraper with output directory for saving Markdown files
 
         Args:
-            collection_name: Name of the ChromaDB collection to store documents
-            output_file: Path to save scraped results as JSON
+            output_dir: Directory to save scraped content as Markdown files
+            output_file: Path to save scraped results index as JSON
             pdf_output_file: Path to save PDF URLs as JSON
-            chunk_size: Size of text chunks in characters
-            chunk_overlap: Overlap between chunks in characters
-            html_splitter: Type of HTML splitter to use ("semantic", "header", "section")
         """
-        self.collection_name = collection_name
+        self.output_dir = output_dir
         self.output_file = output_file
         self.pdf_output_file = pdf_output_file
-        self.chunk_size = chunk_size
-        self.chunk_overlap = chunk_overlap
-        self.html_splitter = html_splitter
         self.process = None
         self.setup_logging()
 
@@ -57,10 +48,13 @@ class ScrapyScraper(BaseScraper):
         self.logger = logging.getLogger(__name__)
 
     def scrape(
-        self, url: str, depth: int = 1, allowed_domains: Optional[List[str]] = None
+        self,
+        url: str,
+        depth: int = 1,
+        allowed_domains: Optional[List[str]] = None,
     ) -> List[dict]:
         """
-        Scrape the given URL up to the specified depth
+        Scrape the given URL up to the specified depth and save content as Markdown files
 
         Args:
             url: The URL to start scraping from
@@ -68,17 +62,14 @@ class ScrapyScraper(BaseScraper):
             allowed_domains: List of domains to restrict scraping to
 
         Returns:
-            List of document dictionaries containing the scraped content
+            List of dictionaries containing basic metadata about the scraped pages
         """
         self.logger.info(f"Starting scrape of {url} with depth {depth}")
-        self.logger.info(f"Using {self.html_splitter} HTML splitter")
-        self.logger.info(
-            f"Text chunking: size={self.chunk_size}, overlap={self.chunk_overlap}"
-        )
+        self.logger.info(f"Saving Markdown files to {self.output_dir}")
 
         # Create a temporary file to store results if no output file is specified
         if self.output_file is None:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".jl") as tmp:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".json") as tmp:
                 output_file = tmp.name
         else:
             output_file = self.output_file
@@ -87,13 +78,6 @@ class ScrapyScraper(BaseScraper):
         settings = get_project_settings()
         settings.update(
             {
-                "FEEDS": {
-                    output_file: {
-                        "format": "jsonlines",
-                        "encoding": "utf8",
-                        "overwrite": True,
-                    },
-                },
                 "LOG_LEVEL": "INFO",
                 "DOWNLOAD_DELAY": 1,  # Be respectful to servers
                 "ROBOTSTXT_OBEY": True,  # Follow robots.txt rules
@@ -106,42 +90,60 @@ class ScrapyScraper(BaseScraper):
             start_urls=url,
             depth=depth,
             allowed_domains=allowed_domains,
-            collection_name=self.collection_name,
-            output_file=self.output_file,
+            output_dir=self.output_dir,
+            output_file=output_file,
             pdf_output_file=self.pdf_output_file,
-            chunk_size=self.chunk_size,
-            chunk_overlap=self.chunk_overlap,
-            html_splitter=self.html_splitter,
         )
         self.process.start()  # This will block until crawling is finished
 
-        # Read the results
+        # Read the results from the output file
         results = []
-        if os.path.exists(output_file) and self.output_file is None:
-            with open(output_file, "r", encoding="utf-8") as f:
-                for line in f:
-                    try:
-                        results.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        self.logger.error(f"Failed to parse JSON line: {line}")
-
-            # Clean up the temporary file if we created one
-            Path(output_file).unlink(missing_ok=True)
-
-        # If we have an output file, read the results from there
-        if self.output_file and os.path.exists(self.output_file):
-            try:
-                with open(self.output_file, "r", encoding="utf-8") as f:
+        try:
+            if os.path.exists(output_file):
+                with open(output_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     if "results" in data:
                         results = data["results"]
                     self.logger.info(
-                        f"Read {len(results)} results from {self.output_file}"
+                        f"Read metadata for {len(results)} pages from {output_file}"
                     )
-            except Exception as e:
-                self.logger.error(
-                    f"Failed to read results from {self.output_file}: {e}"
-                )
+        except Exception as e:
+            self.logger.error(f"Failed to read results from {output_file}: {e}")
 
-        self.logger.info(f"Scraped {len(results)} documents from {url}")
+        # Create an index file for all Markdown files
+        if results:
+            self._create_markdown_index(results)
+
+        # Clean up the temporary file if we created one
+        if self.output_file is None and os.path.exists(output_file):
+            Path(output_file).unlink(missing_ok=True)
+
+        self.logger.info(
+            f"Scraping completed. Scraped {len(results)} documents from {url}"
+        )
         return results
+
+    def _create_markdown_index(self, results: List[Dict]) -> None:
+        """
+        Create an index.md file listing all scraped pages
+
+        Args:
+            results: List of scraped page metadata
+        """
+        index_path = os.path.join(self.output_dir, "index.md")
+
+        with open(index_path, "w", encoding="utf-8") as f:
+            f.write("# Scraped Content Index\n\n")
+            f.write(f"Total pages scraped: {len(results)}\n\n")
+            f.write("| Title | URL | Depth |\n")
+            f.write("|-------|-----|-------|\n")
+
+            for page in results:
+                title = page.get("title", "Untitled")
+                url = page.get("url", "")
+                depth = page.get("depth", 0)
+
+                # Create a link to the file using the URL
+                f.write(f"| {title} | [{url}]({url}) | {depth} |\n")
+
+        self.logger.info(f"Created Markdown index at {index_path}")
