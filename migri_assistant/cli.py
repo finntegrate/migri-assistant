@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import List, Optional
 
 import typer
-from typing_extensions import Annotated
 
 from migri_assistant.scrapers.scrapy_scraper import ScrapyScraper
 
@@ -15,14 +14,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Suppress the ONNX provider warnings
+# Suppress unnecessary warnings
 logging.getLogger("onnxruntime").setLevel(logging.ERROR)  # Suppress ONNX warnings
 logging.getLogger("transformers").setLevel(
     logging.ERROR
 )  # Suppress potential transformers warnings
 logging.getLogger("chromadb").setLevel(logging.WARNING)  # Reduce ChromaDB debug noise
 
-app = typer.Typer(help="Migri Assistant CLI - Web scraping and vector embeddings tool")
+app = typer.Typer(help="Migri Assistant CLI - Web scraping tool")
 
 
 @app.command()
@@ -34,93 +33,51 @@ def scrape(
         "-d",
         help="Maximum link-following depth (1 is just the provided URL)",
     ),
-    collection: str = typer.Option(
-        "migri_documents",
-        "--collection",
-        "-c",
-        help="ChromaDB collection name to store documents",
-    ),
     allowed_domains: Optional[List[str]] = typer.Option(
         None,
         "--domain",
         "-D",
         help="Domains to restrict scraping to (defaults to URL's domain)",
     ),
-    output: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="Path to save scraped results as JSON"
+    output_dir: str = typer.Option(
+        "scraped_content",
+        "--output-dir",
+        "-o",
+        help="Directory to save scraped content as Markdown files",
+    ),
+    results_json: Optional[Path] = typer.Option(
+        None, "--results", "-r", help="Path to save metadata results as JSON"
     ),
     pdf_output: Optional[Path] = typer.Option(
         "pdfs.json", "--pdf-output", "-p", help="Path to save found PDF URLs as JSON"
-    ),
-    chunk_size: int = typer.Option(
-        1000, "--chunk-size", "-s", help="Maximum size of text chunks in characters"
-    ),
-    chunk_overlap: int = typer.Option(
-        200, "--chunk-overlap", help="Number of characters to overlap between chunks"
-    ),
-    html_splitter: Annotated[
-        str,
-        typer.Option(
-            "--html-splitter",
-            "-H",
-            help="HTML splitter type to use for chunking HTML content",
-        ),
-    ] = "semantic",
-    disable_chunking: bool = typer.Option(
-        False, "--disable-chunking", help="Disable text chunking"
     ),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose output"
     ),
 ):
     """
-    Scrape a website to a configurable depth and store content in ChromaDB.
+    Scrape a website to a configurable depth and save content as Markdown files.
 
     The scraper is interruptible - press Ctrl+C to stop and save current results.
     PDFs are not parsed but their URLs are saved to a separate file for later processing.
 
-    HTML splitter options:
-      - semantic: Preserves semantic structure like tables, lists (default)
-      - header: Splits by headers (h1, h2, etc.)
-      - section: Splits by document sections
-
     Example:
-        $ python -m migri_assistant.cli scrape https://migri.fi -d 2 -c migri_data
+        $ python -m migri_assistant.cli scrape https://migri.fi -d 2 -o migri_content
     """
     # Set log level based on verbose flag
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
     typer.echo(f"🕸️ Starting web scraper on {url} with depth {depth}")
-
-    # Validate HTML splitter choice
-    valid_splitters = ["semantic", "header", "section"]
-    if html_splitter not in valid_splitters:
-        typer.echo(f"❌ Invalid HTML splitter: {html_splitter}")
-        typer.echo(f"Valid options are: {', '.join(valid_splitters)}")
-        raise typer.Exit(code=1)
-
-    # Adjust chunk size if chunking is disabled
-    final_chunk_size = 0 if disable_chunking else chunk_size
+    typer.echo(f"📝 Saving scraped content as Markdown files to: {output_dir}")
 
     try:
-        # Initialize scraper with chunking parameters
+        # Initialize scraper
         scraper = ScrapyScraper(
-            collection_name=collection,
-            output_file=str(output) if output else None,
+            output_dir=output_dir,
+            output_file=str(results_json) if results_json else None,
             pdf_output_file=str(pdf_output),
-            chunk_size=final_chunk_size,
-            chunk_overlap=chunk_overlap,
-            html_splitter=html_splitter,
         )
-
-        # Inform user about chunking settings
-        if disable_chunking:
-            typer.echo("📄 Text chunking is disabled")
-        else:
-            typer.echo(
-                f"📄 Text will be chunked using {html_splitter} splitter with size={chunk_size}, overlap={chunk_overlap}"
-            )
 
         typer.echo(
             "⚠️ Press Ctrl+C at any time to interrupt crawling and save current results"
@@ -130,7 +87,9 @@ def scrape(
         results = scraper.scrape(url=url, depth=depth, allowed_domains=allowed_domains)
 
         # Output information
-        typer.echo(f"✅ Scraping completed! Processed {len(results)} documents.")
+        typer.echo(f"✅ Scraping completed! Processed {len(results)} pages.")
+        typer.echo(f"📝 Content saved as Markdown files in {output_dir}")
+        typer.echo(f"📝 Index of all pages created at {output_dir}/index.md")
 
         # Check if PDF file was created and show info
         if pdf_output and pdf_output.exists():
@@ -145,14 +104,15 @@ def scrape(
                 pass
 
         # Output information about the results file
-        if output:
-            typer.echo(f"📄 Results saved to {output}")
+        if results_json:
+            typer.echo(f"📄 Metadata saved to {results_json}")
 
     except KeyboardInterrupt:
         typer.echo("\n🛑 Scraping interrupted by user")
         typer.echo("✅ Partial results have been saved")
-        if output:
-            typer.echo(f"📄 Results saved to {output}")
+        typer.echo(f"📝 Scraped content saved to {output_dir}")
+        if results_json:
+            typer.echo(f"📄 Metadata saved to {results_json}")
         if pdf_output and pdf_output.exists():
             typer.echo(f"📁 PDF URLs saved to {pdf_output}")
     except Exception as e:
@@ -163,9 +123,9 @@ def scrape(
 @app.command()
 def info():
     """Show information about the Migri Assistant and available commands."""
-    typer.echo("Migri Assistant - Web scraping and vector embeddings tool")
+    typer.echo("Migri Assistant - Web scraping tool")
     typer.echo("\nAvailable commands:")
-    typer.echo("  scrape    - Scrape websites to a configurable depth")
+    typer.echo("  scrape    - Scrape websites and save content as Markdown files")
     typer.echo("  info      - Show this information")
     typer.echo("\nRun a command with --help for more information")
 

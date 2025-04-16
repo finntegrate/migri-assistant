@@ -5,14 +5,13 @@ import re
 import signal
 from datetime import datetime
 from typing import Dict, List, Set
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
+import yaml
 from scrapy import Spider, signals
 from scrapy.http import Request
 
-from migri_assistant.models.document import Document
-from migri_assistant.utils import chunk_html_content, is_pdf_url
-from migri_assistant.vectorstore.chroma_store import ChromaStore
+from migri_assistant.utils import is_pdf_url
 
 
 class WebSpider(Spider):
@@ -51,13 +50,9 @@ class WebSpider(Spider):
         start_urls=None,
         allowed_domains=None,
         depth=1,
-        collection_name="migri_documents",
+        output_dir="scraped_content",
         output_file=None,
         pdf_output_file=None,
-        chunk_size=1000,
-        chunk_overlap=200,
-        html_splitter="semantic",
-        max_chunks_per_page=50,  # Add maximum chunks per page limit
         *args,
         **kwargs,
     ):
@@ -79,18 +74,14 @@ class WebSpider(Spider):
             self.allowed_domains = allowed_domains
 
         self.max_depth = int(depth)
-        self.collection_name = collection_name
-        self.chroma_store = ChromaStore(collection_name=collection_name)
 
-        # Chunking parameters
-        self.chunk_size = int(chunk_size)
-        self.chunk_overlap = int(chunk_overlap)
-        self.html_splitter = html_splitter
-        self.max_chunks_per_page = int(max_chunks_per_page)
-
-        # Output file settings
+        # Output settings
+        self.output_dir = output_dir
         self.output_file = output_file
         self.pdf_output_file = pdf_output_file or "pdfs.json"
+
+        # Create output directory if it doesn't exist
+        os.makedirs(self.output_dir, exist_ok=True)
 
         # Track scraped results to make interruption possible
         self.results = []
@@ -101,10 +92,7 @@ class WebSpider(Spider):
             f"Starting spider with max depth {self.max_depth} for URLs: {self.start_urls}"
         )
         logging.info(f"Allowed domains: {self.allowed_domains}")
-        logging.info(f"HTML splitter type: {self.html_splitter}")
-        logging.info(
-            f"Text chunking: size={self.chunk_size}, overlap={self.chunk_overlap}, max_chunks={self.max_chunks_per_page}"
-        )
+        logging.info(f"Saving Markdown files to: {self.output_dir}")
 
     def start_requests(self):
         for url in self.start_urls:
@@ -135,10 +123,10 @@ class WebSpider(Spider):
             # Extract useful content
             title = self._extract_title(response)
             html_content = self._extract_html_content(response)
-            plain_text = self._extract_content(response)  # Fallback plain text
+            plain_text = self._extract_content(response)
 
-            # Create base metadata
-            base_metadata = {
+            # Create metadata for frontmatter
+            metadata = {
                 "url": url,
                 "title": title,
                 "depth": current_depth,
@@ -147,58 +135,17 @@ class WebSpider(Spider):
                 "content_type": content_type,
             }
 
-            # Use LangChain to chunk the HTML content
-            if self.chunk_size > 0:
-                chunks = chunk_html_content(
-                    html_content=html_content,
-                    content_type=content_type,
-                    chunk_size=self.chunk_size,
-                    chunk_overlap=self.chunk_overlap,
-                    splitter_type=self.html_splitter,
-                    max_chunks=self.max_chunks_per_page,
-                )
+            # Save the content as Markdown with frontmatter
+            self._save_as_markdown(url, title, plain_text, html_content, metadata)
 
-                chunk_count = len(chunks)
-                logging.info(
-                    f"Split content into {chunk_count} chunks using {self.html_splitter} splitter"
-                )
-
-                # Safety check - if too many chunks are produced, something might be wrong
-                if chunk_count >= self.max_chunks_per_page:
-                    logging.warning(
-                        f"Hit chunk limit ({chunk_count} chunks) for {url}, consider reviewing the content structure"
-                    )
-
-                for i, chunk in enumerate(chunks):
-                    # Merge the base metadata with the chunk-specific metadata
-                    chunk_metadata = {**base_metadata, **chunk.get("metadata", {})}
-                    chunk_metadata["chunk_index"] = i
-                    chunk_metadata["chunk_count"] = chunk_count
-
-                    # Ensure the content is stored in the metadata for ChromaDB
-                    chunk_metadata["content"] = chunk["content"]
-
-                    # Create a document for each chunk
-                    document = Document(
-                        url=f"{url}#chunk{i}",
-                        content=chunk["content"],
-                        metadata=chunk_metadata,
-                    )
-
-                    self._store_document(document)
-
-                    # Also save to results list for interruptibility
-                    doc_dict = document.to_dict()
-                    self.results.append(doc_dict)
-            else:
-                # Store as a single document (no chunking)
-                base_metadata["content"] = plain_text  # Ensure content is in metadata
-                document = Document(url=url, content=plain_text, metadata=base_metadata)
-                self._store_document(document)
-
-                # Also save to results list for interruptibility
-                doc_dict = document.to_dict()
-                self.results.append(doc_dict)
+            # Also save basic info to results list for interruptibility
+            result_entry = {
+                "url": url,
+                "title": title,
+                "depth": current_depth,
+                "timestamp": datetime.now().isoformat(),
+            }
+            self.results.append(result_entry)
 
             # Save results after each page to enable interruption
             self._save_results()
@@ -220,6 +167,122 @@ class WebSpider(Spider):
         except Exception as e:
             logging.error(f"Error processing {url}: {str(e)}")
 
+    def _save_as_markdown(self, url, title, plain_text, html_content, metadata):
+        """Save the content as Markdown with YAML frontmatter"""
+        # Create a safe filename from the URL
+        filename = self._url_to_safe_filename(url)
+
+        # Prepare the markdown content with frontmatter
+        frontmatter = yaml.dump(metadata, default_flow_style=False)
+
+        # Construct the full markdown content
+        markdown_content = f"---\n{frontmatter}---\n\n# {title}\n\n{plain_text}\n"
+
+        # Save the markdown file
+        file_path = os.path.join(self.output_dir, f"{filename}.md")
+
+        # Create parent directories if needed
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(markdown_content)
+
+        # Also save the original HTML if it exists
+        if html_content:
+            html_path = os.path.join(self.output_dir, f"{filename}.html")
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
+
+        logging.info(f"Saved content to {file_path}")
+
+        # Add file path to metadata for tracking
+        metadata["file_path"] = file_path
+        return file_path
+
+    def _url_to_safe_filename(self, url):
+        """Convert a URL to a safe filename"""
+        # Parse the URL and remove the scheme
+        parsed = urlparse(url)
+        path = parsed.path
+
+        # Handle empty path or just "/"
+        if not path or path == "/":
+            path = "index"
+
+        # Create directory structure based on domain and path
+        domain_part = parsed.netloc
+        path_part = path.lstrip("/").replace("/", "_")
+
+        # Handle query parameters by appending a hash of them
+        if parsed.query:
+            path_part += f"_{quote(parsed.query, safe='')[:50]}"  # Limit length
+
+        # Create a filename safe for all operating systems
+        safe_name = f"{domain_part}/{path_part}"
+        return safe_name
+
+    def _save_pdf_url(self, url, depth):
+        """Save PDF URL to the PDF list"""
+        pdf_entry = {
+            "url": url,
+            "depth": depth,
+            "source_domain": urlparse(url).netloc,
+            "found_timestamp": datetime.now().isoformat(),
+        }
+        self.pdf_urls.append(pdf_entry)
+
+        # Save PDF list to file
+        with open(self.pdf_output_file, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "pdf_count": len(self.pdf_urls),
+                    "pdfs": self.pdf_urls,
+                },
+                f,
+                indent=2,
+            )
+
+    def _save_results(self):
+        """Save current results to the output file if specified"""
+        if not self.output_file:
+            return
+
+        # Calculate the first URL from self.start_urls
+        url = self.start_urls[0] if self.start_urls else "unknown"
+
+        with open(self.output_file, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "url": url,
+                    "depth": self.max_depth,
+                    "pages_scraped": len(self.visited_urls),
+                    "results": self.results,
+                },
+                f,
+                indent=2,
+            )
+
+    def spider_closed(self, spider):
+        """Called when the spider is closed"""
+        logging.info(f"Spider closed. Visited {len(self.visited_urls)} pages")
+        self._save_results()
+
+        # Save PDFs to file
+        if self.pdf_urls:
+            logging.info(f"Found {len(self.pdf_urls)} PDF files")
+            with open(self.pdf_output_file, "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "timestamp": datetime.now().isoformat(),
+                        "pdf_count": len(self.pdf_urls),
+                        "pdfs": self.pdf_urls,
+                    },
+                    f,
+                    indent=2,
+                )
+
     def errback_handler(self, failure):
         """Handle request failures gracefully"""
         request = failure.request
@@ -233,7 +296,6 @@ class WebSpider(Spider):
     def _extract_html_content(self, response):
         """
         Extract the HTML content from the response.
-        For LangChain's HTML splitters, we need the HTML content, not just the text.
         """
         # Get the HTML content from the body
         body_content = response.css("body").get() or response.text
@@ -287,78 +349,3 @@ class WebSpider(Spider):
             content_areas = response.css("a::attr(href)").getall()
 
         return content_areas
-
-    def _store_document(self, document):
-        """Store the document in ChromaDB"""
-        try:
-            self.chroma_store.add_document(
-                document_id=document.url,
-                embedding=None,  # We'll generate embeddings later
-                metadata=document.metadata,
-            )
-            logging.info(f"Successfully stored document: {document.url}")
-        except Exception as e:
-            logging.error(f"Failed to store document {document.url}: {str(e)}")
-
-    def _save_pdf_url(self, url, depth):
-        """Save PDF URL to the PDF list"""
-        pdf_entry = {
-            "url": url,
-            "depth": depth,
-            "source_domain": urlparse(url).netloc,
-            "found_timestamp": datetime.now().isoformat(),
-        }
-        self.pdf_urls.append(pdf_entry)
-
-        # Save PDF list to file
-        with open(self.pdf_output_file, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "timestamp": datetime.now().isoformat(),
-                    "pdf_count": len(self.pdf_urls),
-                    "pdfs": self.pdf_urls,
-                },
-                f,
-                indent=2,
-            )
-
-    def _save_results(self):
-        """Save current results to the output file if specified"""
-        if not self.output_file:
-            return
-
-        # Calculate the first URL from self.start_urls
-        url = self.start_urls[0] if self.start_urls else "unknown"
-
-        with open(self.output_file, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "timestamp": datetime.now().isoformat(),
-                    "url": url,
-                    "depth": self.max_depth,
-                    "collection": self.collection_name,
-                    "pages_scraped": len(self.visited_urls),
-                    "results": self.results,
-                },
-                f,
-                indent=2,
-            )
-
-    def spider_closed(self, spider):
-        """Called when the spider is closed"""
-        logging.info(f"Spider closed. Visited {len(self.visited_urls)} pages")
-        self._save_results()
-
-        # Save PDFs to file
-        if self.pdf_urls:
-            logging.info(f"Found {len(self.pdf_urls)} PDF files")
-            with open(self.pdf_output_file, "w", encoding="utf-8") as f:
-                json.dump(
-                    {
-                        "timestamp": datetime.now().isoformat(),
-                        "pdf_count": len(self.pdf_urls),
-                        "pdfs": self.pdf_urls,
-                    },
-                    f,
-                    indent=2,
-                )
