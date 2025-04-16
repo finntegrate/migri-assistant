@@ -93,6 +93,12 @@ uv run -m migri_assistant.cli scrape https://migri.fi --output-dir content --res
 uv run -m migri_assistant.cli info
 ```
 
+5. Scrape a specific website, like Migri.fi
+
+```bash
+python -m migri_assistant.cli scrape https://migri.fi --use-migri-scraper -o scraped_pages/migri.fi
+```
+
 ## Output Format
 
 The scraper creates:
