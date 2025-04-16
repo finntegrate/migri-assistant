@@ -52,7 +52,7 @@ migri-scrape scrape https://migri.fi/en/home
 
 2. Using uv run:
 ```bash
-uv run -m migri_assistant.cli scrape https://migri.fi/en/home
+uv run -m migri_assistant.cli scrape https://migri.fi/en/home -d 1 -o scraped_pages
 ```
 
 ### Getting Help with CLI Commands
