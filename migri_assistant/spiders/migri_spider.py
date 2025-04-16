@@ -1,6 +1,7 @@
 import logging
 from typing import Dict, Optional
 
+import html2text
 from lxml import html
 
 from migri_assistant.spiders.web_spider import WebSpider
@@ -35,7 +36,12 @@ class MigriSpider(WebSpider):
             tree = html.fromstring(response.body)
 
             # Find the main content section
-            content_section = tree.xpath('//section[@id="content" and @role="main"]')
+            content_section = tree.xpath('//div[@id="main-content"]')
+            content_section = (
+                content_section
+                if content_section and len(content_section) == 1
+                else None
+            )
 
             # If we found the content section, extract only its HTML
             if content_section:
@@ -69,8 +75,23 @@ class MigriSpider(WebSpider):
         html_content = self._extract_html_content(response)
 
         # Convert to plain text using html2text
-        h2t = self._get_html2text_converter()
-        return h2t.handle(html_content)
+        return self._get_html2text_converter().handle(html_content)
+
+    def _get_html2text_converter(self):
+        """
+        Create and configure an HTML2Text converter with optimal settings.
+
+        Returns:
+            html2text.HTML2Text: Configured converter
+        """
+        text_maker = html2text.HTML2Text()
+        text_maker.ignore_links = False  # Preserve links in the output
+        text_maker.body_width = 0  # Don't wrap text at a specific width
+        text_maker.protect_links = True  # Don't wrap links at the end of lines
+        text_maker.unicode_snob = True  # Use Unicode instead of ASCII
+        text_maker.ignore_images = False  # Include images in the output
+        text_maker.ignore_tables = False  # Include tables in the output
+        return text_maker
 
     def _extract_metadata(self, response) -> Dict[str, Optional[str]]:
         """
