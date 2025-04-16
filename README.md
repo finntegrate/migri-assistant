@@ -1,14 +1,16 @@
 # Migri Assistant
 
 ## Overview
-Migri Assistant is an AI-powered web scraping tool designed to extract information from websites, specifically tailored for knowledge from Migri.fi. It utilizes Scrapy for efficient web scraping and ChromaDB for managing vector embeddings of the scraped data.
+Migri Assistant is a web scraping tool designed to extract information from websites, specifically tailored for knowledge from Migri.fi. It utilizes Scrapy for efficient web scraping and outputs content as Markdown files with frontmatter metadata for easy processing.
 
 ## Features
 - Scrapes web pages to a configurable depth
 - Intelligently extracts main content from web pages
-- Outputs results in a structured format suitable for vector embeddings
-- Integrates with ChromaDB for storing and retrieving embeddings
+- Outputs results as Markdown files with YAML frontmatter metadata
+- Also preserves original HTML content for reference
+- Generates an index of all scraped pages
 - Configurable domain restrictions and depth control
+- Tracks PDF links for later processing
 
 ## Installation and Setup
 
@@ -76,15 +78,52 @@ This will display all available options, their descriptions, default values, and
 uv run -m migri_assistant.cli scrape https://migri.fi --depth 2
 ```
 
-2. Scrape with domain restriction and save results:
+2. Scrape with domain restriction and custom output directory:
 ```bash
-uv run -m migri_assistant.cli scrape https://migri.fi --depth 3 --domain migri.fi --output migri_data.json
+uv run -m migri_assistant.cli scrape https://migri.fi --depth 3 --domain migri.fi --output-dir migri_content
 ```
 
-3. Get information about available commands:
+3. Scrape and save metadata results separately:
+```bash
+uv run -m migri_assistant.cli scrape https://migri.fi --output-dir content --results metadata.json
+```
+
+4. Get information about available commands:
 ```bash
 uv run -m migri_assistant.cli info
 ```
+
+## Output Format
+
+The scraper creates:
+
+1. **Markdown files** with YAML frontmatter containing:
+   - URL
+   - Title
+   - Source domain
+   - Crawl timestamp
+   - Content type
+   - Depth of the page in the crawl
+
+   Example:
+   ```markdown
+   ---
+   url: https://example.com/page
+   title: Example Page
+   source_domain: example.com
+   crawl_timestamp: 2023-04-15T12:34:56
+   content_type: text/html
+   depth: 1
+   ---
+
+   # Example Page
+
+   This is the content of the page...
+   ```
+
+2. **HTML files** containing the original HTML content for reference
+3. **Index file** (index.md) linking to all scraped pages
+4. **PDF tracking file** listing URLs of PDF documents found during scraping
 
 ## Project Structure
 ```
@@ -112,18 +151,46 @@ migri-assistant
 └── README.md
 ```
 
-## Further Development
+## Processing the Output
 
-After scraping, you can use the stored data with the ChromaDB integration:
+After scraping, you can process the Markdown files for various purposes:
 
 ```python
-from migri_assistant.vectorstore.chroma_store import ChromaStore
+from pathlib import Path
+import yaml
+import markdown
 
-# Initialize the ChromaDB store
-store = ChromaStore(collection_name="migri_documents")
+# Read a Markdown file with frontmatter
+def read_markdown_with_frontmatter(file_path):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    # Split frontmatter and markdown content
+    if content.startswith('---'):
+        _, frontmatter, markdown_content = content.split('---', 2)
+        metadata = yaml.safe_load(frontmatter)
+        return metadata, markdown_content.strip()
+    else:
+        return {}, content
 
-# Query the store
-results = store.query(embedding=your_embedding_vector, n_results=5)
+# Process all markdown files in a directory
+def process_markdown_files(directory):
+    markdown_files = Path(directory).glob('**/*.md')
+    
+    for file_path in markdown_files:
+        # Skip the index file
+        if file_path.name == 'index.md':
+            continue
+            
+        metadata, content = read_markdown_with_frontmatter(file_path)
+        
+        # Now you can process the content and metadata
+        print(f"Processing {metadata.get('title')}, URL: {metadata.get('url')}")
+        
+        # Example: Convert markdown to HTML
+        html_content = markdown.markdown(content)
+        
+        # Do something with the content...
 ```
 
 ## Contributing
