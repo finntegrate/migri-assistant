@@ -48,7 +48,10 @@ class ScrapyScraper(BaseScraper):
         self.logger = logging.getLogger(__name__)
 
     def scrape(
-        self, url: str, depth: int = 1, allowed_domains: Optional[List[str]] = None
+        self,
+        url: str,
+        depth: int = 1,
+        allowed_domains: Optional[List[str]] = None,
     ) -> List[dict]:
         """
         Scrape the given URL up to the specified depth and save content as Markdown files

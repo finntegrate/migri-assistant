@@ -33,26 +33,29 @@ class MigriScraper(ScrapyScraper):
 
     def scrape(
         self,
-        start_urls: List[str],
+        url: str,
+        depth: int = 1,
         allowed_domains: Optional[List[str]] = None,
         **kwargs,
-    ):
+    ) -> List[dict]:
         """
-        Scrape content from Migri.fi website starting from the provided URLs.
+        Scrape content from Migri.fi website starting from the provided URL.
 
-        If allowed_domains is not provided, it will be inferred from the start_urls.
+        If allowed_domains is not provided, it will be inferred from the url.
 
         Args:
-            start_urls: List of URLs to start scraping from
+            url: The URL to start scraping from
+            depth: How many links deep to follow
             allowed_domains: Optional list of domains to restrict crawling to
             **kwargs: Additional keyword arguments to pass to the spider
+
+        Returns:
+            List of document dictionaries containing the scraped content
         """
-        # If allowed_domains not provided, infer from start_urls
+        # If allowed_domains not provided, infer from start_url
         if allowed_domains is None:
-            # Extract domains from start_urls
             allowed_domains = []
-            for url in start_urls:
-                parsed_url = urlparse(url)
+            parsed_url = urlparse(url)
                 domain = parsed_url.netloc
                 if domain and domain not in allowed_domains:
                     allowed_domains.append(domain)
@@ -61,5 +64,5 @@ class MigriScraper(ScrapyScraper):
 
         # Call the parent scrape method with our settings
         return super().scrape(
-            start_urls=start_urls, allowed_domains=allowed_domains, **kwargs
+            url=url, depth=depth, allowed_domains=allowed_domains, **kwargs
         )

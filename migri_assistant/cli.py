@@ -5,6 +5,7 @@ from typing import List, Optional
 
 import typer
 
+from migri_assistant.scrapers.migri_scraper import MigriScraper
 from migri_assistant.scrapers.scrapy_scraper import ScrapyScraper
 
 # Configure logging
@@ -51,6 +52,9 @@ def scrape(
     pdf_output: Optional[Path] = typer.Option(
         "pdfs.json", "--pdf-output", "-p", help="Path to save found PDF URLs as JSON"
     ),
+    use_migri_scraper: bool = typer.Option(
+        False, "--use-migri-scraper", help="Use the specialized Migri.fi scraper"
+    ),
     verbose: bool = typer.Option(
         False, "--verbose", "-v", help="Enable verbose output"
     ),
@@ -72,19 +76,40 @@ def scrape(
     typer.echo(f"📝 Saving scraped content as Markdown files to: {output_dir}")
 
     try:
-        # Initialize scraper
-        scraper = ScrapyScraper(
-            output_dir=output_dir,
-            output_file=str(results_json) if results_json else None,
-            pdf_output_file=str(pdf_output),
-        )
+        # Initialize appropriate scraper
+        if use_migri_scraper:
+            typer.echo("🔧 Using specialized Migri.fi scraper")
+            scraper = MigriScraper(
+                output_dir=output_dir,
+                output_file=str(results_json) if results_json else None,
+                pdf_output_file=str(pdf_output),
+            )
+        else:
+            scraper = ScrapyScraper(
+                output_dir=output_dir,
+                output_file=str(results_json) if results_json else None,
+                pdf_output_file=str(pdf_output),
+            )
 
         typer.echo(
             "⚠️ Press Ctrl+C at any time to interrupt crawling and save current results"
         )
 
         # Start scraping
-        results = scraper.scrape(url=url, depth=depth, allowed_domains=allowed_domains)
+        if use_migri_scraper:
+            # MigriScraper expects start_urls as a list
+            results = scraper.scrape(
+                url=url,
+                allowed_domains=allowed_domains,
+                depth=depth,
+            )
+        else:
+            # Use the standard ScrapyScraper interface
+            results = scraper.scrape(
+                url=url,
+                depth=depth,
+                allowed_domains=allowed_domains,
+            )
 
         # Output information
         typer.echo(f"✅ Scraping completed! Processed {len(results)} pages.")
