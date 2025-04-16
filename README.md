@@ -80,12 +80,12 @@ uv run -m migri_assistant.cli scrape https://migri.fi --depth 2
 
 2. Scrape with domain restriction and custom output directory:
 ```bash
-uv run -m migri_assistant.cli scrape https://migri.fi --depth 3 --domain migri.fi --output-dir migri_content
+uv run -m migri_assistant.cli scrape https://migri.fi/en/ --depth 3 --domain migri.fi --output-dir migri_content
 ```
 
 3. Scrape and save metadata results separately:
 ```bash
-uv run -m migri_assistant.cli scrape https://migri.fi --output-dir content --results metadata.json
+uv run -m migri_assistant.cli scrape https://migri.fi/en/ --output-dir content --results metadata.json
 ```
 
 4. Get information about available commands:
@@ -96,7 +96,7 @@ uv run -m migri_assistant.cli info
 5. Scrape a specific website, like Migri.fi
 
 ```bash
-python -m migri_assistant.cli scrape https://migri.fi --use-migri-scraper -o scraped_pages/migri.fi
+python -m migri_assistant.cli scrape https://migri.fi/en/home/ --use-migri-scraper
 ```
 
 ## Output Format
