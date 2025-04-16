@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Dict, List, Set
 from urllib.parse import quote, urlparse
 
+import html2text
 import yaml
 from scrapy import Spider, signals
 from scrapy.http import Request
@@ -319,32 +320,25 @@ class WebSpider(Spider):
         return body_content
 
     def _extract_content(self, response):
-        """Extract cleaned main content from the page (used as fallback)"""
-        # Try to get main content
-        main_content = (
-            response.css("main").extract() or response.css("article").extract()
-        )
+        """
+        Extract content from the page with proper Markdown formatting to preserve structure.
+        Uses html2text library to maintain headings, paragraphs, lists, and other formatting.
+        """
+        html_content = response.text
 
-        if main_content:
-            # Use the first main content area found
-            text = self._clean_html(main_content[0])
-        else:
-            # Fallback to body content, excluding navigation, footer, etc.
-            body_content = response.css("body").extract_first()
-            if body_content:
-                # Remove common non-content elements
-                clean_html = re.sub(
-                    r"<(nav|header|footer|script|style|aside)[^>]*>.*?</\1>",
-                    "",
-                    body_content,
-                    flags=re.DOTALL,
-                )
-                text = self._clean_html(clean_html)
-            else:
-                # Last resort, just get text from the whole body
-                text = " ".join(response.css("body ::text").getall())
+        # Configure html2text for optimal conversion
+        text_maker = html2text.HTML2Text()
+        text_maker.ignore_links = False  # Preserve links in the output
+        text_maker.body_width = 0  # Don't wrap text at a specific width
+        text_maker.protect_links = True  # Don't wrap links at the end of lines
+        text_maker.unicode_snob = True  # Use Unicode instead of ASCII
+        text_maker.ignore_images = False  # Include images in the output
+        text_maker.ignore_tables = False  # Include tables in the output
 
-        return " ".join(text.split())  # Normalize whitespace
+        # Convert HTML to Markdown preserving structure
+        markdown_text = text_maker.handle(html_content)
+
+        return markdown_text
 
     def _clean_html(self, html_content):
         """Remove HTML tags and normalize whitespace"""
