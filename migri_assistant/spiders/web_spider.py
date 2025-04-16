@@ -95,7 +95,17 @@ class WebSpider(Spider):
         logging.info(f"Saving Markdown files to: {self.output_dir}")
 
     def start_requests(self):
+        """
+        Start the crawling process with the provided URLs.
+        Check if URLs are PDFs before making requests to save resources.
+        """
         for url in self.start_urls:
+            # Check if the start URL is a PDF
+            if is_pdf_url(url):
+                logging.info(f"Detected PDF URL in start URLs: {url}")
+                self._save_pdf_url(url, 0)
+                continue
+
             yield Request(url=url, callback=self.parse, cb_kwargs={"current_depth": 0})
 
     def parse(self, response, current_depth=0):
@@ -115,8 +125,8 @@ class WebSpider(Spider):
                 .lower()
             )
 
-            if "application/pdf" in content_type or is_pdf_url(url):
-                logging.info(f"Skipping PDF: {url}")
+            if "application/pdf" in content_type:
+                logging.info(f"Skipping PDF (detected by content type): {url}")
                 self._save_pdf_url(url, current_depth)
                 return
 
@@ -153,11 +163,15 @@ class WebSpider(Spider):
             # Follow links if we haven't reached max depth
             if current_depth < self.max_depth:
                 for href in self._extract_links(response):
+                    # Skip PDFs - detect them by URL pattern and don't make requests to them
                     if is_pdf_url(href):
-                        logging.info(f"Found PDF link: {href}")
+                        logging.info(
+                            f"Found PDF link - recording without requesting: {href}"
+                        )
                         self._save_pdf_url(href, current_depth + 1)
                         continue
 
+                    # For non-PDF links, follow as usual
                     yield response.follow(
                         href,
                         callback=self.parse,
@@ -242,6 +256,9 @@ class WebSpider(Spider):
                 f,
                 indent=2,
             )
+        logging.info(
+            f"Added PDF URL to tracking list (total: {len(self.pdf_urls)}): {url}"
+        )
 
     def _save_results(self):
         """Save current results to the output file if specified"""
