@@ -56,9 +56,9 @@ class MigriScraper(ScrapyScraper):
         if allowed_domains is None:
             allowed_domains = []
             parsed_url = urlparse(url)
-                domain = parsed_url.netloc
-                if domain and domain not in allowed_domains:
-                    allowed_domains.append(domain)
+            domain = parsed_url.netloc
+            if domain and domain not in allowed_domains:
+                allowed_domains.append(domain)
 
             logging.info(f"Inferred allowed domains: {allowed_domains}")
 
