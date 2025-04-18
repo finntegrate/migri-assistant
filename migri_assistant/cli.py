@@ -228,7 +228,9 @@ def vectorize(
         vectorizer = MarkdownVectorizer(
             collection_name=collection_name,
             persist_directory=db_dir,
-            model_name=embedding_model,
+            embedding_model_name=embedding_model,
+            chunk_size=1000,
+            chunk_overlap=200,
         )
 
         # Process all files in the directory

@@ -1,23 +1,29 @@
-"""Vectorize markdown content into ChromaDB."""
+"""Vectorize markdown content into ChromaDB using LangChain components."""
 
 import logging
 import os
+from typing import Any
 
-from migri_assistant.utils.embedding_utils import EmbeddingGenerator
+from langchain.schema.document import Document
+from langchain.vectorstores.chroma import Chroma
+from langchain_community.embeddings import SentenceTransformerEmbeddings
+from langchain_text_splitters import MarkdownTextSplitter
+
 from migri_assistant.utils.markdown_utils import find_markdown_files, read_markdown_file
-from migri_assistant.vectorstore.chroma_store import ChromaStore
 
 logger = logging.getLogger(__name__)
 
 
 class MarkdownVectorizer:
-    """Vectorize markdown content and store in ChromaDB."""
+    """Vectorize markdown content and store in ChromaDB using LangChain."""
 
     def __init__(
         self,
         collection_name: str,
         persist_directory: str = "chroma_db",
-        model_name: str = "all-MiniLM-L6-v2",
+        embedding_model_name: str = "all-MiniLM-L6-v2",
+        chunk_size: int = 1000,
+        chunk_overlap: int = 200,
     ):
         """
         Initialize the vectorizer.
@@ -25,12 +31,33 @@ class MarkdownVectorizer:
         Args:
             collection_name: Name of the ChromaDB collection to use
             persist_directory: Directory to persist the ChromaDB database
-            model_name: Name of the embedding model to use
+            embedding_model_name: Name of the sentence-transformers model to use
+            chunk_size: Size of text chunks in characters
+            chunk_overlap: Overlap between chunks in characters
         """
-        self.embedding_generator = EmbeddingGenerator(model_name=model_name)
-        self.store = ChromaStore(
-            collection_name=collection_name, persist_directory=persist_directory
+        # Initialize embedding model
+        self.embeddings = SentenceTransformerEmbeddings(model_name=embedding_model_name)
+
+        # Initialize text splitter for markdown
+        self.text_splitter = MarkdownTextSplitter(
+            chunk_size=chunk_size, chunk_overlap=chunk_overlap
         )
+
+        # Directory and collection config
+        self.persist_directory = persist_directory
+        self.collection_name = collection_name
+
+        # Initialize vector store
+        self.vector_db = Chroma(
+            collection_name=collection_name,
+            embedding_function=self.embeddings,
+            persist_directory=persist_directory,
+        )
+
+        # Save configuration
+        self.embedding_model_name = embedding_model_name
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
 
     def process_directory(
         self, input_dir: str, domain_filter: str | None = None, batch_size: int = 20
@@ -54,53 +81,97 @@ class MarkdownVectorizer:
 
         # Process files in batches
         processed_count = 0
+        chunk_count = 0
         for i in range(0, total_files, batch_size):
             batch = markdown_files[i : i + batch_size]
-            self._process_batch(batch)
+            new_chunks = self._process_batch(batch)
             processed_count += len(batch)
-            logger.info(f"Processed {processed_count}/{total_files} files")
+            chunk_count += new_chunks
+            logger.info(
+                f"Processed {processed_count}/{total_files} files ({chunk_count} chunks)"
+            )
+            # Persist after each batch to save progress
+            self.vector_db.persist()
 
         return processed_count
 
-    def _process_batch(self, file_paths: list[str]):
+    def _process_batch(self, file_paths: list[str]) -> int:
         """
         Process a batch of markdown files.
 
         Args:
             file_paths: List of paths to markdown files
+
+        Returns:
+            Number of chunks processed
         """
-        contents = []
-        metadatas = []
-        ids = []
+        all_documents = []
 
         for file_path in file_paths:
-            # Extract document ID from filename
-            doc_id = os.path.splitext(os.path.basename(file_path))[0]
+            try:
+                # Read markdown file
+                metadata, content = read_markdown_file(file_path)
 
-            # Read markdown file
-            metadata, content = read_markdown_file(file_path)
+                if not content:
+                    logger.warning(f"Empty content in {file_path}")
+                    continue
 
-            if content:
-                ids.append(doc_id)
-                contents.append(content)
-                metadatas.append(metadata)
+                # Create a LangChain Document with metadata
+                doc = Document(
+                    page_content=content,
+                    metadata=self._prepare_metadata(metadata, file_path),
+                )
 
-        if not contents:
-            return
+                # Split the document and add source info to each chunk
+                chunks = self.text_splitter.split_documents([doc])
 
-        # Generate embeddings in batch
-        embeddings = self.embedding_generator.generate_batch(contents)
+                # Update metadata with chunk information
+                for i, chunk in enumerate(chunks):
+                    chunk.metadata["chunk_index"] = i
+                    chunk.metadata["total_chunks"] = len(chunks)
 
-        # Store documents with embeddings in ChromaDB
-        for i, (doc_id, content, embedding, metadata) in enumerate(
-            zip(ids, contents, embeddings, metadatas)
-        ):
-            metadata["content"] = content  # Store content in metadata for retrieval
-            self.store.add_document(
-                document_id=doc_id, embedding=embedding, metadata=metadata
-            )
+                all_documents.extend(chunks)
 
-    def process_file(self, file_path: str) -> bool:
+                logger.debug(
+                    f"Added document {os.path.basename(file_path)} with embeddings"
+                )
+
+            except Exception as e:
+                logger.error(f"Error processing file {file_path}: {e}")
+
+        # Add all documents to the vector store
+        if all_documents:
+            self.vector_db.add_documents(all_documents)
+
+        return len(all_documents)
+
+    def _prepare_metadata(
+        self, metadata: dict[str, Any], file_path: str
+    ) -> dict[str, Any]:
+        """
+        Prepare metadata for the document.
+
+        Args:
+            metadata: Original metadata from the markdown file
+            file_path: Path to the markdown file
+
+        Returns:
+            Enhanced metadata dictionary
+        """
+        # Extract document ID from filename
+        doc_id = os.path.splitext(os.path.basename(file_path))[0]
+
+        # Start with the metadata from the markdown frontmatter
+        enriched_metadata = metadata.copy()
+
+        # Add additional useful metadata
+        enriched_metadata["source_id"] = doc_id
+        enriched_metadata["source_path"] = file_path
+        enriched_metadata["file_name"] = os.path.basename(file_path)
+
+        return enriched_metadata
+
+    def process_file(self, file_path: str) -> int:
         """
         Process a single markdown file.
 
@@ -108,33 +179,40 @@ class MarkdownVectorizer:
             file_path: Path to markdown file
 
         Returns:
-            True if successful, False otherwise
+            Number of chunks processed
         """
         try:
-            # Extract document ID from filename
-            doc_id = os.path.splitext(os.path.basename(file_path))[0]
-
             # Read markdown file
             metadata, content = read_markdown_file(file_path)
 
             if not content:
                 logger.warning(f"Empty content in {file_path}")
-                return False
+                return 0
 
-            # Generate embedding
-            embedding = self.embedding_generator.generate(content)
-
-            if not embedding:
-                logger.warning(f"Failed to generate embedding for {file_path}")
-                return False
-
-            # Store in ChromaDB
-            metadata["content"] = content  # Store content in metadata for retrieval
-            self.store.add_document(
-                document_id=doc_id, embedding=embedding, metadata=metadata
+            # Create a LangChain Document
+            doc = Document(
+                page_content=content,
+                metadata=self._prepare_metadata(metadata, file_path),
             )
 
-            return True
+            # Split the document
+            chunks = self.text_splitter.split_documents([doc])
+
+            # Update metadata with chunk information
+            for i, chunk in enumerate(chunks):
+                chunk.metadata["chunk_index"] = i
+                chunk.metadata["total_chunks"] = len(chunks)
+
+            # Add documents to the vector store
+            self.vector_db.add_documents(chunks)
+            self.vector_db.persist()
+
+            logger.debug(
+                f"Added document {os.path.basename(file_path)} with embeddings"
+            )
+
+            return len(chunks)
+
         except Exception as e:
             logger.error(f"Error processing file {file_path}: {e}")
-            return False
+            return 0
