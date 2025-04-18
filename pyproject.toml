@@ -15,9 +15,10 @@ dependencies = [
     "html2text>=2020.1.16",
     "pyyaml>=6.0.1",
     "langchain-text-splitters>=0.3.8",
-    "sentence-transformers>=4.1.0",
     "python-frontmatter>=1.1.0",
     "chromadb>=1.0.5",
+    "langchain-community>=0.3.21",
+    "langchain>=0.3.23",
 ]
 
 [project.optional-dependencies]
