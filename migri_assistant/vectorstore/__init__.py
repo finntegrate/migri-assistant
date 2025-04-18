@@ -1,1 +1,1 @@
-# This file initializes the vectorstore module.
+"""Vector storage utilities for Migri Assistant."""
