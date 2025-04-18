@@ -33,13 +33,6 @@ dev = [
 [project.scripts]
 migri-scrape = "migri_assistant.cli:app"
 
-[build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-packages = ["migri_assistant"]
-
 [tool.pytest]
 testpaths = ["tests"]
 python_files = "test_*.py"
@@ -60,4 +53,6 @@ line-ending = "auto"
 [dependency-groups]
 dev = [
     "pre-commit>=4.2.0",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
 ]
