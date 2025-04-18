@@ -69,7 +69,7 @@ class TestScrapyRunner(unittest.TestCase):
         """Test error handling in the run method."""
         # Mock crawler runner to raise an exception
         mock_crawler_runner.return_value.create_crawler.side_effect = Exception(
-            "Test error"
+            "Test error",
         )
 
         # Mock reactor

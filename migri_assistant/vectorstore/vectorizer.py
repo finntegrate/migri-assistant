@@ -40,7 +40,8 @@ class MarkdownVectorizer:
 
         # Initialize text splitter for markdown
         self.text_splitter = MarkdownTextSplitter(
-            chunk_size=chunk_size, chunk_overlap=chunk_overlap
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
         )
 
         # Directory and collection config
@@ -60,7 +61,10 @@ class MarkdownVectorizer:
         self.chunk_overlap = chunk_overlap
 
     def process_directory(
-        self, input_dir: str, domain_filter: str | None = None, batch_size: int = 20
+        self,
+        input_dir: str,
+        domain_filter: str | None = None,
+        batch_size: int = 20,
     ) -> int:
         """
         Process all markdown files in a directory.
@@ -88,7 +92,7 @@ class MarkdownVectorizer:
             processed_count += len(batch)
             chunk_count += new_chunks
             logger.info(
-                f"Processed {processed_count}/{total_files} files ({chunk_count} chunks)"
+                f"Processed {processed_count}/{total_files} files ({chunk_count} chunks)",
             )
             # Persist after each batch to save progress
             self.vector_db.persist()
@@ -133,7 +137,7 @@ class MarkdownVectorizer:
                 all_documents.extend(chunks)
 
                 logger.debug(
-                    f"Added document {os.path.basename(file_path)} with embeddings"
+                    f"Added document {os.path.basename(file_path)} with embeddings",
                 )
 
             except Exception as e:
@@ -146,7 +150,9 @@ class MarkdownVectorizer:
         return len(all_documents)
 
     def _prepare_metadata(
-        self, metadata: dict[str, Any], file_path: str
+        self,
+        metadata: dict[str, Any],
+        file_path: str,
     ) -> dict[str, Any]:
         """
         Prepare metadata for the document.
@@ -208,7 +214,7 @@ class MarkdownVectorizer:
             self.vector_db.persist()
 
             logger.debug(
-                f"Added document {os.path.basename(file_path)} with embeddings"
+                f"Added document {os.path.basename(file_path)} with embeddings",
             )
 
             return len(chunks)

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 # Suppress unnecessary warnings
 logging.getLogger("onnxruntime").setLevel(logging.ERROR)  # Suppress ONNX warnings
 logging.getLogger("transformers").setLevel(
-    logging.ERROR
+    logging.ERROR,
 )  # Suppress potential transformers warnings
 logging.getLogger("chromadb").setLevel(logging.WARNING)  # Reduce ChromaDB debug noise
 
@@ -46,7 +46,10 @@ def crawl(
         help="Directory to save crawled HTML files",
     ),
     verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose output",
     ),
 ):
     """
@@ -123,7 +126,10 @@ def parse(
         help="Type of site to parse (determines which parser to use)",
     ),
     verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose output",
     ),
 ):
     """
@@ -203,7 +209,10 @@ def vectorize(
         help="Number of documents to process in each batch",
     ),
     verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose output",
     ),
 ):
     """
@@ -236,7 +245,9 @@ def vectorize(
         # Process all files in the directory
         typer.echo("⚙️ Processing markdown files...")
         count = vectorizer.process_directory(
-            input_dir=input_dir, domain_filter=domain, batch_size=batch_size
+            input_dir=input_dir,
+            domain_filter=domain,
+            batch_size=batch_size,
         )
 
         # Output information

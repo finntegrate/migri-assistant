@@ -1,5 +1,4 @@
 import logging
-from typing import Dict, Optional
 
 import html2text
 from lxml import html
@@ -47,13 +46,15 @@ class MigriSpider(WebSpider):
             if content_section:
                 # Get the HTML of just this element
                 content_html = html.tostring(
-                    content_section[0], encoding="unicode", pretty_print=True
+                    content_section[0],
+                    encoding="unicode",
+                    pretty_print=True,
                 )
                 logging.info(f"Successfully extracted main content from {response.url}")
                 return content_html
             else:
                 logging.warning(
-                    f"Could not find main content section on {response.url}, using full HTML"
+                    f"Could not find main content section on {response.url}, using full HTML",
                 )
                 return response.text
 
@@ -93,7 +94,7 @@ class MigriSpider(WebSpider):
         text_maker.ignore_tables = False  # Include tables in the output
         return text_maker
 
-    def _extract_metadata(self, response) -> Dict[str, Optional[str]]:
+    def _extract_metadata(self, response) -> dict[str, str | None]:
         """
         Extract metadata from the Migri.fi page, such as publication date, language, etc.
 

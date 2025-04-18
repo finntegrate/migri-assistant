@@ -2,7 +2,6 @@ import logging
 import os
 import signal
 from datetime import datetime
-from typing import Set
 from urllib.parse import urlparse
 
 from scrapy import Spider, signals
@@ -15,7 +14,7 @@ class BaseCrawler(Spider):
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
         """Connect the spider_closed signal before initializing the spider"""
-        spider = super(BaseCrawler, cls).from_crawler(crawler, *args, **kwargs)
+        spider = super().from_crawler(crawler, *args, **kwargs)
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
 
         # Add a better SIGINT handling without directly using crawler.engine
@@ -65,10 +64,10 @@ class BaseCrawler(Spider):
         os.makedirs(self.output_dir, exist_ok=True)
 
         # Track visited URLs
-        self.visited_urls: Set[str] = set()
+        self.visited_urls: set[str] = set()
 
         logging.info(
-            f"Starting crawler with max depth {self.max_depth} for URLs: {self.start_urls}"
+            f"Starting crawler with max depth {self.max_depth} for URLs: {self.start_urls}",
         )
         logging.info(f"Allowed domains: {self.allowed_domains}")
         logging.info(f"Output directory: {self.output_dir}")
@@ -103,7 +102,7 @@ class BaseCrawler(Spider):
             # Only process HTML pages
             if "text/html" not in content_type:
                 logging.info(
-                    f"Skipping non-HTML content type '{content_type}' at {url}"
+                    f"Skipping non-HTML content type '{content_type}' at {url}",
                 )
                 return
 

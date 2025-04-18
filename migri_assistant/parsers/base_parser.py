@@ -3,7 +3,6 @@ import os
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
 import yaml
 
@@ -47,7 +46,7 @@ class BaseParser(ABC):
         )
         self.logger = logging.getLogger(__name__)
 
-    def parse_all(self, domain: Optional[str] = None) -> List[Dict]:
+    def parse_all(self, domain: str | None = None) -> list[dict]:
         """
         Parse all HTML files in the input directory, optionally filtered by domain.
 
@@ -89,7 +88,7 @@ class BaseParser(ABC):
         self.logger.info(f"Parsed {len(results)} files")
         return results
 
-    def parse_file(self, html_file: Union[str, Path]) -> Optional[Dict]:
+    def parse_file(self, html_file: str | Path) -> dict | None:
         """
         Parse a single HTML file.
 
@@ -104,7 +103,7 @@ class BaseParser(ABC):
 
         try:
             # Read the HTML content
-            with open(html_file_path, "r", encoding="utf-8") as f:
+            with open(html_file_path, encoding="utf-8") as f:
                 html_content = f.read()
 
             # Get relative path from input directory for generating output file path
@@ -190,7 +189,11 @@ class BaseParser(ABC):
         return file_stem
 
     def _save_markdown(
-        self, filename: str, title: str, content: str, metadata: Dict
+        self,
+        filename: str,
+        title: str,
+        content: str,
+        metadata: dict,
     ) -> str:
         """
         Save content as a markdown file with YAML frontmatter.
@@ -225,7 +228,7 @@ class BaseParser(ABC):
         self.logger.info(f"Saved markdown to {output_path}")
         return output_path
 
-    def _create_index(self, results: List[Dict]) -> str:
+    def _create_index(self, results: list[dict]) -> str:
         """
         Create an index markdown file for all parsed content.
 

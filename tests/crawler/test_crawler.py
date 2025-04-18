@@ -23,7 +23,9 @@ class TestBaseCrawler(unittest.TestCase):
         """Test crawler initialization"""
         # Test with a single URL
         crawler = BaseCrawler(
-            start_urls="https://example.com", depth=2, output_dir=self.output_dir
+            start_urls="https://example.com",
+            depth=2,
+            output_dir=self.output_dir,
         )
         self.assertEqual(crawler.start_urls, ["https://example.com"])
         self.assertEqual(crawler.max_depth, 2)
@@ -42,34 +44,38 @@ class TestBaseCrawler(unittest.TestCase):
     def test_get_file_path_from_url(self):
         """Test URL to file path conversion"""
         crawler = BaseCrawler(
-            start_urls="https://example.com", output_dir=self.output_dir
+            start_urls="https://example.com",
+            output_dir=self.output_dir,
         )
 
         # Test basic URL
         path = crawler._get_file_path_from_url("https://example.com")
         self.assertEqual(
-            path, os.path.join(self.output_dir, "example.com", "index.html")
+            path,
+            os.path.join(self.output_dir, "example.com", "index.html"),
         )
 
         # Test URL with path
         path = crawler._get_file_path_from_url("https://example.com/page")
         self.assertEqual(
-            path, os.path.join(self.output_dir, "example.com", "page.html")
+            path,
+            os.path.join(self.output_dir, "example.com", "page.html"),
         )
 
         # Test URL with query parameters
         path = crawler._get_file_path_from_url("https://example.com/page?param=value")
         self.assertTrue(
             path.startswith(
-                os.path.join(self.output_dir, "example.com", "page_param_value")
-            )
+                os.path.join(self.output_dir, "example.com", "page_param_value"),
+            ),
         )
         self.assertTrue(path.endswith(".html"))
 
     def test_save_html_content(self):
         """Test saving HTML content to file"""
         crawler = BaseCrawler(
-            start_urls="https://example.com", output_dir=self.output_dir
+            start_urls="https://example.com",
+            output_dir=self.output_dir,
         )
 
         # Test saving content
@@ -81,7 +87,7 @@ class TestBaseCrawler(unittest.TestCase):
         expected_path = crawler._get_file_path_from_url(url)
         self.assertTrue(os.path.exists(expected_path))
 
-        with open(expected_path, "r", encoding="utf-8") as f:
+        with open(expected_path, encoding="utf-8") as f:
             saved_content = f.read()
             self.assertEqual(saved_content, html_content)
 
@@ -89,7 +95,9 @@ class TestBaseCrawler(unittest.TestCase):
     def test_parse(self, mock_request):
         """Test parsing a web page and extracting content"""
         crawler = BaseCrawler(
-            start_urls="https://example.com", output_dir=self.output_dir, depth=1
+            start_urls="https://example.com",
+            output_dir=self.output_dir,
+            depth=1,
         )
 
         # Create a mock response
@@ -113,7 +121,8 @@ class TestBaseCrawler(unittest.TestCase):
 
         # Verify save_html_content was called
         crawler._save_html_content.assert_called_once_with(
-            mock_response.url, mock_response.text
+            mock_response.url,
+            mock_response.text,
         )
 
         # Verify the URL was added to visited_urls

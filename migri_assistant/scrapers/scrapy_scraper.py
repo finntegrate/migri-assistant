@@ -3,7 +3,6 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
@@ -51,8 +50,8 @@ class ScrapyScraper(BaseScraper):
         self,
         url: str,
         depth: int = 1,
-        allowed_domains: Optional[List[str]] = None,
-    ) -> List[dict]:
+        allowed_domains: list[str] | None = None,
+    ) -> list[dict]:
         """
         Scrape the given URL up to the specified depth and save content as Markdown files
 
@@ -81,7 +80,7 @@ class ScrapyScraper(BaseScraper):
                 "LOG_LEVEL": "INFO",
                 "DOWNLOAD_DELAY": 1,  # Be respectful to servers
                 "ROBOTSTXT_OBEY": True,  # Follow robots.txt rules
-            }
+            },
         )
 
         self.process = CrawlerProcess(settings)
@@ -100,12 +99,12 @@ class ScrapyScraper(BaseScraper):
         results = []
         try:
             if os.path.exists(output_file):
-                with open(output_file, "r", encoding="utf-8") as f:
+                with open(output_file, encoding="utf-8") as f:
                     data = json.load(f)
                     if "results" in data:
                         results = data["results"]
                     self.logger.info(
-                        f"Read metadata for {len(results)} pages from {output_file}"
+                        f"Read metadata for {len(results)} pages from {output_file}",
                     )
         except Exception as e:
             self.logger.error(f"Failed to read results from {output_file}: {e}")
@@ -119,11 +118,11 @@ class ScrapyScraper(BaseScraper):
             Path(output_file).unlink(missing_ok=True)
 
         self.logger.info(
-            f"Scraping completed. Scraped {len(results)} documents from {url}"
+            f"Scraping completed. Scraped {len(results)} documents from {url}",
         )
         return results
 
-    def _create_markdown_index(self, results: List[Dict]) -> None:
+    def _create_markdown_index(self, results: list[dict]) -> None:
         """
         Create an index.md file listing all scraped pages
 

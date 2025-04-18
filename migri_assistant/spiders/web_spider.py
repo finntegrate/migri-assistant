@@ -4,7 +4,6 @@ import os
 import re
 import signal
 from datetime import datetime
-from typing import Dict, List, Set
 from urllib.parse import quote, urlparse
 
 import html2text
@@ -21,7 +20,7 @@ class WebSpider(Spider):
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
         """Connect the spider_closed signal before initializing the spider"""
-        spider = super(WebSpider, cls).from_crawler(crawler, *args, **kwargs)
+        spider = super().from_crawler(crawler, *args, **kwargs)
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
 
         # Add SIGINT handling through Scrapy's shutdown mechanism
@@ -86,11 +85,11 @@ class WebSpider(Spider):
 
         # Track scraped results to make interruption possible
         self.results = []
-        self.pdf_urls: List[Dict] = []
-        self.visited_urls: Set[str] = set()
+        self.pdf_urls: list[dict] = []
+        self.visited_urls: set[str] = set()
 
         logging.info(
-            f"Starting spider with max depth {self.max_depth} for URLs: {self.start_urls}"
+            f"Starting spider with max depth {self.max_depth} for URLs: {self.start_urls}",
         )
         logging.info(f"Allowed domains: {self.allowed_domains}")
         logging.info(f"Saving Markdown files to: {self.output_dir}")
@@ -167,7 +166,7 @@ class WebSpider(Spider):
                     # Skip PDFs - detect them by URL pattern and don't make requests to them
                     if is_pdf_url(href):
                         logging.info(
-                            f"Found PDF link - recording without requesting: {href}"
+                            f"Found PDF link - recording without requesting: {href}",
                         )
                         self._save_pdf_url(href, current_depth + 1)
                         continue
@@ -258,7 +257,7 @@ class WebSpider(Spider):
                 indent=2,
             )
         logging.info(
-            f"Added PDF URL to tracking list (total: {len(self.pdf_urls)}): {url}"
+            f"Added PDF URL to tracking list (total: {len(self.pdf_urls)}): {url}",
         )
 
     def _save_results(self):
@@ -352,7 +351,7 @@ class WebSpider(Spider):
         """Extract valid links to follow"""
         # Focus on content areas for links when possible
         content_areas = response.css(
-            "main a::attr(href), article a::attr(href)"
+            "main a::attr(href), article a::attr(href)",
         ).getall()
 
         # If no links found in main content, fall back to all links

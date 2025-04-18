@@ -46,23 +46,25 @@ class TestBaseParser(unittest.TestCase):
         # Create test HTML files in domain1
         with open(os.path.join(self.input_dir, self.domain1, "index.html"), "w") as f:
             f.write(
-                "<html><body><h1>Example Home</h1><p>This is the home page.</p></body></html>"
+                "<html><body><h1>Example Home</h1><p>This is the home page.</p></body></html>",
             )
 
         with open(os.path.join(self.input_dir, self.domain1, "about.html"), "w") as f:
             f.write(
-                "<html><body><h1>About Us</h1><p>This is the about page.</p></body></html>"
+                "<html><body><h1>About Us</h1><p>This is the about page.</p></body></html>",
             )
 
         # Create test HTML file in domain2
         with open(os.path.join(self.input_dir, self.domain2, "index.html"), "w") as f:
             f.write(
-                "<html><body><h1>Test Home</h1><p>This is a test page.</p></body></html>"
+                "<html><body><h1>Test Home</h1><p>This is a test page.</p></body></html>",
             )
 
         # Create our test parser instance
         self.parser = TestParser(
-            input_dir=self.input_dir, output_dir=self.output_dir, site_name="test_site"
+            input_dir=self.input_dir,
+            output_dir=self.output_dir,
+            site_name="test_site",
         )
 
         # Mock the logger to avoid console output during tests
@@ -76,7 +78,8 @@ class TestBaseParser(unittest.TestCase):
         """Test parser initialization"""
         self.assertEqual(self.parser.input_dir, self.input_dir)
         self.assertEqual(
-            self.parser.output_dir, os.path.join(self.output_dir, "test_site")
+            self.parser.output_dir,
+            os.path.join(self.output_dir, "test_site"),
         )
         self.assertEqual(self.parser.site_name, "test_site")
 
@@ -84,7 +87,7 @@ class TestBaseParser(unittest.TestCase):
         """Test parsing a single HTML file"""
         # Parse the example.com index.html file
         result = self.parser.parse_file(
-            os.path.join(self.input_dir, self.domain1, "index.html")
+            os.path.join(self.input_dir, self.domain1, "index.html"),
         )
 
         # Check the result
@@ -97,7 +100,7 @@ class TestBaseParser(unittest.TestCase):
         output_file = result["output_file"]
         self.assertTrue(os.path.exists(output_file))
 
-        with open(output_file, "r") as f:
+        with open(output_file) as f:
             content = f.read()
             self.assertIn("Example Home", content)
             self.assertIn("This is the home page.", content)
@@ -119,7 +122,7 @@ class TestBaseParser(unittest.TestCase):
         self.assertTrue(os.path.exists(index_file))
 
         # Check index file content
-        with open(index_file, "r") as f:
+        with open(index_file) as f:
             content = f.read()
             self.assertIn("Total pages parsed: 3", content)
 
@@ -149,7 +152,7 @@ class TestBaseParser(unittest.TestCase):
 
         # Test file with subdirectories
         file_path = Path(
-            os.path.join(self.input_dir, self.domain1, "subdir", "page.html")
+            os.path.join(self.input_dir, self.domain1, "subdir", "page.html"),
         )
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         with open(file_path, "w") as f:

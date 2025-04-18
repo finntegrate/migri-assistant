@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 
 class BaseScraper(ABC):
@@ -9,8 +8,11 @@ class BaseScraper(ABC):
 
     @abstractmethod
     def scrape(
-        self, url: str, depth: int = 1, allowed_domains: Optional[List[str]] = None
-    ) -> List[dict]:
+        self,
+        url: str,
+        depth: int = 1,
+        allowed_domains: list[str] | None = None,
+    ) -> list[dict]:
         """
         Scrape content from a URL up to specified depth
 

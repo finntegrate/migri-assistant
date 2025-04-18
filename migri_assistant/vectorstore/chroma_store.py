@@ -69,7 +69,9 @@ class ChromaStore:
             # Create document dictionary with IDs
             # Note: LangChain's Chroma will compute embeddings automatically if not provided
             self.vector_db.add_texts(
-                texts=[document_text], metadatas=[metadata], ids=[document_id]
+                texts=[document_text],
+                metadatas=[metadata],
+                ids=[document_id],
             )
 
             logger.debug(f"Added document {document_id} to vector store")
@@ -111,7 +113,8 @@ class ChromaStore:
             # Use the underlying Chroma client for this more specialized query
             collection = self.vector_db._collection
             results = collection.query(
-                query_embeddings=[embedding], n_results=n_results
+                query_embeddings=[embedding],
+                n_results=n_results,
             )
             return results
         except Exception as e:

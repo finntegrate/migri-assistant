@@ -1,5 +1,4 @@
 import logging
-from typing import List, Optional
 from urllib.parse import urlparse
 
 from migri_assistant.scrapers.scrapy_scraper import ScrapyScraper
@@ -35,9 +34,9 @@ class MigriScraper(ScrapyScraper):
         self,
         url: str,
         depth: int = 1,
-        allowed_domains: Optional[List[str]] = None,
+        allowed_domains: list[str] | None = None,
         **kwargs,
-    ) -> List[dict]:
+    ) -> list[dict]:
         """
         Scrape content from Migri.fi website starting from the provided URL.
 
@@ -64,5 +63,8 @@ class MigriScraper(ScrapyScraper):
 
         # Call the parent scrape method with our settings
         return super().scrape(
-            url=url, depth=depth, allowed_domains=allowed_domains, **kwargs
+            url=url,
+            depth=depth,
+            allowed_domains=allowed_domains,
+            **kwargs,
         )
