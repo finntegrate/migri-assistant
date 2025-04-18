@@ -24,6 +24,7 @@ class MigriParser(BaseParser):
         """
         super().__init__(input_dir, output_dir, site_name="migri")
         logging.info("Initialized MigriParser for Migri.fi content")
+        # URL mappings are already loaded in BaseParser
 
     def _parse_html(self, html_content: str) -> tuple[str, str]:
         """

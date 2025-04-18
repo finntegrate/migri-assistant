@@ -93,6 +93,11 @@ class ChromaStore:
         """
         try:
             results = self.vector_db.similarity_search(query=query_text, k=n_results)
+
+            # Enhance results with citation information
+            for doc in results:
+                self._enhance_document_with_citation(doc)
+
             return results
         except Exception as e:
             logger.error(f"Failed to query vector store: {e}")
@@ -115,7 +120,17 @@ class ChromaStore:
             results = collection.query(
                 query_embeddings=[embedding],
                 n_results=n_results,
+                include=["documents", "metadatas", "distances"],
             )
+
+            # Add source URLs to metadata if available
+            if results and "metadatas" in results:
+                for metadata in results["metadatas"][0]:
+                    if "source_url" in metadata:
+                        metadata["citation_url"] = metadata["source_url"]
+                    elif "url" in metadata:
+                        metadata["citation_url"] = metadata["url"]
+
             return results
         except Exception as e:
             logger.error(f"Failed to query vector store with embedding: {e}")
@@ -134,7 +149,35 @@ class ChromaStore:
         try:
             # Use the underlying Chroma collection
             collection = self.vector_db._collection
-            return collection.get(ids=[document_id])
+            result = collection.get(
+                ids=[document_id], include=["documents", "metadatas"]
+            )
+
+            # Add citation information
+            if result and "metadatas" in result and result["metadatas"]:
+                for metadata in result["metadatas"]:
+                    if "source_url" in metadata:
+                        metadata["citation_url"] = metadata["source_url"]
+                    elif "url" in metadata:
+                        metadata["citation_url"] = metadata["url"]
+
+            return result
         except Exception as e:
             logger.error(f"Failed to get document {document_id}: {e}")
             return None
+
+    def _enhance_document_with_citation(self, doc):
+        """
+        Enhance a document with citation information.
+
+        Args:
+            doc: LangChain document object to enhance
+        """
+        if not hasattr(doc, "metadata"):
+            return
+
+        # Add citation_url for convenient access in RAG applications
+        if "source_url" in doc.metadata:
+            doc.metadata["citation_url"] = doc.metadata["source_url"]
+        elif "url" in doc.metadata:
+            doc.metadata["citation_url"] = doc.metadata["url"]

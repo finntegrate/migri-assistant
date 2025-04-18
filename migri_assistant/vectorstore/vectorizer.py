@@ -94,8 +94,6 @@ class MarkdownVectorizer:
             logger.info(
                 f"Processed {processed_count}/{total_files} files ({chunk_count} chunks)",
             )
-            # Persist after each batch to save progress
-            self.vector_db.persist()
 
         return processed_count
 
@@ -175,6 +173,21 @@ class MarkdownVectorizer:
         enriched_metadata["source_path"] = file_path
         enriched_metadata["file_name"] = os.path.basename(file_path)
 
+        # Ensure source URL is preserved for citation purposes
+        if "source_url" in metadata:
+            enriched_metadata["source_url"] = metadata["source_url"]
+            # Also add as url for compatibility with existing code
+            enriched_metadata["url"] = metadata["source_url"]
+        elif "url" in metadata:
+            # If url already exists but source_url doesn't, preserve it
+            enriched_metadata["source_url"] = metadata["url"]
+
+        # Add a dedicated citation_url field for retrieval augmented generation
+        if "source_url" in enriched_metadata:
+            enriched_metadata["citation_url"] = enriched_metadata["source_url"]
+        elif "url" in enriched_metadata:
+            enriched_metadata["citation_url"] = enriched_metadata["url"]
+
         return enriched_metadata
 
     def process_file(self, file_path: str) -> int:
@@ -211,7 +224,7 @@ class MarkdownVectorizer:
 
             # Add documents to the vector store
             self.vector_db.add_documents(chunks)
-            self.vector_db.persist()
+            # No need to explicitly persist as ChromaDB 0.4.x+ automatically persists documents
 
             logger.debug(
                 f"Added document {os.path.basename(file_path)} with embeddings",

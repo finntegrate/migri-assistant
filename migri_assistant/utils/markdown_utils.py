@@ -24,10 +24,13 @@ def read_markdown_file(file_path: str) -> tuple[dict, str]:
             metadata = post.metadata
             content = post.content
 
-            # Extract source URL from metadata
-            if "source_file" in metadata:
+            # Handle source URL from metadata - prioritize source_url added by parser
+            if "source_url" in metadata:
+                # A direct URL from our crawler mapping
+                metadata["url"] = metadata["source_url"]
+            elif "source_file" in metadata:
+                # Fallback to legacy handling
                 source_file = metadata["source_file"]
-                # Keep original source file but add cleaner url reference
                 if isinstance(source_file, str):
                     metadata["url"] = source_file.replace("crawled_content/", "")
 
