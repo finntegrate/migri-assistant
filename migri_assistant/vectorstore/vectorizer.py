@@ -5,8 +5,8 @@ import os
 from typing import Any
 
 from langchain.schema.document import Document
-from langchain.vectorstores.chroma import Chroma
-from langchain_community.embeddings import SentenceTransformerEmbeddings
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import MarkdownTextSplitter
 
 from migri_assistant.utils.markdown_utils import find_markdown_files, read_markdown_file
@@ -36,7 +36,7 @@ class MarkdownVectorizer:
             chunk_overlap: Overlap between chunks in characters
         """
         # Initialize embedding model
-        self.embeddings = SentenceTransformerEmbeddings(model_name=embedding_model_name)
+        self.embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name)
 
         # Initialize text splitter for markdown
         self.text_splitter = MarkdownTextSplitter(
