@@ -4,9 +4,6 @@ Scrapy settings for migri-assistant project.
 
 BOT_NAME = "migri_assistant"
 
-SPIDER_MODULES = ["migri_assistant.spiders"]
-NEWSPIDER_MODULE = "migri_assistant.spiders"
-
 # Crawl responsibly by identifying yourself to websites
 USER_AGENT = "migri-assistant (+http://migri.fi)"
 
