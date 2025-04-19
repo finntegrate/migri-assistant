@@ -41,8 +41,5 @@ def test_autothrottle_settings():
 def test_future_proof_settings():
     """Test that future-proof settings have expected values."""
     assert settings.REQUEST_FINGERPRINTER_IMPLEMENTATION == "2.7"
-    assert (
-        settings.TWISTED_REACTOR
-        == "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
-    )
+    assert settings.TWISTED_REACTOR == "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
     assert settings.FEED_EXPORT_ENCODING == "utf-8"

@@ -52,7 +52,7 @@ class TestMigriParser(unittest.TestCase):
                     </div>
                 </body>
             </html>
-            """)
+            """)  # noqa: E501
 
         # Create HTML file without main-content div to test fallback selectors
         with open(os.path.join(self.domain_dir, "no-main-content.html"), "w") as f:

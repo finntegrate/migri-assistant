@@ -19,8 +19,9 @@ class TestChromaStore:
         mock_embeddings.return_value = mock_embedding_instance
 
         # Initialize ChromaStore
-        store = ChromaStore(
-            collection_name="test_collection", persist_directory="test_dir"
+        _ = ChromaStore(
+            collection_name="test_collection",
+            persist_directory="test_dir",
         )
 
         # Check if embeddings and vector_db were initialized correctly
@@ -48,7 +49,9 @@ class TestChromaStore:
 
         # Check if vector_db.add_texts was called with correct arguments
         mock_vector_db.add_texts.assert_called_once_with(
-            texts=["Test document content"], metadatas=[metadata], ids=["test_doc_1"]
+            texts=["Test document content"],
+            metadatas=[metadata],
+            ids=["test_doc_1"],
         )
 
     @patch("migri_assistant.vectorstore.chroma_store.Chroma")
@@ -135,7 +138,8 @@ class TestChromaStore:
 
         # Check if similarity_search was called with correct arguments
         mock_vector_db.similarity_search.assert_called_once_with(
-            query="test query", k=2
+            query="test query",
+            k=2,
         )
 
         # Check if citation URL was added
@@ -216,7 +220,8 @@ class TestChromaStore:
 
         # Check if get was called with correct arguments
         mock_collection.get.assert_called_once_with(
-            ids=["test_doc"], include=["documents", "metadatas"]
+            ids=["test_doc"],
+            include=["documents", "metadatas"],
         )
 
         # Check if citation URL was added

@@ -16,11 +16,8 @@ class TestScrapyRunner(unittest.TestCase):
     def test_run_basic(self, mock_reactor, mock_crawler_runner):
         """Test the basic functionality of the run method."""
         # Mock crawler runner and crawler
-        mock_crawler = MagicMock()
         mock_crawler_instance = MagicMock()
-        mock_crawler_runner.return_value.create_crawler.return_value = (
-            mock_crawler_instance
-        )
+        mock_crawler_runner.return_value.create_crawler.return_value = mock_crawler_instance
 
         # Set up mock for crawler.crawl to return a deferred that calls its callback
         def mock_crawl(*args, **kwargs):
@@ -39,7 +36,7 @@ class TestScrapyRunner(unittest.TestCase):
         allowed_domains = ["example.com"]
         output_dir = "test_output"
 
-        results = self.runner.run(
+        _ = self.runner.run(
             start_urls=start_urls,
             depth=depth,
             allowed_domains=allowed_domains,

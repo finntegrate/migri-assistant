@@ -49,7 +49,11 @@ class TestMarkdownVectorizer:
     @patch("migri_assistant.vectorstore.vectorizer.HuggingFaceEmbeddings")
     @patch("migri_assistant.vectorstore.vectorizer.MarkdownTextSplitter")
     def test_process_directory(
-        self, mock_splitter_class, mock_embeddings_class, mock_chroma, mock_find_files
+        self,
+        mock_splitter_class,
+        mock_embeddings_class,
+        mock_chroma,
+        mock_find_files,
     ):
         """Test processing a directory of markdown files."""
         # Set up mocks
@@ -84,7 +88,7 @@ class TestMarkdownVectorizer:
             [
                 call(["test_dir/file1.md", "test_dir/file2.md"]),
                 call(["test_dir/file3.md"]),
-            ]
+            ],
         )
 
         # Verify correct number of files was returned
@@ -142,7 +146,7 @@ class TestMarkdownVectorizer:
             side_effect=[
                 {"source_id": "file1", "title": "Test 1"},
                 {"source_id": "file2", "title": "Test 2"},
-            ]
+            ],
         )
 
         # Process batch
@@ -150,7 +154,7 @@ class TestMarkdownVectorizer:
             [
                 "test_dir/file1.md",
                 "test_dir/file2.md",
-            ]
+            ],
         )
 
         # Verify read_markdown_file was called for each file
@@ -158,7 +162,7 @@ class TestMarkdownVectorizer:
             [
                 call("test_dir/file1.md"),
                 call("test_dir/file2.md"),
-            ]
+            ],
         )
 
         # Verify Document was created for each file
@@ -172,7 +176,7 @@ class TestMarkdownVectorizer:
                     page_content="Content 2",
                     metadata={"source_id": "file2", "title": "Test 2"},
                 ),
-            ]
+            ],
         )
 
         # Verify text splitter was called for each document
@@ -180,7 +184,7 @@ class TestMarkdownVectorizer:
             [
                 call([mock_doc1]),
                 call([mock_doc2]),
-            ]
+            ],
         )
 
         # Verify chunk metadata was updated
@@ -193,7 +197,7 @@ class TestMarkdownVectorizer:
 
         # Verify add_documents was called with all chunks
         mock_vector_db.add_documents.assert_called_once_with(
-            [mock_chunk1, mock_chunk2, mock_chunk3]
+            [mock_chunk1, mock_chunk2, mock_chunk3],
         )
 
         # Verify correct number of chunks was returned
@@ -249,7 +253,8 @@ class TestMarkdownVectorizer:
 
         # Verify Document was created
         mock_document_class.assert_called_once_with(
-            page_content="Content", metadata=test_metadata
+            page_content="Content",
+            metadata=test_metadata,
         )
 
         # Verify text splitter was called
@@ -314,7 +319,11 @@ class TestMarkdownVectorizer:
     @patch("migri_assistant.vectorstore.vectorizer.HuggingFaceEmbeddings")
     @patch("migri_assistant.vectorstore.vectorizer.MarkdownTextSplitter")
     def test_process_batch_error_handling(
-        self, mock_splitter_class, mock_embeddings_class, mock_chroma, mock_read_file
+        self,
+        mock_splitter_class,
+        mock_embeddings_class,
+        mock_chroma,
+        mock_read_file,
     ):
         """Test error handling in process_batch."""
         # Set up mocks
@@ -344,7 +353,11 @@ class TestMarkdownVectorizer:
     @patch("migri_assistant.vectorstore.vectorizer.HuggingFaceEmbeddings")
     @patch("migri_assistant.vectorstore.vectorizer.MarkdownTextSplitter")
     def test_process_file_empty_content(
-        self, mock_splitter_class, mock_embeddings_class, mock_chroma, mock_read_file
+        self,
+        mock_splitter_class,
+        mock_embeddings_class,
+        mock_chroma,
+        mock_read_file,
     ):
         """Test processing a file with empty content."""
         # Set up read_markdown_file to return empty content

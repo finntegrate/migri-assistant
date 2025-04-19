@@ -228,7 +228,7 @@ class TestBaseCrawler(unittest.TestCase):
         with patch("logging.warning") as mock_log:
             crawler.errback_handler(mock_failure)
             mock_log.assert_called_once_with(
-                "Error on https://example.com/error: Connection refused"
+                "Error on https://example.com/error: Connection refused",
             )
 
     def test_extract_links(self):
@@ -291,7 +291,7 @@ class TestBaseCrawler(unittest.TestCase):
 
             # Verify error was logged
             mock_log.assert_called_once_with(
-                "Error processing https://example.com/error: Test error"
+                "Error processing https://example.com/error: Test error",
             )
 
             # Verify no results but URL was marked as visited
@@ -344,9 +344,7 @@ class TestBaseCrawler(unittest.TestCase):
 
         mock_signal_signal.assert_called_once_with(
             signal_module.SIGINT,
-            mock_signal_signal.call_args[0][
-                1
-            ],  # Just verify the same function was used
+            mock_signal_signal.call_args[0][1],  # Just verify the same function was used
         )
 
     def test_get_file_path_from_url_with_trailing_slash(self):

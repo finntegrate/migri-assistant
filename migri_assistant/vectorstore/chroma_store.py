@@ -150,7 +150,8 @@ class ChromaStore:
             # Use the underlying Chroma collection
             collection = self.vector_db._collection
             result = collection.get(
-                ids=[document_id], include=["documents", "metadatas"]
+                ids=[document_id],
+                include=["documents", "metadatas"],
             )
 
             # Add citation information

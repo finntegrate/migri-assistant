@@ -119,7 +119,8 @@ class TestCli:
 
         # Run the command
         result = runner.invoke(
-            app, ["parse", "--input-dir", "test_input", "--output-dir", "test_output"]
+            app,
+            ["parse", "--input-dir", "test_input", "--output-dir", "test_output"],
         )
 
         # Check that the command ran successfully
@@ -127,7 +128,8 @@ class TestCli:
 
         # Check that the parser was initialized correctly
         mock_migri_parser.assert_called_once_with(
-            input_dir="test_input", output_dir="test_output"
+            input_dir="test_input",
+            output_dir="test_output",
         )
 
         # Check that parse_all was called correctly

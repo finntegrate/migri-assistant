@@ -26,9 +26,7 @@ This is test content.
         assert metadata["title"] == "Test Document"
         assert metadata["source_url"] == "https://example.com/page.html"
         assert metadata["url"] == "https://example.com/page.html"
-        assert (
-            content == "# Test Content\n\nThis is test content."
-        )  # No trailing newline
+        assert content == "# Test Content\n\nThis is test content."  # No trailing newline
 
     def test_read_markdown_file_with_source_file(self):
         """Test reading a markdown file with source_file in metadata."""
@@ -46,9 +44,7 @@ This is test content.
         assert metadata["title"] == "Test Document"
         assert metadata["source_file"] == "crawled_content/example.com/page.html"
         assert metadata["url"] == "example.com/page.html"
-        assert (
-            content == "# Test Content\n\nThis is test content."
-        )  # No trailing newline
+        assert content == "# Test Content\n\nThis is test content."  # No trailing newline
 
     def test_read_markdown_file_error(self):
         """Test error handling when reading a markdown file."""
@@ -73,9 +69,7 @@ This is test content.
             # Check that the correct files were found
             assert len(markdown_files) == 2
             assert any(f.endswith("file1.md") for f in markdown_files)
-            assert any(
-                f.endswith(os.path.join("subdir", "file3.md")) for f in markdown_files
-            )
+            assert any(f.endswith(os.path.join("subdir", "file3.md")) for f in markdown_files)
             assert not any(f.endswith("file2.txt") for f in markdown_files)
 
     def test_find_markdown_files_with_domain_filter(self):

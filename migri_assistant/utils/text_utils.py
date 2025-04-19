@@ -70,7 +70,7 @@ def chunk_html_content(
     # If the content is already small, don't bother chunking
     if len(plain_text) <= chunk_size:
         logging.info(
-            f"Content size ({len(plain_text)} chars) is smaller than chunk_size ({chunk_size}), skipping chunking",
+            f"Content size ({len(plain_text)} chars) is smaller than chunk_size ({chunk_size}), skipping chunking",  # noqa: E501
         )
         return [{"content": plain_text, "metadata": {}}]
 
@@ -78,7 +78,7 @@ def chunk_html_content(
     estimated_chunks = len(plain_text) // (chunk_size - chunk_overlap) + 1
     if estimated_chunks > max_chunks:
         logging.warning(
-            f"Content would generate too many chunks ({estimated_chunks}). Using simpler chunking method.",
+            f"Content would generate too many chunks ({estimated_chunks}). Using simpler chunking method.",  # noqa: E501
         )
         # Fall back to simple text splitting for very large content
         return _chunk_text_safely(plain_text, chunk_size, chunk_overlap, max_chunks)
@@ -130,15 +130,12 @@ def chunk_html_content(
         # Apply safety checks
         if len(split_docs) > max_chunks:
             logging.warning(
-                f"HTML splitting produced too many chunks ({len(split_docs)}). Limiting to {max_chunks}.",
+                f"HTML splitting produced too many chunks ({len(split_docs)}). Limiting to {max_chunks}.",  # noqa: E501
             )
             split_docs = split_docs[:max_chunks]
 
         # Convert to our expected format
-        return [
-            {"content": doc.page_content, "metadata": doc.metadata}
-            for doc in split_docs
-        ]
+        return [{"content": doc.page_content, "metadata": doc.metadata} for doc in split_docs]
 
     except Exception as e:
         logging.warning(

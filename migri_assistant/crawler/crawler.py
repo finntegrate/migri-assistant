@@ -110,9 +110,7 @@ class BaseCrawler(Spider):
         try:
             # Check if it's HTML content type
             content_type = (
-                response.headers.get("Content-Type", b"")
-                .decode("utf-8", errors="ignore")
-                .lower()
+                response.headers.get("Content-Type", b"").decode("utf-8", errors="ignore").lower()
             )
 
             # Only process HTML pages
@@ -207,7 +205,7 @@ class BaseCrawler(Spider):
             with open(self.mapping_file, "w", encoding="utf-8") as f:
                 json.dump(self.url_mappings, f, indent=2, ensure_ascii=False)
             logging.debug(
-                f"Saved {len(self.url_mappings)} URL mappings to {self.mapping_file}"
+                f"Saved {len(self.url_mappings)} URL mappings to {self.mapping_file}",
             )
         except Exception as e:
             logging.error(f"Error saving URL mappings: {str(e)}")

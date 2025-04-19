@@ -78,7 +78,10 @@ class TestTextUtils:
         """Test chunking non-HTML content."""
         plain_text = "This is plain text content" * 50  # Make it large enough to chunk
         chunks = chunk_html_content(
-            plain_text, "text/plain", chunk_size=500, chunk_overlap=50
+            plain_text,
+            "text/plain",
+            chunk_size=500,
+            chunk_overlap=50,
         )
 
         assert len(chunks) > 1
@@ -113,7 +116,9 @@ class TestTextUtils:
     @patch("migri_assistant.utils.text_utils.HTMLSectionSplitter")
     @patch("migri_assistant.utils.text_utils.re.sub")
     def test_chunk_html_content_section_splitter(
-        self, mock_re_sub, mock_splitter_class
+        self,
+        mock_re_sub,
+        mock_splitter_class,
     ):
         """Test chunking HTML content with section splitter."""
         # Make the plain text extraction return something large enough to trigger chunking
@@ -139,7 +144,10 @@ class TestTextUtils:
     @patch("migri_assistant.utils.text_utils.re.sub")
     @patch("migri_assistant.utils.text_utils._basic_clean_html")
     def test_chunk_html_content_semantic_splitter(
-        self, mock_clean_html, mock_re_sub, mock_splitter_class
+        self,
+        mock_clean_html,
+        mock_re_sub,
+        mock_splitter_class,
     ):
         """Test chunking HTML content with semantic (recursive) splitter."""
         # Make the plain text extraction return something large enough to trigger chunking
@@ -166,7 +174,7 @@ class TestTextUtils:
     def test_chunk_html_content_error_handling(self):
         """Test error handling in chunk_html_content."""
         with patch(
-            "migri_assistant.utils.text_utils.RecursiveCharacterTextSplitter"
+            "migri_assistant.utils.text_utils.RecursiveCharacterTextSplitter",
         ) as mock_splitter_class:
             mock_splitter = Mock()
             mock_splitter_class.return_value = mock_splitter
@@ -183,7 +191,10 @@ class TestTextUtils:
         """Test chunking text safely with limits."""
         text = "This is a test." * 100  # Create text long enough to split
         chunks = _chunk_text_safely(
-            text, chunk_size=100, chunk_overlap=20, max_chunks=5
+            text,
+            chunk_size=100,
+            chunk_overlap=20,
+            max_chunks=5,
         )
 
         assert len(chunks) <= 5
@@ -192,7 +203,7 @@ class TestTextUtils:
     def test_chunk_text_safely_error(self):
         """Test error handling in _chunk_text_safely."""
         with patch(
-            "migri_assistant.utils.text_utils.RecursiveCharacterTextSplitter"
+            "migri_assistant.utils.text_utils.RecursiveCharacterTextSplitter",
         ) as mock_splitter_class:
             mock_splitter = Mock()
             mock_splitter_class.return_value = mock_splitter
@@ -200,12 +211,15 @@ class TestTextUtils:
 
             # Mock the manual chunking as well to ensure we get results
             with patch(
-                "migri_assistant.utils.text_utils.logging.error"
+                "migri_assistant.utils.text_utils.logging.error",
             ) as mock_logging:
                 # Create long enough text to trigger chunking
                 text = "Test content " * 100
-                chunks = _chunk_text_safely(
-                    text, chunk_size=100, chunk_overlap=20, max_chunks=3
+                _ = _chunk_text_safely(
+                    text,
+                    chunk_size=100,
+                    chunk_overlap=20,
+                    max_chunks=3,
                 )
 
                 # Verify the error was logged
