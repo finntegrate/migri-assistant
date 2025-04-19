@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from langchain.vectorstores.chroma import Chroma
+from langchain.vectorstores import Chroma
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 
 logger = logging.getLogger(__name__)
