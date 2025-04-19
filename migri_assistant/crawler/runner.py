@@ -67,7 +67,7 @@ class ScrapyRunner:
                 "RETRY_TIMES": 2,  # Added to improve reliability
                 "DOWNLOAD_TIMEOUT": 30,  # Added to prevent hanging
                 "TWISTED_REACTOR": "twisted.internet.selectreactor.SelectReactor",
-            }
+            },
         )
         if custom_settings:
             settings.update(custom_settings)

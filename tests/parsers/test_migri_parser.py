@@ -47,12 +47,12 @@ class TestMigriParser(unittest.TestCase):
                 <body>
                     <div id="main-content">
                         <h1>About Finnish Immigration Service</h1>
-                        <p>The Finnish Immigration Service is a decision-making organisation in matters 
+                        <p>The Finnish Immigration Service is a decision-making organisation in matters
                         related to immigration, asylum, refugee status and citizenship.</p>
                     </div>
                 </body>
             </html>
-            """)
+            """)  # noqa: E501
 
         # Create HTML file without main-content div to test fallback selectors
         with open(os.path.join(self.domain_dir, "no-main-content.html"), "w") as f:
@@ -87,7 +87,7 @@ class TestMigriParser(unittest.TestCase):
     def test_parse_html(self):
         """Test parsing HTML content specific to Migri.fi"""
         # Read test HTML file
-        with open(os.path.join(self.domain_dir, "index.html"), "r") as f:
+        with open(os.path.join(self.domain_dir, "index.html")) as f:
             html_content = f.read()
 
         # Parse the HTML
@@ -102,7 +102,7 @@ class TestMigriParser(unittest.TestCase):
     def test_parse_html_fallback(self):
         """Test fallback selectors when main-content is not found"""
         # Read test HTML file that doesn't have main-content div
-        with open(os.path.join(self.domain_dir, "no-main-content.html"), "r") as f:
+        with open(os.path.join(self.domain_dir, "no-main-content.html")) as f:
             html_content = f.read()
 
         # Parse the HTML
@@ -155,7 +155,7 @@ class TestMigriParser(unittest.TestCase):
         # Validate the content of parsed files
         for result in results:
             output_file = result["output_file"]
-            with open(output_file, "r") as f:
+            with open(output_file) as f:
                 content = f.read()
                 # Check that the file contains markup elements
                 self.assertIn("# ", content)  # Heading

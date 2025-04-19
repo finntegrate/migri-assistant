@@ -1,8 +1,8 @@
+import json
 import logging
 import os
 import signal
 from datetime import datetime
-from typing import Set
 from urllib.parse import urlparse
 
 from scrapy import Spider, signals
@@ -15,7 +15,7 @@ class BaseCrawler(Spider):
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
         """Connect the spider_closed signal before initializing the spider"""
-        spider = super(BaseCrawler, cls).from_crawler(crawler, *args, **kwargs)
+        spider = super().from_crawler(crawler, *args, **kwargs)
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
 
         # Add a better SIGINT handling without directly using crawler.engine
@@ -65,10 +65,25 @@ class BaseCrawler(Spider):
         os.makedirs(self.output_dir, exist_ok=True)
 
         # Track visited URLs
-        self.visited_urls: Set[str] = set()
+        self.visited_urls: set[str] = set()
+
+        # URL mapping dictionary to store file path -> original URL mappings
+        self.url_mappings = {}
+
+        # Path for the URL mapping file
+        self.mapping_file = os.path.join(self.output_dir, "url_mappings.json")
+
+        # Load existing mappings if they exist
+        if os.path.exists(self.mapping_file):
+            try:
+                with open(self.mapping_file, encoding="utf-8") as f:
+                    self.url_mappings = json.load(f)
+                logging.info(f"Loaded {len(self.url_mappings)} existing URL mappings")
+            except Exception as e:
+                logging.error(f"Error loading URL mappings: {str(e)}")
 
         logging.info(
-            f"Starting crawler with max depth {self.max_depth} for URLs: {self.start_urls}"
+            f"Starting crawler with max depth {self.max_depth} for URLs: {self.start_urls}",
         )
         logging.info(f"Allowed domains: {self.allowed_domains}")
         logging.info(f"Output directory: {self.output_dir}")
@@ -95,20 +110,29 @@ class BaseCrawler(Spider):
         try:
             # Check if it's HTML content type
             content_type = (
-                response.headers.get("Content-Type", b"")
-                .decode("utf-8", errors="ignore")
-                .lower()
+                response.headers.get("Content-Type", b"").decode("utf-8", errors="ignore").lower()
             )
 
             # Only process HTML pages
             if "text/html" not in content_type:
                 logging.info(
-                    f"Skipping non-HTML content type '{content_type}' at {url}"
+                    f"Skipping non-HTML content type '{content_type}' at {url}",
                 )
                 return
 
-            # Save the raw HTML content
-            self._save_html_content(url, response.text)
+            # Save the raw HTML content and store URL mapping
+            file_path = self._save_html_content(url, response.text)
+
+            # Store the relative path (from output_dir) in the mappings
+            rel_path = os.path.relpath(file_path, self.output_dir)
+            self.url_mappings[rel_path] = {
+                "url": url,
+                "timestamp": datetime.now().isoformat(),
+                "content_type": content_type,
+            }
+
+            # Save the URL mappings file periodically
+            self._save_url_mappings()
 
             # Yield info about the crawled content
             yield {
@@ -145,6 +169,8 @@ class BaseCrawler(Spider):
 
         logging.info(f"Saved HTML content to {file_path}")
 
+        return file_path
+
     def _get_file_path_from_url(self, url):
         """Convert a URL to a file path"""
         parsed_url = urlparse(url)
@@ -173,9 +199,24 @@ class BaseCrawler(Spider):
 
         return full_path
 
+    def _save_url_mappings(self):
+        """Save the URL mappings to a JSON file"""
+        try:
+            with open(self.mapping_file, "w", encoding="utf-8") as f:
+                json.dump(self.url_mappings, f, indent=2, ensure_ascii=False)
+            logging.debug(
+                f"Saved {len(self.url_mappings)} URL mappings to {self.mapping_file}",
+            )
+        except Exception as e:
+            logging.error(f"Error saving URL mappings: {str(e)}")
+
     def spider_closed(self, spider):
         """Called when the spider is closed"""
         logging.info(f"Crawler closed. Visited {len(self.visited_urls)} pages")
+
+        # Save the URL mappings one final time when spider closes
+        self._save_url_mappings()
+        logging.info(f"Saved final URL mappings with {len(self.url_mappings)} entries")
 
     def errback_handler(self, failure):
         """Handle request failures gracefully"""

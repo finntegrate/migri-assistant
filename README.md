@@ -7,7 +7,8 @@ Migri Assistant is a web crawling and parsing tool designed to extract informati
 - Crawls web pages to a configurable depth
 - Saves raw HTML content with domain-based organization
 - Parses HTML content into structured Markdown files
-- Clean separation between crawling and parsing functionality
+- Vectorizes parsed content into ChromaDB for semantic search
+- Clean separation between crawling, parsing, and vectorization functionality
 - Domain restriction and crawl depth control
 - Comprehensive test suite
 
@@ -40,9 +41,9 @@ uv sync --dev
 
 ## Usage
 
-### Running the Crawler and Parser
+### Running the Crawler, Parser, and Vectorizer
 
-The crawler and parser are separate commands, following a two-step process:
+The tool follows a three-step process to crawl, parse, and vectorize content:
 
 1. **Crawl** a website to retrieve and save HTML content:
 ```bash
@@ -54,6 +55,11 @@ uv run -m migri_assistant.cli crawl https://migri.fi/en/home --depth 2 --output-
 uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content
 ```
 
+3. **Vectorize** the parsed Markdown content into ChromaDB for semantic search:
+```bash
+uv run -m migri_assistant.cli vectorize --input-dir parsed_content --db-dir chroma_db --collection migri_docs
+```
+
 ### Parameters and Options
 
 For detailed information about available parameters and options:
@@ -61,6 +67,7 @@ For detailed information about available parameters and options:
 ```bash
 uv run -m migri_assistant.cli crawl --help
 uv run -m migri_assistant.cli parse --help
+uv run -m migri_assistant.cli vectorize --help
 ```
 
 ## Development
@@ -91,13 +98,30 @@ uv ruff . --check
 uv run pytest
 ```
 
+To run tests with code coverage reports:
+
+```bash
+# Generate coverage report in the terminal
+uv run pytest --cov=migri_assistant
+
+# Generate HTML coverage report
+uv run pytest --cov=migri_assistant --cov-report=html
+
+# Get coverage for specific modules
+uv run pytest --cov=migri_assistant.utils tests/utils/
+```
+
+The HTML coverage report will be generated in the `htmlcov` directory. Open `htmlcov/index.html` in your browser to view it.
+
 ## Project Structure
 
 The project has been designed with a clear separation of concerns:
 
 - `crawler/`: Module responsible for crawling websites and saving HTML content
 - `parsers/`: Module responsible for parsing HTML content into structured formats
-- `tests/`: Test suite for both crawler and parser modules
+- `vectorstore/`: Module responsible for vectorizing content and storing in ChromaDB
+- `utils/`: Utility modules for embedding generation, markdown processing, etc.
+- `tests/`: Test suite for all modules
 
 ## License
 This project is licensed under the Apache 2.0 License. See the LICENSE file for more details.

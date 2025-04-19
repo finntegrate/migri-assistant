@@ -1,11 +1,11 @@
 import logging
-from typing import List, Optional
 from urllib.parse import urlparse
 
 import typer
 
 from migri_assistant.crawler.runner import ScrapyRunner
 from migri_assistant.parsers.migri_parser import MigriParser
+from migri_assistant.vectorstore.vectorizer import MarkdownVectorizer
 
 # Configure logging
 logging.basicConfig(
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 # Suppress unnecessary warnings
 logging.getLogger("onnxruntime").setLevel(logging.ERROR)  # Suppress ONNX warnings
 logging.getLogger("transformers").setLevel(
-    logging.ERROR
+    logging.ERROR,
 )  # Suppress potential transformers warnings
 logging.getLogger("chromadb").setLevel(logging.WARNING)  # Reduce ChromaDB debug noise
 
@@ -33,7 +33,7 @@ def crawl(
         "-d",
         help="Maximum link-following depth (1 is just the provided URL)",
     ),
-    allowed_domains: Optional[List[str]] = typer.Option(
+    allowed_domains: list[str] | None = typer.Option(
         None,
         "--domain",
         "-D",
@@ -46,7 +46,10 @@ def crawl(
         help="Directory to save crawled HTML files",
     ),
     verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose output",
     ),
 ):
     """
@@ -110,7 +113,7 @@ def parse(
         "-o",
         help="Directory to save parsed content as Markdown files",
     ),
-    domain: Optional[str] = typer.Option(
+    domain: str | None = typer.Option(
         None,
         "--domain",
         "-d",
@@ -123,7 +126,10 @@ def parse(
         help="Type of site to parse (determines which parser to use)",
     ),
     verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose output",
     ),
 ):
     """
@@ -165,12 +171,102 @@ def parse(
 
 
 @app.command()
+def vectorize(
+    input_dir: str = typer.Option(
+        "parsed_content",
+        "--input-dir",
+        "-i",
+        help="Directory containing parsed Markdown files to vectorize",
+    ),
+    db_dir: str = typer.Option(
+        "chroma_db",
+        "--db-dir",
+        "-d",
+        help="Directory to store the ChromaDB database",
+    ),
+    collection_name: str = typer.Option(
+        "migri_docs",
+        "--collection",
+        "-c",
+        help="Name of the ChromaDB collection to create",
+    ),
+    domain: str | None = typer.Option(
+        None,
+        "--domain",
+        "-D",
+        help="Domain to filter by (e.g. 'migri.fi'). If not provided, all domains are processed.",
+    ),
+    embedding_model: str = typer.Option(
+        "all-MiniLM-L6-v2",
+        "--model",
+        "-m",
+        help="Name of the sentence-transformers model to use",
+    ),
+    batch_size: int = typer.Option(
+        20,
+        "--batch-size",
+        "-b",
+        help="Number of documents to process in each batch",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Enable verbose output",
+    ),
+):
+    """
+    Vectorize parsed Markdown files and store in a vector database (ChromaDB).
+
+    This command reads parsed Markdown files with frontmatter, generates embeddings,
+    and stores them in ChromaDB with associated metadata from the original source.
+
+    Example:
+        $ python -m migri_assistant.cli vectorize -i parsed_content -d chroma_db -c migri_docs
+    """
+    # Set log level based on verbose flag
+    if verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    typer.echo(f"🧠 Starting vectorization of parsed content from {input_dir}")
+    typer.echo(f"💾 Vector database will be stored in: {db_dir}")
+    typer.echo(f"🔤 Using embedding model: {embedding_model}")
+
+    try:
+        # Initialize vectorizer
+        vectorizer = MarkdownVectorizer(
+            collection_name=collection_name,
+            persist_directory=db_dir,
+            embedding_model_name=embedding_model,
+            chunk_size=1000,
+            chunk_overlap=200,
+        )
+
+        # Process all files in the directory
+        typer.echo("⚙️ Processing markdown files...")
+        count = vectorizer.process_directory(
+            input_dir=input_dir,
+            domain_filter=domain,
+            batch_size=batch_size,
+        )
+
+        # Output information
+        typer.echo(f"✅ Vectorization completed! Processed {count} files.")
+        typer.echo(f"🔍 Vector database is ready for similarity search in {db_dir}")
+
+    except Exception as e:
+        typer.echo(f"❌ Error during vectorization: {str(e)}", err=True)
+        raise typer.Exit(code=1)
+
+
+@app.command()
 def info():
     """Show information about the Migri Assistant and available commands."""
     typer.echo("Migri Assistant - Web crawling and parsing tool")
     typer.echo("\nAvailable commands:")
     typer.echo("  crawl     - Crawl websites and save HTML content")
     typer.echo("  parse     - Parse HTML files and convert to structured Markdown")
+    typer.echo("  vectorize - Vectorize parsed Markdown files and store in ChromaDB")
     typer.echo("  info      - Show this information")
     typer.echo("\nRun a command with --help for more information")
 

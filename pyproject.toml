@@ -15,6 +15,12 @@ dependencies = [
     "html2text>=2020.1.16",
     "pyyaml>=6.0.1",
     "langchain-text-splitters>=0.3.8",
+    "python-frontmatter>=1.1.0",
+    "langchain-community>=0.3.21",
+    "langchain>=0.3.23",
+    "ruff>=0.11.5",
+    "langchain-chroma>=0.2.3",
+    "langchain-huggingface>=0.1.2",
 ]
 
 [project.optional-dependencies]
@@ -27,19 +33,12 @@ dev = [
 [project.scripts]
 migri-scrape = "migri_assistant.cli:app"
 
-[build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools]
-packages = ["migri_assistant"]
-
 [tool.pytest]
 testpaths = ["tests"]
 python_files = "test_*.py"
 
 [tool.ruff]
-line-length = 88
+line-length = 100
 target-version = "py310"
 
 [tool.ruff.lint]
@@ -50,3 +49,10 @@ ignore = []
 quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+]

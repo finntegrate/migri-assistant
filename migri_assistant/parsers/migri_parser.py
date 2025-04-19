@@ -24,6 +24,7 @@ class MigriParser(BaseParser):
         """
         super().__init__(input_dir, output_dir, site_name="migri")
         logging.info("Initialized MigriParser for Migri.fi content")
+        # URL mappings are already loaded in BaseParser
 
     def _parse_html(self, html_content: str) -> tuple[str, str]:
         """
@@ -56,7 +57,9 @@ class MigriParser(BaseParser):
             if content_section:
                 # Get the HTML of just this element
                 content_html = html.tostring(
-                    content_section[0], encoding="unicode", pretty_print=True
+                    content_section[0],
+                    encoding="unicode",
+                    pretty_print=True,
                 )
                 self.logger.info("Successfully extracted main content section")
             else:
@@ -68,7 +71,7 @@ class MigriParser(BaseParser):
                     else html_content
                 )
                 self.logger.warning(
-                    "Could not find specific content section, using body content"
+                    "Could not find specific content section, using body content",
                 )
 
             # Convert HTML to Markdown
