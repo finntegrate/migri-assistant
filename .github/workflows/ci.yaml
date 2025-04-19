@@ -9,6 +9,7 @@ on:
 
 jobs:
   test:
+    name: Test Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -18,33 +19,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Install uv and set Python version
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-
       - name: Install dependencies
-        run: |
-          uv venv
-          source .venv/bin/activate
-          uv sync --dev
+        run: uv sync --all-extras --dev
 
       - name: Lint with Ruff
-        run: |
-          source .venv/bin/activate
-          uv ruff . --check
+        run: uv ruff . --check
 
       - name: Test with pytest and coverage
-        run: |
-          source .venv/bin/activate
-          uv run pytest --cov=migri_assistant --cov-report=xml --cov-report=term
+        run: uv run pytest --cov=migri_assistant --cov-report=xml --cov-report=term
 
       - name: Check coverage threshold
         run: |
-          source .venv/bin/activate
           coverage_result=$(uv run coverage report | tail -1 | awk '{print $NF}' | sed 's/%//')
           echo "Coverage: $coverage_result%"
           if (( $(echo "$coverage_result < 80" | bc -l) )); then
@@ -53,3 +43,11 @@ jobs:
           else
             echo "✅ Coverage threshold met: $coverage_result% is greater than or equal to 80%"
           fi
+
+    # - name: Upload coverage to Codecov
+    #   uses: codecov/codecov-action@v4
+    #   with:
+    #     file: ./coverage.xml
+    #     fail_ci_if_error: false
+    #     token: ${{ secrets.CODECOV_TOKEN }}
+    #     verbose: true
