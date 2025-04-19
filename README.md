@@ -98,6 +98,21 @@ uv ruff . --check
 uv run pytest
 ```
 
+To run tests with code coverage reports:
+
+```bash
+# Generate coverage report in the terminal
+uv run pytest --cov=migri_assistant
+
+# Generate HTML coverage report
+uv run pytest --cov=migri_assistant --cov-report=html
+
+# Get coverage for specific modules
+uv run pytest --cov=migri_assistant.utils tests/utils/
+```
+
+The HTML coverage report will be generated in the `htmlcov` directory. Open `htmlcov/index.html` in your browser to view it.
+
 ## Project Structure
 
 The project has been designed with a clear separation of concerns:
