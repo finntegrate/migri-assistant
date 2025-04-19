@@ -8,8 +8,8 @@ from unittest.mock import MagicMock
 from migri_assistant.parsers.base_parser import BaseParser
 
 
-class TestParser(BaseParser):
-    """Test implementation of BaseParser for testing purposes"""
+class MockParser(BaseParser):
+    """Mock implementation of BaseParser for testing purposes"""
 
     def _parse_html(self, html_content):
         """Simple implementation for testing"""
@@ -61,7 +61,7 @@ class TestBaseParser(unittest.TestCase):
             )
 
         # Create our test parser instance
-        self.parser = TestParser(
+        self.parser = MockParser(
             input_dir=self.input_dir,
             output_dir=self.output_dir,
             site_name="test_site",
