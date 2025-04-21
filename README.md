@@ -1,14 +1,16 @@
 # Migri Assistant
 
 ## Overview
-Migri Assistant is a web crawling and parsing tool designed to extract information from websites, with specific functionality tailored for the Migri.fi website. It utilizes Scrapy for efficient web crawling and outputs content as HTML files with separate parsing capabilities.
+Migri Assistant is a tool designed to extract, process, and query information from websites, with specific functionality tailored for the Migri.fi website. It provides end-to-end RAG (Retrieval Augmented Generation) capabilities including web crawling, content parsing, vectorization, and an interactive chatbot interface.
 
 ## Features
 - Crawls web pages to a configurable depth
 - Saves raw HTML content with domain-based organization
 - Parses HTML content into structured Markdown files
 - Vectorizes parsed content into ChromaDB for semantic search
-- Clean separation between crawling, parsing, and vectorization functionality
+- Provides a Gradio-based RAG chatbot interface for querying content
+- Integrates with Ollama for local LLM inference
+- Clean separation between crawling, parsing, vectorization, and querying
 - Domain restriction and crawl depth control
 - Comprehensive test suite
 
@@ -17,6 +19,7 @@ Migri Assistant is a web crawling and parsing tool designed to extract informati
 ### Prerequisites
 - Python 3.10 or higher
 - [uv](https://github.com/astral-sh/uv) - Fast Python package installer and resolver
+- [Ollama](https://ollama.ai/) - For local LLM inference (required for the chatbot)
 
 ### Setting up with uv
 
@@ -37,6 +40,11 @@ source .venv/bin/activate  # On Unix/macOS
 3. Install dependencies:
 ```bash
 uv sync --dev
+```
+
+4. Ensure you have the required Ollama models:
+```bash
+ollama pull llama3.2
 ```
 
 ## Usage
@@ -60,15 +68,43 @@ uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir par
 uv run -m migri_assistant.cli vectorize --input-dir parsed_content --db-dir chroma_db --collection migri_docs
 ```
 
-### Parameters and Options
+4. **Launch the RAG Chatbot** to interactively query the content:
+```bash
+uv run -m migri_assistant.cli gradio-app
+```
 
-For detailed information about available parameters and options:
+### RAG Chatbot Options
+
+The RAG chatbot allows you to query information from your vectorized content using a local LLM through Ollama. The chatbot provides several configuration options:
 
 ```bash
-uv run -m migri_assistant.cli crawl --help
-uv run -m migri_assistant.cli parse --help
-uv run -m migri_assistant.cli vectorize --help
+# Launch with default settings
+uv run -m migri_assistant.cli gradio-app
+
+# Use a specific Ollama model
+uv run -m migri_assistant.cli gradio-app --model-name llama3.2:latest
+
+# Specify a different ChromaDB collection
+uv run -m migri_assistant.cli gradio-app --collection-name my_collection
+
+# Create a shareable link for the app
+uv run -m migri_assistant.cli gradio-app --share
 ```
+
+### Parameters and Options
+
+For detailed information about available parameters and options for any command:
+
+```bash
+uv run -m migri_assistant.cli <command> --help
+```
+
+Available commands:
+- `crawl`: Crawl websites and save HTML content
+- `parse`: Parse HTML files into structured Markdown
+- `vectorize`: Vectorize parsed Markdown into ChromaDB
+- `gradio-app`: Launch the Gradio RAG chatbot interface
+- `info`: Show information about available commands
 
 ## Development
 
@@ -77,19 +113,19 @@ uv run -m migri_assistant.cli vectorize --help
 We use [Ruff](https://docs.astral.sh/ruff/) for linting and formatting. To run the linter:
 
 ```bash
-uv ruff .
+uv run ruff .
 ```
 
 To automatically fix issues:
 
 ```bash
-uv ruff . --fix
+uv run ruff . --fix
 ```
 
 To check formatting without fixing:
 
 ```bash
-uv ruff . --check
+uv run ruff . --check
 ```
 
 ### Running Tests
@@ -120,6 +156,7 @@ The project has been designed with a clear separation of concerns:
 - `crawler/`: Module responsible for crawling websites and saving HTML content
 - `parsers/`: Module responsible for parsing HTML content into structured formats
 - `vectorstore/`: Module responsible for vectorizing content and storing in ChromaDB
+- `gradio_app.py`: Gradio interface for the RAG chatbot
 - `utils/`: Utility modules for embedding generation, markdown processing, etc.
 - `tests/`: Test suite for all modules
 

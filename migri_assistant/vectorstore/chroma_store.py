@@ -3,8 +3,8 @@
 import logging
 from typing import Any
 
-from langchain.vectorstores import Chroma
-from langchain_community.embeddings import SentenceTransformerEmbeddings
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class ChromaStore:
             persist_directory: Directory to persist the ChromaDB database
         """
         # Initialize embeddings
-        self.embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
+        self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
         # Initialize the vector store
         self.vector_db = Chroma(

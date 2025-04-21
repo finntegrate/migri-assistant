@@ -264,11 +264,60 @@ def info():
     """Show information about the Migri Assistant and available commands."""
     typer.echo("Migri Assistant - Web crawling and parsing tool")
     typer.echo("\nAvailable commands:")
-    typer.echo("  crawl     - Crawl websites and save HTML content")
-    typer.echo("  parse     - Parse HTML files and convert to structured Markdown")
-    typer.echo("  vectorize - Vectorize parsed Markdown files and store in ChromaDB")
-    typer.echo("  info      - Show this information")
+    typer.echo("  crawl      - Crawl websites and save HTML content")
+    typer.echo("  parse      - Parse HTML files and convert to structured Markdown")
+    typer.echo("  vectorize  - Vectorize parsed Markdown files and store in ChromaDB")
+    typer.echo("  gradio_app - Launch the Gradio web interface for querying with the RAG chatbot")
+    typer.echo("  info       - Show this information")
     typer.echo("\nRun a command with --help for more information")
+
+
+@app.command()
+def gradio_app(
+    collection_name: str = typer.Option(
+        "migri_docs",
+        help="Name of the ChromaDB collection to query",
+    ),
+    persist_directory: str = typer.Option(
+        "chroma_db",
+        help="Directory where ChromaDB database is stored",
+    ),
+    model_name: str = typer.Option("llama3.2", help="Ollama model name to use"),
+    share: bool = typer.Option(False, help="Create a shareable link for the app"),
+):
+    """Launch the Gradio web interface for querying Migri Assistant."""
+    try:
+        # Import here to avoid circular imports
+        import importlib
+        import sys
+
+        # Dynamically import the gradio_app module
+        try:
+            spec = importlib.util.find_spec("migri_assistant.gradio_app")
+            if spec is None:
+                raise ImportError("Could not find migri_assistant.gradio_app module")
+
+            ga = importlib.util.module_from_spec(spec)
+            sys.modules["migri_assistant.gradio_app"] = ga
+            spec.loader.exec_module(ga)
+
+            # Override constants if provided
+            ga.MODEL_NAME = model_name
+            ga.COLLECTION_NAME = collection_name
+            ga.CHROMA_DB_PATH = persist_directory
+
+            logger.info(
+                f"Launching Gradio app with collection '{collection_name}' "
+                f"using model '{model_name}'",
+            )
+            ga.demo.launch(share=share)
+        except ImportError as e:
+            logger.error(f"Error importing gradio_app module: {e}")
+            raise typer.Exit(code=1)
+
+    except Exception as e:
+        logger.error(f"Error launching Gradio app: {e}")
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

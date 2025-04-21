@@ -62,3 +62,27 @@ uv run pytest --cov=migri_assistant.utils tests/utils/
 ```
 
 Aim for at least 80% coverage for new code. The HTML coverage report can be found in the `htmlcov` directory.
+
+## Ollama
+
+We use Ollama for local LLM inference.
+
+The following Ollama models are used in the project:
+- `llama3.2`: The base model for text generation.
+
+To query the Ollama models that are installed, use the command:
+
+```
+ollama list
+```
+
+To list all Ollama commands, use the command:
+
+```
+ollama help
+```
+To get help for a specific command, use the command:
+
+```
+ollama <command> --help
+```
