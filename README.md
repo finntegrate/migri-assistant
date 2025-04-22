@@ -3,6 +3,22 @@
 ## Overview
 Migri Assistant is a tool designed to extract, process, and query information from websites, with specific functionality tailored for the Migri.fi website. It provides end-to-end RAG (Retrieval Augmented Generation) capabilities including web crawling, content parsing, vectorization, and an interactive chatbot interface.
 
+##  Key demographics
+
+- EU citizens
+- Non-EU citizens
+- Target Audience
+    - Students
+    - Workers
+    - Families
+    - Refugees
+    - Asylum Seekers
+
+## Needs
+
+- Finding relevant information
+- Conversation practice based on the topics they search (e.g. family reunification, work, studies)
+
 ## Features
 - Crawls web pages to a configurable depth
 - Saves raw HTML content with domain-based organization
