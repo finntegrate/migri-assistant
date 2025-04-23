@@ -8,7 +8,7 @@ Please use the `uv` package manager.
 uv add <package-name>
 ```
 
-Do not use `pip` or `uv pip install` to install packages.
+Do not use `pip`, `uv pip install`, or `uv pip install -e .` to install packages or this project.
 
 ## Ruff
 
