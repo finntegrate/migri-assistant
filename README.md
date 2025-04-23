@@ -94,7 +94,10 @@ uv run -m migri_assistant.cli gradio-app
 The RAG chatbot allows you to query information from your vectorized content using a local LLM through Ollama. The chatbot provides several configuration options:
 
 ```bash
-# Launch with default settings
+# Quick start - launch with development server
+uv run -m migri_assistant.cli dev
+
+# Long form - launch with default settings
 uv run -m migri_assistant.cli gradio-app
 
 # Use a specific Ollama model

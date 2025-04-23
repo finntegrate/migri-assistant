@@ -269,6 +269,7 @@ def info():
     typer.echo("  vectorize  - Vectorize parsed Markdown files and store in ChromaDB")
     typer.echo("  gradio_app - Launch the Gradio web interface for querying with the RAG chatbot")
     typer.echo("  info       - Show this information")
+    typer.echo("  dev        - Launch the development server for the Migri Assistant chatbot")
     typer.echo("\nRun a command with --help for more information")
 
 
@@ -318,6 +319,30 @@ def gradio_app(
     except Exception as e:
         logger.error(f"Error launching Gradio app: {e}")
         raise typer.Exit(code=1)
+
+
+@app.command()
+def dev():
+    """Launch the development server for the Migri Assistant chatbot."""
+    typer.echo("🚀 Launching Migri Assistant chatbot development server...")
+    # Call the gradio_app function with default settings
+    gradio_app(
+        collection_name="migri_docs",
+        persist_directory="chroma_db",
+        model_name="llama3.2",
+        share=False,
+    )
+
+
+def run_gradio_app():
+    """Entry point for the 'dev' command to launch the Gradio app with default settings."""
+    # This function calls the gradio_app command with default settings
+    gradio_app(
+        collection_name="migri_docs",
+        persist_directory="chroma_db",
+        model_name="llama3.2",
+        share=False,
+    )
 
 
 if __name__ == "__main__":
