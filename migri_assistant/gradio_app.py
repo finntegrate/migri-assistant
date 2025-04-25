@@ -127,6 +127,14 @@ with gr.Blocks(title="Migri Assistant") as demo:
                 lines=2,
             )
 
+            # Add disclaimer text above the buttons using HTML component for proper rendering
+            gr.HTML(
+                """<p style="font-size: 0.8em; color: #666; margin-top: 0.5em; margin-bottom: 0.5em;">
+                    ⚠️ Disclaimer: Information provided may contain errors.
+                    Always verify with official sources at <a href="https://migri.fi" target="_blank">migri.fi</a>.
+                </p>""",  # noqa: E501
+            )
+
             with gr.Row():
                 submit = gr.Button("Submit")
                 clear = gr.Button("Clear")
