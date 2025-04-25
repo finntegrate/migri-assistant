@@ -116,8 +116,7 @@ with gr.Blocks(title="Migri Assistant") as demo:
             chatbot = gr.Chatbot(
                 label="Conversation",
                 height=500,
-                bubble_full_width=False,
-                type="messages",  # Use messages format to avoid deprecation warning
+                type="messages",
             )
             msg = gr.Textbox(
                 label="Your question",
