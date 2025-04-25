@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from migri_assistant.models.llm_service import LLMService
+from migri_assistant.prompts import load_prompt
 from migri_assistant.vectorstore.chroma_store import ChromaStore
 
 # Configure logging
@@ -76,16 +77,11 @@ class RAGService:
             # Create a context-rich prompt
             context_text = "\n\n".join(context_docs)
 
-            # System prompt for context
-            system_prompt = (
-                "You are Migri Assistant, an AI that helps people understand "
-                "Finnish immigration processes. Use the provided context to answer "
-                "questions, and acknowledge when you don't know something. "
-                "Keep your responses concise and informative."
-            )
+            # Load the system prompt from the template file
+            system_prompt = load_prompt("system_prompt")
 
-            # User prompt with context and question
-            user_prompt = f"CONTEXT:\n{context_text}\n\nQUESTION: {query_text}\n\nANSWER:"
+            # Load the user query template and fill in the variables
+            user_prompt = load_prompt("user_query", context=context_text, question=query_text)
 
             # Generate response using LLM service
             logger.info("Generating response with LLM")
