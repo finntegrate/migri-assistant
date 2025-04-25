@@ -277,47 +277,60 @@ def info():
 def gradio_app(
     collection_name: str = typer.Option(
         "migri_docs",
+        "--collection-name",
+        "-c",
         help="Name of the ChromaDB collection to query",
     ),
-    persist_directory: str = typer.Option(
+    db_dir: str = typer.Option(
         "chroma_db",
-        help="Directory where ChromaDB database is stored",
+        "--db-dir",
+        "-d",
+        help="Directory containing the ChromaDB database",
     ),
-    model_name: str = typer.Option("llama3.2", help="Ollama model name to use"),
-    share: bool = typer.Option(False, help="Create a shareable link for the app"),
+    model_name: str = typer.Option(
+        "llama3.2",
+        "--model-name",
+        "-m",
+        help="Ollama model to use for LLM inference",
+    ),
+    max_tokens: int = typer.Option(
+        1024,
+        "--max-tokens",
+        "-t",
+        help="Maximum number of tokens to generate",
+    ),
+    share: bool = typer.Option(
+        False,
+        "--share",
+        help="Create a shareable link for the app",
+    ),
 ):
-    """Launch the Gradio web interface for querying Migri Assistant."""
+    """Launch the Gradio web interface for RAG-powered chatbot."""
     try:
-        # Import here to avoid circular imports
-        import importlib
-        import sys
+        # Import the main function from the gradio_app module
+        from migri_assistant.gradio_app import main as launch_gradio
 
-        # Dynamically import the gradio_app module
-        try:
-            spec = importlib.util.find_spec("migri_assistant.gradio_app")
-            if spec is None:
-                raise ImportError("Could not find migri_assistant.gradio_app module")
+        typer.echo(f"🚀 Starting Gradio app with {model_name} model")
+        typer.echo(f"📚 Using ChromaDB collection '{collection_name}' from '{db_dir}'")
 
-            ga = importlib.util.module_from_spec(spec)
-            sys.modules["migri_assistant.gradio_app"] = ga
-            spec.loader.exec_module(ga)
+        if share:
+            typer.echo("🔗 Creating a shareable link")
 
-            # Override constants if provided
-            ga.MODEL_NAME = model_name
-            ga.COLLECTION_NAME = collection_name
-            ga.CHROMA_DB_PATH = persist_directory
+        # Launch the Gradio app with CLI parameters
+        launch_gradio(
+            collection_name=collection_name,
+            persist_directory=db_dir,
+            model_name=model_name,
+            max_tokens=max_tokens,
+            share=share,
+        )
 
-            logger.info(
-                f"Launching Gradio app with collection '{collection_name}' "
-                f"using model '{model_name}'",
-            )
-            ga.demo.launch(share=share)
-        except ImportError as e:
-            logger.error(f"Error importing gradio_app module: {e}")
-            raise typer.Exit(code=1)
-
+    except ImportError as e:
+        typer.echo(f"❌ Error importing Gradio: {str(e)}", err=True)
+        typer.echo("Make sure Gradio is installed with 'uv add gradio'")
+        raise typer.Exit(code=1)
     except Exception as e:
-        logger.error(f"Error launching Gradio app: {e}")
+        typer.echo(f"❌ Error launching Gradio app: {str(e)}", err=True)
         raise typer.Exit(code=1)
 
 

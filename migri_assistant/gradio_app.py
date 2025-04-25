@@ -3,98 +3,96 @@
 import logging
 
 import gradio as gr
-import ollama
 
-from migri_assistant.vectorstore.chroma_store import ChromaStore
+from migri_assistant.models.rag_service import RAGService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Constants
-COLLECTION_NAME = "migri_docs"  # Changed to match vectorize command default
-CHROMA_DB_PATH = "chroma_db"
-MODEL_NAME = "llama3.2"
-MAX_TOKENS = 1024
-NUM_RESULTS = 5
+# Default constants (can be overridden by CLI)
+DEFAULT_COLLECTION_NAME = "migri_docs"
+DEFAULT_CHROMA_DB_PATH = "chroma_db"
+DEFAULT_MODEL_NAME = "llama3.2"
+DEFAULT_MAX_TOKENS = 1024
+DEFAULT_NUM_RESULTS = 5
 
-# Initialize the ChromaDB store
-vector_store = ChromaStore(
-    collection_name=COLLECTION_NAME,
-    persist_directory=CHROMA_DB_PATH,
-)
+# Global RAG service instance - will be initialized when needed
+rag_service = None
 
 
-def format_retrieved_documents(documents: list[dict]) -> str:
-    """Format retrieved documents for display."""
-    if not documents:
-        return "No relevant documents found."
+def init_rag_service(
+    collection_name: str = DEFAULT_COLLECTION_NAME,
+    persist_directory: str = DEFAULT_CHROMA_DB_PATH,
+    model_name: str = DEFAULT_MODEL_NAME,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+    num_results: int = DEFAULT_NUM_RESULTS,
+) -> RAGService:
+    """Initialize the RAG service with the given parameters.
 
-    formatted_docs = []
-    for i, doc in enumerate(documents):
-        # Extract metadata
-        metadata = doc.metadata if hasattr(doc, "metadata") else {}
-        source = metadata.get("source_url", metadata.get("url", "Unknown source"))
-        title = metadata.get("title", f"Document {i + 1}")
+    Args:
+        collection_name: Name of the ChromaDB collection
+        persist_directory: Directory where the ChromaDB database is stored
+        model_name: Name of the LLM model to use
+        max_tokens: Maximum number of tokens to generate
+        num_results: Number of documents to retrieve from the vector store
 
-        # Format the document with metadata
-        doc_content = doc.page_content if hasattr(doc, "page_content") else str(doc)
-        formatted_doc = f"### {title}\n**Source**: {source}\n\n{doc_content}\n\n"
-        formatted_docs.append(formatted_doc)
+    Returns:
+        Initialized RAGService instance
+    """
+    global rag_service
 
-    return "\n".join(formatted_docs)
+    if rag_service is None:
+        logger.info(f"Initializing RAG service with {model_name} model")
+        rag_service = RAGService(
+            collection_name=collection_name,
+            persist_directory=persist_directory,
+            model_name=model_name,
+            max_tokens=max_tokens,
+            num_results=num_results,
+        )
+
+    return rag_service
 
 
-def query_ollama(prompt: str) -> str:
-    """Query the Ollama model with a prompt."""
+def generate_rag_response(
+    query: str,
+    history: list[dict] | None = None,
+    collection_name: str = DEFAULT_COLLECTION_NAME,
+    persist_directory: str = DEFAULT_CHROMA_DB_PATH,
+    model_name: str = DEFAULT_MODEL_NAME,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+    num_results: int = DEFAULT_NUM_RESULTS,
+) -> tuple[str, str]:
+    """Generate a response using RAG and return both the response and retrieved documents.
+
+    Args:
+        query: The user's query
+        history: Chat history
+        collection_name: Name of the ChromaDB collection
+        persist_directory: Directory where the ChromaDB database is stored
+        model_name: Name of the LLM model to use
+        max_tokens: Maximum number of tokens to generate
+        num_results: Number of documents to retrieve from the vector store
+
+    Returns:
+        Tuple containing the response and formatted documents for display
+    """
     try:
-        response = ollama.chat(
-            model=MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            options={"temperature": 0.7, "num_predict": MAX_TOKENS},
-        )
-        return response["message"]["content"]
-    except Exception as e:
-        logger.error(f"Error querying Ollama: {e}")
-        return (
-            f"Error: Could not generate a response. "
-            f"Please check if Ollama is running with the {MODEL_NAME} model."
+        # Initialize RAG service if not already done
+        service = init_rag_service(
+            collection_name=collection_name,
+            persist_directory=persist_directory,
+            model_name=model_name,
+            max_tokens=max_tokens,
+            num_results=num_results,
         )
 
-
-def generate_rag_response(query: str, history: list[dict]) -> tuple[str, str]:
-    """Generate a response using RAG and return both the response and retrieved documents."""
-    try:
-        # Query the vector store for relevant documents
-        logger.info(f"Querying vector store with: {query}")
-        retrieved_docs = vector_store.query(query_text=query, n_results=NUM_RESULTS)
-
-        # Format documents for the LLM prompt
-        context_docs = []
-        for doc in retrieved_docs:
-            # Extract content and relevant metadata for context
-            if hasattr(doc, "page_content"):
-                context_docs.append(doc.page_content)
-
-        # Create a prompt with the retrieved context
-        context_text = "\n\n".join(context_docs)
-        prompt = (
-            "You are Migri Assistant, an AI that helps people understand "
-            "Finnish immigration processes.\n"
-            "Use the following context to answer the question, and acknowledge when "
-            "you don't know something.\n"
-            "Keep your response concise and informative.\n\n"
-            f"CONTEXT:\n{context_text}\n\n"
-            f"QUESTION: {query}\n\n"
-            "ANSWER:"
-        )
-
-        # Generate response using Ollama
-        logger.info("Generating response with Ollama")
-        response = query_ollama(prompt)
+        # Get response and retrieved docs from the RAG service
+        response, retrieved_docs = service.query(query_text=query, history=history)
 
         # Format documents for display
-        formatted_docs = format_retrieved_documents(retrieved_docs)
+        formatted_docs = service.format_retrieved_documents(retrieved_docs)
 
         return response, formatted_docs
     except Exception as e:
@@ -176,49 +174,42 @@ with gr.Blocks(title="Migri Assistant") as demo:
     )
 
 
-def check_ollama():
-    """Check if Ollama is running and has the required model."""
-    try:
-        models = ollama.list()
-        if "models" not in models:
-            logger.warning("No models found in Ollama")
-            return False
+def main(
+    collection_name: str = DEFAULT_COLLECTION_NAME,
+    persist_directory: str = DEFAULT_CHROMA_DB_PATH,
+    model_name: str = DEFAULT_MODEL_NAME,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+    num_results: int = DEFAULT_NUM_RESULTS,
+    share: bool = False,
+):
+    """Run the Gradio app with the specified parameters.
 
-        # Check if the model exists - allow for model name variations like llama3.2:latest
-        model_exists = False
-        available_models = [model.get("name", "") for model in models.get("models", [])]
+    Args:
+        collection_name: Name of the ChromaDB collection
+        persist_directory: Directory where the ChromaDB database is stored
+        model_name: Name of the LLM model to use
+        max_tokens: Maximum number of tokens to generate
+        num_results: Number of documents to retrieve from the vector store
+        share: Whether to create a shareable link for the app
+    """
+    # Initialize the RAG service
+    service = init_rag_service(
+        collection_name=collection_name,
+        persist_directory=persist_directory,
+        model_name=model_name,
+        max_tokens=max_tokens,
+        num_results=num_results,
+    )
 
-        # Log available models
-        logger.info(f"Available Ollama models: {', '.join(available_models)}")
-
-        # Check for exact match or name:latest pattern
-        for model_name in available_models:
-            if model_name == MODEL_NAME or model_name.startswith(f"{MODEL_NAME}:"):
-                model_exists = True
-                # Use the found model name
-                logger.info(f"Found matching model: {model_name}")
-                break
-
-        if not model_exists:
-            logger.warning(
-                f"{MODEL_NAME} model not found in Ollama. "
-                f"Please pull it with 'ollama pull {MODEL_NAME}'",
-            )
-            return False
-        return True
-    except Exception as e:
-        logger.warning(f"Could not connect to Ollama: {e}")
-        logger.warning("Make sure Ollama is running")
-        return False
-
-
-def main():
-    """Run the Gradio app."""
     # Check if Ollama is running and has the required model
-    check_ollama()
+    if not service.check_model_availability():
+        logger.warning(
+            f"Could not find {model_name} model in Ollama. "
+            f"The app will start, but responses may not work correctly.",
+        )
 
     # Launch the Gradio app
-    demo.launch(share=False)
+    demo.launch(share=share)
 
 
 if __name__ == "__main__":
