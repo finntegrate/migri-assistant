@@ -3,7 +3,7 @@
 ## Overview
 Migri Assistant is a tool designed to extract, process, and query information from websites, with specific functionality tailored for the Migri.fi website. It provides end-to-end RAG (Retrieval Augmented Generation) capabilities including web crawling, content parsing, vectorization, and an interactive chatbot interface.
 
-##  Key demographics
+##  Key Demographics
 
 - EU citizens
 - Non-EU citizens
@@ -37,7 +37,7 @@ Migri Assistant is a tool designed to extract, process, and query information fr
 - [uv](https://github.com/astral-sh/uv) - Fast Python package installer and resolver
 - [Ollama](https://ollama.ai/) - For local LLM inference (required for the chatbot)
 
-### Setting up with uv
+### Setting up
 
 1. Clone the repository:
 ```bash
@@ -55,7 +55,7 @@ source .venv/bin/activate  # On Unix/macOS
 
 3. Install dependencies:
 ```bash
-uv sync --dev
+uv sync
 ```
 
 4. Ensure you have the required Ollama models:
@@ -125,59 +125,9 @@ Available commands:
 - `gradio-app`: Launch the Gradio RAG chatbot interface
 - `info`: Show information about available commands
 
-## Development
+## Contributing
 
-### Code Quality
-
-We use [Ruff](https://docs.astral.sh/ruff/) for linting and formatting. To run the linter:
-
-```bash
-uv run ruff .
-```
-
-To automatically fix issues:
-
-```bash
-uv run ruff . --fix
-```
-
-To check formatting without fixing:
-
-```bash
-uv run ruff . --check
-```
-
-### Running Tests
-
-```bash
-uv run pytest
-```
-
-To run tests with code coverage reports:
-
-```bash
-# Generate coverage report in the terminal
-uv run pytest --cov=migri_assistant
-
-# Generate HTML coverage report
-uv run pytest --cov=migri_assistant --cov-report=html
-
-# Get coverage for specific modules
-uv run pytest --cov=migri_assistant.utils tests/utils/
-```
-
-The HTML coverage report will be generated in the `htmlcov` directory. Open `htmlcov/index.html` in your browser to view it.
-
-## Project Structure
-
-The project has been designed with a clear separation of concerns:
-
-- `crawler/`: Module responsible for crawling websites and saving HTML content
-- `parsers/`: Module responsible for parsing HTML content into structured formats
-- `vectorstore/`: Module responsible for vectorizing content and storing in ChromaDB
-- `gradio_app.py`: Gradio interface for the RAG chatbot
-- `utils/`: Utility modules for embedding generation, markdown processing, etc.
-- `tests/`: Test suite for all modules
+If you'd like to contribute to this project, please see our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct, development process, and how to submit pull requests.
 
 ## License
 This project is licensed under the Apache 2.0 License. See the LICENSE file for more details.
