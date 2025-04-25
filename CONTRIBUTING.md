@@ -3,6 +3,7 @@
 Thank you for considering contributing to Migri Assistant! This document provides guidelines and instructions for contributing to this project.
 
 ## Table of Contents
+- [Technical Architecture](#technical-architecture)
 - [Development Environment Setup](#development-environment-setup)
 - [Package Management](#package-management)
 - [Code Quality](#code-quality)
@@ -10,6 +11,58 @@ Thank you for considering contributing to Migri Assistant! This document provide
 - [Project Structure](#project-structure)
 - [Ollama for LLM Inference](#ollama-for-llm-inference)
 - [Pull Request Process](#pull-request-process)
+
+## Technical Architecture
+
+The following diagram illustrates the high-level architecture and data flow of the Migri Assistant:
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#f0f0f0', 'primaryTextColor': '#323232', 'primaryBorderColor': '#606060', 'lineColor': '#404040', 'secondaryColor': '#c0c0c0', 'tertiaryColor': '#e0e0e0' }}}%%
+graph TD
+    subgraph Data Pipeline
+        A[Website Content] -->|Crawl| B[Raw HTML]
+        B -->|Parse| C[Structured Markdown]
+        C -->|Vectorize| D[ChromaDB Vector Store]
+    end
+
+    subgraph RAG System
+        E[User Query] -->|Input| F[Gradio Interface]
+        F -->|Query| G[Vector Search]
+        G -->|Retrieve Docs| H[Context Assembly]
+        H -->|Context + Query| I[Ollama LLM]
+        I -->|Generate Response| F
+    end
+
+    D --> G
+
+    subgraph Components
+        J[crawler module] -.->|implements| A
+        K[parsers module] -.->|implements| B --> C
+        L[vectorstore module] -.->|implements| C
+        M[utils module] -.->|supports| J & K & L
+        N[gradio_app.py] -.->|implements| F & G & H & I
+    end
+
+    style A fill:#e0e0e0,stroke:#404040,stroke-width:1px,color:#232323
+    style B fill:#e0e0e0,stroke:#404040,stroke-width:1px,color:#232323
+    style C fill:#e0e0e0,stroke:#404040,stroke-width:1px,color:#232323
+    style D fill:#ffcb8c,stroke:#404040,stroke-width:2px,color:#232323
+    style E fill:#e0e0e0,stroke:#404040,stroke-width:1px,color:#232323
+    style F fill:#9cd3ff,stroke:#404040,stroke-width:2px,color:#232323
+    style G fill:#e0e0e0,stroke:#404040,stroke-width:1px,color:#232323
+    style H fill:#e0e0e0,stroke:#404040,stroke-width:1px,color:#232323
+    style I fill:#a3ffb0,stroke:#404040,stroke-width:2px,color:#232323
+    style J fill:#e8e8e8,stroke:#404040,stroke-width:1px,color:#232323
+    style K fill:#e8e8e8,stroke:#404040,stroke-width:1px,color:#232323
+    style L fill:#e8e8e8,stroke:#404040,stroke-width:1px,color:#232323
+    style M fill:#e8e8e8,stroke:#404040,stroke-width:1px,color:#232323
+    style N fill:#e8e8e8,stroke:#404040,stroke-width:1px,color:#232323
+```
+
+The architecture follows a pipeline design with three main components:
+1. **Data Pipeline**: Responsible for crawling, parsing, and vectorizing web content
+2. **RAG System**: Handles user queries, vector search, and LLM response generation
+3. **Components**: The specific modules that implement the functionality
 
 ## Development Environment Setup
 
