@@ -4,7 +4,7 @@ class Document:
         self.content = content
         self.metadata = metadata
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, str | dict]:
         return {
             "url": self.url,
             "content": self.content,

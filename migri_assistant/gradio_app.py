@@ -29,7 +29,7 @@ class MigriAssistantApp:
         model_name: str = DEFAULT_MODEL_NAME,
         max_tokens: int = DEFAULT_MAX_TOKENS,
         num_results: int = DEFAULT_NUM_RESULTS,
-    ):
+    ) -> None:
         """Initialize the Migri Assistant application.
 
         Args:
@@ -97,7 +97,11 @@ class MigriAssistantApp:
                 "Error retrieving documents.",
             )
 
-    def respond(self, message, chat_history):
+    def respond(
+        self,
+        message: str,
+        chat_history: list[dict[str, str]],
+    ) -> tuple[str, list[dict[str, str]], str]:
         """Process user message and update the chat history.
 
         Args:
@@ -215,7 +219,7 @@ def main(
     max_tokens: int = DEFAULT_MAX_TOKENS,
     num_results: int = DEFAULT_NUM_RESULTS,
     share: bool = False,
-):
+) -> None:
     """Run the Migri Assistant app with the specified parameters.
 
     Args:

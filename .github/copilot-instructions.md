@@ -96,3 +96,48 @@ ollama <command> --help
 - Use type hints for all function parameters and return types.
 - Use `Optional` for optional parameters and return types.
 - Use `list`, `dict`, `set`, and `tuple` for built-in types.
+
+### Mypy
+
+We use Mypy for type checking. Please ensure your code passes all checks.
+You can run Mypy with the following command:
+
+```
+uv run mypy .
+```
+
+You can also run Mypy with the `--strict` option to enable strict type checking:
+
+```
+uv run mypy . --strict
+```
+
+### Ignoring Mypy Errors
+
+Prefer to include the error code in the comment, e.g. `# type: ignore[code]`, instead of using `# type: ignore` to ignore all errors. This makes it easier to identify the specific issue being ignored. For example:
+
+```python
+def my_function(x: int) -> str:  # type: ignore[return-value]
+    return x  # type: ignore[argument]
+```
+
+This way, you can easily identify the specific issue being ignored and it makes it easier to fix the issue in the future.
+
+### Type Stubs
+
+We define type stubs for third-party libraries that do not have type hints. Type stubs are files with the `.pyi` extension that contain only type hints. They are used to provide type information for libraries that do not have type hints.
+
+Type stubs should be placed in the `stubs` directory. The directory structure should match the package structure of the library. For example, if you have a library called `mylib`, the type stub file should be named `mylib.pyi` and placed in the `stubs/mylib` directory.
+
+### Docstrings
+
+- Use Google-style docstrings for all functions and classes.
+- Include a summary of the function, parameters, and return types.
+- Use `:param` for parameters and `:return` for return types.
+- Use `:raises` for exceptions.
+- Use `:example` for examples.
+- Use `:note` for notes.
+- Use `:todo` for TODOs.
+- Use `:deprecated` for deprecated functions.
+- Use `:see:` for references.
+- Use `:warning:` for warnings.

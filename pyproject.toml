@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "An assistant for processing Migri website content"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {file = "LICENSE"}
+license = "MIT"
 authors = [
     {name = "Finntegrate Team", email = "info@finntegrate.org"}
 ]
@@ -31,6 +31,9 @@ dev = [
     "pytest",
     "pytest-cov",
     "ruff",
+    "mypy",
+    "types-lxml",
+    "types-pyyaml",
 ]
 
 [project.scripts]
@@ -59,4 +62,6 @@ dev = [
     "pre-commit>=4.2.0",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
+    "types-lxml>=2025.3.30",
+    "types-pyyaml>=6.0.12.20250402",
 ]

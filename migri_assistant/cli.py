@@ -51,7 +51,7 @@ def crawl(
         "-v",
         help="Enable verbose output",
     ),
-):
+) -> None:
     """
     Crawl a website to a configurable depth and save raw HTML content.
 
@@ -137,7 +137,7 @@ def parse(
         "-v",
         help="Enable verbose output",
     ),
-):
+) -> None:
     """
     Parse HTML files previously crawled and convert to structured Markdown.
 
@@ -234,7 +234,7 @@ def vectorize(
         "-v",
         help="Enable verbose output",
     ),
-):
+) -> None:
     """
     Vectorize parsed Markdown files and store in a vector database (ChromaDB).
 
@@ -280,7 +280,7 @@ def vectorize(
 
 
 @app.command()
-def info():
+def info() -> None:
     """Show information about the Migri Assistant and available commands."""
     typer.echo("Migri Assistant - Web crawling and parsing tool")
     typer.echo("\nAvailable commands:")
@@ -325,7 +325,7 @@ def gradio_app(
         "--share",
         help="Create a shareable link for the app",
     ),
-):
+) -> None:
     """Launch the Gradio web interface for RAG-powered chatbot."""
     try:
         # Import the main function from the gradio_app module
@@ -356,13 +356,13 @@ def gradio_app(
 
 
 @app.command()
-def dev():
+def dev() -> None:
     """Launch the development server for the Migri Assistant chatbot."""
     typer.echo("🚀 Launching Migri Assistant chatbot development server...")
     # Call the gradio_app function with default settings
     gradio_app(
         collection_name="migri_docs",
-        persist_directory="chroma_db",
+        db_dir="chroma_db",
         model_name="llama3.2",
         share=False,
     )
@@ -382,7 +382,7 @@ def list_sites(
         "-v",
         help="Show detailed information about each site configuration",
     ),
-):
+) -> None:
     """
     List available site configurations for the parser.
 
@@ -423,12 +423,12 @@ def list_sites(
         raise typer.Exit(code=1)
 
 
-def run_gradio_app():
+def run_gradio_app() -> None:
     """Entry point for the 'dev' command to launch the Gradio app with default settings."""
     # This function calls the gradio_app command with default settings
     gradio_app(
         collection_name="migri_docs",
-        persist_directory="chroma_db",
+        db_dir="chroma_db",
         model_name="llama3.2",
         share=False,
     )

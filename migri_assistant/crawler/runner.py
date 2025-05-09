@@ -1,9 +1,11 @@
 import logging
+from collections.abc import Generator
+from typing import Any
 
 from scrapy import signals
 from scrapy.crawler import CrawlerRunner
 from scrapy.utils.project import get_project_settings
-from twisted.internet import defer, reactor
+from twisted.internet import defer, reactor  # type: ignore
 
 from migri_assistant.crawler.crawler import BaseCrawler
 
@@ -13,12 +15,12 @@ class ScrapyRunner:
     Runs a Scrapy crawler process to crawl websites and save HTML content.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize Scrapy runner."""
         self.setup_logging()
-        self.results = []
+        self.results: list[Any] = []
 
-    def setup_logging(self):
+    def setup_logging(self) -> None:
         """Set up logging configuration"""
         logging.basicConfig(
             level=logging.INFO,
@@ -27,7 +29,7 @@ class ScrapyRunner:
         )
         self.logger = logging.getLogger(__name__)
 
-    def _item_scraped(self, item, response, spider):
+    def _item_scraped(self, item: dict, response: Any, spider: Any) -> None:
         """Callback function to collect scraped items."""
         self.results.append(item)
 
@@ -77,7 +79,7 @@ class ScrapyRunner:
 
         # Create a deferrable that will run the crawler
         @defer.inlineCallbacks
-        def crawl_with_cleanup():
+        def crawl_with_cleanup() -> Generator[defer.Deferred, None, None]:
             try:
                 # Create crawler and connect signals
                 crawler = runner.create_crawler(BaseCrawler)
@@ -95,15 +97,15 @@ class ScrapyRunner:
                 self.logger.error(f"Error during crawling: {e}")
             finally:
                 # Stop the reactor if it's running
-                if reactor.running:
-                    reactor.stop()
+                if reactor.running:  # type: ignore[attr-defined]
+                    reactor.stop()  # type: ignore[attr-defined]
 
         # Run the crawler
         crawl_with_cleanup()
 
         # Start the event loop
-        if not reactor.running:
-            reactor.run()
+        if not reactor.running:  # type: ignore[attr-defined]
+            reactor.run()  # type: ignore[attr-defined]
 
         self.logger.info(f"Crawling completed. Processed {len(self.results)} items.")
         return self.results

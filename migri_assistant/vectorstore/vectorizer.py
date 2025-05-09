@@ -4,10 +4,10 @@ import logging
 import os
 from typing import Any
 
-from langchain.schema.document import Document
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_text_splitters import MarkdownTextSplitter
+from langchain.schema.document import Document  # type: ignore[import-not-found]
+from langchain_chroma import Chroma  # type: ignore[import-not-found]
+from langchain_huggingface import HuggingFaceEmbeddings  # type: ignore[import-not-found]
+from langchain_text_splitters import MarkdownTextSplitter  # type: ignore[import-not-found]
 
 from migri_assistant.utils.markdown_utils import find_markdown_files, read_markdown_file
 

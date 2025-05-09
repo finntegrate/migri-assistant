@@ -3,7 +3,7 @@
 import logging
 import os
 
-import frontmatter
+import frontmatter  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
 

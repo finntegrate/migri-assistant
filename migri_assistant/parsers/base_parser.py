@@ -4,6 +4,7 @@ import os
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -20,8 +21,8 @@ class BaseParser(ABC):
         self,
         input_dir: str = "crawled_content",
         output_dir: str = "parsed_content",
-        site_name: str = None,
-    ):
+        site_name: str | None = None,
+    ) -> None:
         """
         Initialize the parser.
 
@@ -36,13 +37,13 @@ class BaseParser(ABC):
         self.setup_logging()
 
         # Load URL mappings if available
-        self.url_mappings = {}
+        self.url_mappings: dict[str, dict[str, str]] = {}
         self._load_url_mappings()
 
         # Create output directory if it doesn't exist
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def setup_logging(self):
+    def setup_logging(self) -> None:
         """Set up logging configuration"""
         logging.basicConfig(
             level=logging.INFO,
@@ -51,7 +52,7 @@ class BaseParser(ABC):
         )
         self.logger = logging.getLogger(__name__)
 
-    def _load_url_mappings(self):
+    def _load_url_mappings(self) -> None:
         """Load URL mappings from the JSON file"""
         mapping_file = os.path.join(self.input_dir, "url_mappings.json")
         if os.path.exists(mapping_file):
@@ -65,7 +66,7 @@ class BaseParser(ABC):
             self.logger.warning(f"URL mapping file not found: {mapping_file}")
             # Still continue processing - URL mappings are optional
 
-    def _get_original_url(self, file_path):
+    def _get_original_url(self, file_path: str | Path) -> str | None:
         """
         Get the original URL for a file path from the URL mappings.
 
@@ -110,7 +111,7 @@ class BaseParser(ABC):
         self.logger.debug(f"No URL mapping found for {file_path}")
         return None
 
-    def parse_all(self, domain: str | None = None) -> list[dict]:
+    def parse_all(self, domain: str | None = None) -> list[dict[str, Any]]:
         """
         Parse all HTML files in the input directory, optionally filtered by domain.
 
@@ -120,7 +121,7 @@ class BaseParser(ABC):
         Returns:
             List of dictionaries containing information about the parsed files
         """
-        results = []
+        results: list[dict[str, Any]] = []
 
         # Get all HTML files
         if domain:
@@ -157,7 +158,7 @@ class BaseParser(ABC):
         self.logger.info(f"Parsed {len(results)} files")
         return results
 
-    def parse_file(self, html_file: str | Path) -> dict | None:
+    def parse_file(self, html_file: str | Path) -> dict[str, Any] | None:
         """
         Parse a single HTML file.
 
@@ -186,7 +187,7 @@ class BaseParser(ABC):
                     domain = "unknown"
             except ValueError:
                 # If file is not inside input_dir, use the filename
-                rel_path = html_file_path.name
+                rel_path = Path(html_file_path.name)
                 domain = "unknown"
 
             # Generate a filename for the output markdown
@@ -212,7 +213,7 @@ class BaseParser(ABC):
             self.logger.error(f"Error parsing {html_file_path}: {str(e)}")
             return None
 
-    def _create_metadata(self, file_path, title):
+    def _create_metadata(self, file_path: str | Path, title: str) -> dict[str, Any]:
         """
         Create metadata for the markdown file including the original URL.
 
@@ -294,7 +295,7 @@ class BaseParser(ABC):
         filename: str,
         title: str,
         content: str,
-        metadata: dict,
+        metadata: dict[str, Any],
     ) -> str:
         """
         Save content as a markdown file with YAML frontmatter.
@@ -329,7 +330,7 @@ class BaseParser(ABC):
         self.logger.info(f"Saved markdown to {output_path}")
         return output_path
 
-    def _create_index(self, results: list[dict]) -> str:
+    def _create_index(self, results: list[dict[str, Any]]) -> str:
         """
         Create an index markdown file for all parsed content.
 

@@ -1,8 +1,11 @@
 """Utilities for generating embeddings using LangChain."""
 
 import logging
+from typing import cast
 
-from langchain_community.embeddings import SentenceTransformerEmbeddings
+from langchain_community.embeddings import (  # type: ignore[import-not-found]
+    SentenceTransformerEmbeddings,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +55,11 @@ class EmbeddingGenerator:
         try:
             # LangChain's embed_documents returns a list of embedding vectors
             embeddings = self.embedding_model.embed_documents(texts)
-            return embeddings
+
+            # Cast the return type to match the expected signature
+            # This is safe because we know embeddings is a list[list[float]]
+            # which is a subtype of list[list[float] | None]
+            return cast(list[list[float] | None], embeddings)
         except Exception as e:
             logger.error(f"Error generating batch embeddings: {e}")
             # Return a list of Nones with the same length as the input

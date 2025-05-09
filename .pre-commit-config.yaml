@@ -29,6 +29,32 @@ repos:
         args: [--fix]
       # Run the formatter.
       - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic
+          - types-PyYAML
+          - types-lxml
+          - scrapy
+          - twisted
+          - pytest
+          - torch
+          - chromadb
+          - langchain-chroma
+          - langchain-core
+          - langchain-huggingface
+          - langchain-text-splitters
+          - langchain-community
+          - langchain
+          - ollama
+          - html2text
+          - gradio
+          - typer
+        # Using project's mypy.ini for configuration
+        args: [--config-file=mypy.ini]
+        exclude: ^tests/
   - repo: https://github.com/google/keep-sorted
     rev: v0.6.0
     hooks:

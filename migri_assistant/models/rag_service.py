@@ -49,7 +49,11 @@ class RAGService:
             f"Initialized RAG service with collection '{collection_name}' and model '{model_name}'",
         )
 
-    def query(self, query_text: str, history: list[dict] = None) -> tuple[str, list[Any]]:
+    def query(
+        self,
+        query_text: str,
+        history: list[dict[str, Any]] | None = None,
+    ) -> tuple[str, list[Any]]:
         """Generate a response using RAG.
 
         Args:
@@ -90,7 +94,8 @@ class RAGService:
                 system_prompt=system_prompt,
             )
 
-            return response, retrieved_docs
+            # Cast the response to str to satisfy the return type
+            return str(response), retrieved_docs  # type: ignore[return-value]
         except Exception as e:
             logger.error(f"Error generating RAG response: {e}")
             return (
