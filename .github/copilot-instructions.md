@@ -96,3 +96,18 @@ ollama <command> --help
 - Use type hints for all function parameters and return types.
 - Use `Optional` for optional parameters and return types.
 - Use `list`, `dict`, `set`, and `tuple` for built-in types.
+
+### Mypy
+
+We use Mypy for type checking. Please ensure your code passes all checks.
+You can run Mypy with the following command:
+
+```
+uv run mypy .
+```
+
+You can also run Mypy with the `--strict` option to enable strict type checking:
+
+```
+uv run mypy . --strict
+```
