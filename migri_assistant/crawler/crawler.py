@@ -54,7 +54,7 @@ class BaseCrawler(Spider):
 
         # Extract allowed domains from start URLs if not provided
         if allowed_domains is None:
-            self.allowed_domains = []
+            self.allowed_domains: list[str] = []
             for url in self.start_urls:
                 netloc = urlparse(url).netloc
                 if netloc and netloc not in self.allowed_domains:

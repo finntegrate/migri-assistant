@@ -18,7 +18,7 @@ class ScrapyRunner:
     def __init__(self) -> None:
         """Initialize Scrapy runner."""
         self.setup_logging()
-        self.results = []
+        self.results: list[Any] = []
 
     def setup_logging(self) -> None:
         """Set up logging configuration"""
