@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "An assistant for processing Migri website content"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {file = "LICENSE"}
+license = "MIT"
 authors = [
     {name = "Finntegrate Team", email = "info@finntegrate.org"}
 ]
