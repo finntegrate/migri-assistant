@@ -1,6 +1,6 @@
 """Tests for the Scrapy settings module."""
 
-from migri_assistant import settings
+from migri_assistant.crawler import settings
 
 
 def test_bot_name():

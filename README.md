@@ -1,7 +1,7 @@
 # Migri Assistant
 
 ## Overview
-Migri Assistant is a tool designed to extract, process, and query information from websites, with specific functionality tailored for the Migri.fi website. It provides end-to-end RAG (Retrieval Augmented Generation) capabilities including web crawling, content parsing, vectorization, and an interactive chatbot interface.
+Migri Assistant is a tool designed to extract, process, and query information from multiple websites, including Migri.fi (Finnish Immigration Service). It provides end-to-end RAG (Retrieval Augmented Generation) capabilities including web crawling, content parsing, vectorization, and an interactive chatbot interface.
 
 ##  Key Demographics
 
@@ -76,8 +76,10 @@ uv run -m migri_assistant.cli crawl https://migri.fi/en/home --depth 2 --output-
 
 2. **Parse** the HTML content into structured Markdown:
 ```bash
-uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content
+uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site-type migri
 ```
+
+The `--site-type` parameter specifies which site configuration to use. Available site types include `migri`, `te_palvelut`, `kela`, and any others defined in the parser configurations.
 
 3. **Vectorize** the parsed Markdown content into ChromaDB for semantic search:
 ```bash

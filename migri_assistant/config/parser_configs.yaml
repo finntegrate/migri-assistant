@@ -1,0 +1,43 @@
+# Default configuration file for HTML content parsers
+sites:
+  migri:
+    site_name: "migri"
+    title_selector: "//title"
+    content_selectors:
+      - '//div[@id="main-content"]'
+      - "//main"
+      - "//article"
+      - '//div[@class="content"]'
+    fallback_to_body: true
+    description: "Finnish Immigration Service website"
+    markdown_config:
+      ignore_links: false
+      body_width: 0
+      protect_links: true
+      unicode_snob: true
+      ignore_images: false
+      ignore_tables: false
+
+  # Example configuration for TE Services website
+  te_palvelut:
+    site_name: "te_services"
+    title_selector: "//title"
+    content_selectors:
+      - '//div[@class="content-main"]'
+      - '//main[@role="main"]'
+    fallback_to_body: true
+    description: "TE Services (Work and Economic Development) website"
+    markdown_config:
+      ignore_tables: false
+
+  # Example configuration for Kela website
+  kela:
+    site_name: "kela"
+    title_selector: "//h1 | //title"
+    content_selectors:
+      - '//div[@class="main-content"]'
+      - '//div[@id="content"]'
+    fallback_to_body: true
+    description: "Kela (Social Insurance Institution of Finland) website"
+    markdown_config:
+      ignore_images: true

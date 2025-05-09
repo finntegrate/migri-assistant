@@ -109,27 +109,39 @@ class TestCli:
         assert "Starting web crawler" in result.stdout
         assert "Error during crawling: Test error" in result.stdout
 
-    @patch("migri_assistant.cli.MigriParser")
-    def test_parse_command(self, mock_migri_parser, runner):
+    @patch("migri_assistant.cli.UniversalParser")
+    def test_parse_command(self, mock_universal_parser, runner):
         """Test the parse command."""
         # Set up mock
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.return_value = ["file1", "file2", "file3"]
-        mock_migri_parser.return_value = mock_parser_instance
+        mock_universal_parser.return_value = mock_parser_instance
+        # Mock the list_available_site_configs method
+        mock_universal_parser.list_available_site_configs.return_value = ["migri"]
 
         # Run the command
         result = runner.invoke(
             app,
-            ["parse", "--input-dir", "test_input", "--output-dir", "test_output"],
+            [
+                "parse",
+                "--input-dir",
+                "test_input",
+                "--output-dir",
+                "test_output",
+                "--site-type",
+                "migri",
+            ],
         )
 
         # Check that the command ran successfully
         assert result.exit_code == 0
 
         # Check that the parser was initialized correctly
-        mock_migri_parser.assert_called_once_with(
+        mock_universal_parser.assert_called_once_with(
+            site_type="migri",
             input_dir="test_input",
             output_dir="test_output",
+            config_path=None,
         )
 
         # Check that parse_all was called correctly
@@ -137,20 +149,21 @@ class TestCli:
 
         # Check expected output in stdout
         assert "Starting HTML parsing" in result.stdout
-        assert "Using specialized Migri.fi parser" in result.stdout
+        assert "Using configuration for site type: migri" in result.stdout
         assert "Parsing completed" in result.stdout
         assert "Processed 3 files" in result.stdout
 
-    @patch("migri_assistant.cli.MigriParser")
-    def test_parse_command_with_domain(self, mock_migri_parser, runner):
+    @patch("migri_assistant.cli.UniversalParser")
+    def test_parse_command_with_domain(self, mock_universal_parser, runner):
         """Test the parse command with a domain filter."""
         # Set up mock
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.return_value = ["file1", "file2"]
-        mock_migri_parser.return_value = mock_parser_instance
+        mock_universal_parser.return_value = mock_parser_instance
+        mock_universal_parser.list_available_site_configs.return_value = ["migri"]
 
         # Run the command with domain filter
-        result = runner.invoke(app, ["parse", "--domain", "example.com"])
+        result = runner.invoke(app, ["parse", "--domain", "example.com", "--site-type", "migri"])
 
         # Check that the command ran successfully
         assert result.exit_code == 0
@@ -162,9 +175,11 @@ class TestCli:
         assert "Starting HTML parsing" in result.stdout
         assert "Processed 2 files" in result.stdout
 
-    @patch("migri_assistant.cli.MigriParser")
-    def test_parse_command_unsupported_site_type(self, mock_migri_parser, runner):
+    @patch("migri_assistant.cli.UniversalParser")
+    def test_parse_command_unsupported_site_type(self, mock_universal_parser, runner):
         """Test the parse command with an unsupported site type."""
+        # Mock the list_available_site_configs method to return only valid sites
+        mock_universal_parser.list_available_site_configs.return_value = ["migri", "kela"]
         # Run the command with an unsupported site type
         result = runner.invoke(app, ["parse", "--site-type", "unsupported"])
 
@@ -174,16 +189,17 @@ class TestCli:
         # Check expected output in stdout
         assert "Unsupported site type: unsupported" in result.stdout
 
-    @patch("migri_assistant.cli.MigriParser")
-    def test_parse_command_exception(self, mock_migri_parser, runner):
+    @patch("migri_assistant.cli.UniversalParser")
+    def test_parse_command_exception(self, mock_universal_parser, runner):
         """Test handling of exceptions in parse command."""
         # Set up mock to raise an exception
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.side_effect = Exception("Test error")
-        mock_migri_parser.return_value = mock_parser_instance
+        mock_universal_parser.return_value = mock_parser_instance
+        mock_universal_parser.list_available_site_configs.return_value = ["migri"]
 
         # Run the command
-        result = runner.invoke(app, ["parse"])
+        result = runner.invoke(app, ["parse", "--site-type", "migri"])
 
         # Check that the command exited with error code
         assert result.exit_code == 1

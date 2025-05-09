@@ -23,6 +23,7 @@ dependencies = [
     "langchain-huggingface>=0.1.2",
     "gradio>=5.25.2",
     "ollama>=0.4.8",
+    "pydantic>=2.11.3",
 ]
 
 [project.optional-dependencies]
@@ -54,6 +55,7 @@ line-ending = "auto"
 
 [dependency-groups]
 dev = [
+    "mypy>=1.15.0",
     "pre-commit>=4.2.0",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",

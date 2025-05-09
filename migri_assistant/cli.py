@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 import typer
 
 from migri_assistant.crawler.runner import ScrapyRunner
-from migri_assistant.parsers.migri_parser import MigriParser
+from migri_assistant.parsers.universal_parser import UniversalParser
 from migri_assistant.vectorstore.vectorizer import MarkdownVectorizer
 
 # Configure logging
@@ -123,7 +123,13 @@ def parse(
         "migri",
         "--site-type",
         "-s",
-        help="Type of site to parse (determines which parser to use)",
+        help="Type of site to parse (loads appropriate configuration for content extraction)",
+    ),
+    config_path: str | None = typer.Option(
+        None,
+        "--config",
+        "-c",
+        help="Path to custom parser configurations file",
     ),
     verbose: bool = typer.Option(
         False,
@@ -135,11 +141,16 @@ def parse(
     """
     Parse HTML files previously crawled and convert to structured Markdown.
 
-    This command reads HTML files from the specified input directory,
-    extracts meaningful content, and saves it as Markdown files.
+    This command reads HTML files from the specified input directory, extracts meaningful content
+    based on site-specific configurations, and saves it as Markdown files with YAML frontmatter.
 
-    Example:
-        $ python -m migri_assistant.cli parse -i crawled_content -o parsed_content -s migri
+    Configurations define which XPath selectors to use for extracting content and how to convert
+    HTML to Markdown for different website types.
+
+    Examples:
+        $ python -m migri_assistant.cli parse -s migri
+        $ python -m migri_assistant.cli parse -s te_palvelut -d te-palvelut.fi
+        $ python -m migri_assistant.cli parse -s kela -c custom_configs.yaml
     """
     # Set log level based on verbose flag
     if verbose:
@@ -149,21 +160,30 @@ def parse(
     typer.echo(f"📄 Saving parsed content to: {output_dir}")
 
     try:
-        # Initialize appropriate parser based on site_type
-        if site_type == "migri":
-            typer.echo("🔧 Using specialized Migri.fi parser")
-            parser = MigriParser(input_dir=input_dir, output_dir=output_dir)
+        # Check if the site type is supported by listing available configurations
+        available_sites = UniversalParser.list_available_site_configs()
+
+        if site_type in available_sites:
+            typer.echo(f"🔧 Using configuration for site type: {site_type}")
+            parser = UniversalParser(
+                site_type=site_type,
+                input_dir=input_dir,
+                output_dir=output_dir,
+                config_path=config_path,
+            )
         else:
             typer.echo(f"❌ Unsupported site type: {site_type}")
+            typer.echo(f"Available site types: {', '.join(available_sites)}")
             raise typer.Exit(code=1)
 
         # Start parsing
         results = parser.parse_all(domain=domain)
 
         # Output information
+        site_name = parser.config.site_name
         typer.echo(f"✅ Parsing completed! Processed {len(results)} files.")
         typer.echo(f"📝 Content saved as Markdown files in {output_dir}")
-        typer.echo(f"📝 Index created at {output_dir}/{site_type}/index.md")
+        typer.echo(f"📝 Index created at {output_dir}/{site_name}/index.md")
 
     except Exception as e:
         typer.echo(f"❌ Error during parsing: {str(e)}", err=True)
@@ -270,6 +290,7 @@ def info():
     typer.echo("  gradio_app - Launch the Gradio web interface for querying with the RAG chatbot")
     typer.echo("  info       - Show this information")
     typer.echo("  dev        - Launch the development server for the Migri Assistant chatbot")
+    typer.echo("  list_sites - List available site configurations for the parser")
     typer.echo("\nRun a command with --help for more information")
 
 
@@ -345,6 +366,61 @@ def dev():
         model_name="llama3.2",
         share=False,
     )
+
+
+@app.command()
+def list_sites(
+    config_path: str | None = typer.Option(
+        None,
+        "--config",
+        "-c",
+        help="Path to custom parser configurations file",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Show detailed information about each site configuration",
+    ),
+):
+    """
+    List available site configurations for the parser.
+
+    This command lists all the available site types that can be used with the parse command.
+    Use the --verbose flag to see detailed information about each site's configuration.
+    """
+    try:
+        # Get available site configurations
+        available_sites = UniversalParser.list_available_site_configs(config_path)
+
+        typer.echo("📋 Available Site Configurations:")
+
+        for site_type in available_sites:
+            if verbose:
+                # Get detailed configuration for the site
+                site_config = UniversalParser.get_site_config(site_type, config_path)
+                if site_config:
+                    typer.echo(f"\n📄 {site_type}:")
+                    typer.echo(f"  Site name: {site_config.site_name}")
+                    typer.echo(f"  Description: {site_config.description or 'No description'}")
+                    typer.echo(f"  Title selector: {site_config.title_selector}")
+                    typer.echo("  Content selectors:")
+                    for selector in site_config.content_selectors:
+                        typer.echo(f"    - {selector}")
+                    typer.echo(f"  Fallback to body: {site_config.fallback_to_body}")
+            else:
+                site_config = UniversalParser.get_site_config(site_type, config_path)
+                description = ""
+                if site_config and site_config.description:
+                    description = f" - {site_config.description}"
+                typer.echo(f"  • {site_type}{description}")
+
+        typer.echo("\nUse these site types with the parse command, e.g.:")
+        typer.echo(f"  $ python -m migri_assistant.cli parse -s {available_sites[0]}")
+
+    except Exception as e:
+        typer.echo(f"❌ Error listing site configurations: {str(e)}", err=True)
+        raise typer.Exit(code=1)
 
 
 def run_gradio_app():

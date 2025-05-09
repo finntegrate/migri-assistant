@@ -43,7 +43,6 @@ uv run pytest
 
 We aim for >= 80% test coverage before merging any pull requests.
 
-
 1. Check your coverage with:
 
 ```
@@ -69,6 +68,7 @@ Aim for at least 80% coverage for new code. The HTML coverage report can be foun
 We use Ollama for local LLM inference.
 
 The following Ollama models are used in the project:
+
 - `llama3.2`: The base model for text generation.
 
 To query the Ollama models that are installed, use the command:
@@ -82,8 +82,17 @@ To list all Ollama commands, use the command:
 ```
 ollama help
 ```
+
 To get help for a specific command, use the command:
 
 ```
 ollama <command> --help
 ```
+
+## Code Style
+
+### Type Hints
+
+- Use type hints for all function parameters and return types.
+- Use `Optional` for optional parameters and return types.
+- Use `list`, `dict`, `set`, and `tuple` for built-in types.
