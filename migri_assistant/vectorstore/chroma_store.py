@@ -3,8 +3,10 @@
 import logging
 from typing import Any
 
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+from chromadb import GetResult, QueryResult  # type: ignore[import-not-found]
+from langchain_chroma import Chroma  # type: ignore[import-not-found]
+from langchain_core.documents import Document  # type: ignore[import-not-found]
+from langchain_huggingface import HuggingFaceEmbeddings  # type: ignore[import-not-found]
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +82,7 @@ class ChromaStore:
             logger.error(f"Failed to add document {document_id}: {e}")
             raise
 
-    def query(self, query_text: str, n_results: int = 5) -> list[dict[str, Any]]:
+    def query(self, query_text: str, n_results: int = 5) -> list[Document]:
         """
         Query the vector store by text.
 
@@ -107,7 +109,7 @@ class ChromaStore:
         self,
         embedding: list[float],
         n_results: int = 5,
-    ) -> list[dict[str, Any]]:
+    ) -> QueryResult | None:
         """
         Query the vector store by embedding.
 
@@ -141,9 +143,9 @@ class ChromaStore:
             return results
         except Exception as e:
             logger.error(f"Failed to query vector store with embedding: {e}")
-            return []
+            return None
 
-    def get_document(self, document_id: str) -> dict[str, Any] | None:
+    def get_document(self, document_id: str) -> GetResult | None:
         """
         Get a document by ID.
 

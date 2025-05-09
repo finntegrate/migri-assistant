@@ -5,7 +5,7 @@ import re
 from typing import Any
 
 # Import LangChain text splitters
-from langchain_text_splitters import (
+from langchain_text_splitters import (  # type: ignore[import-not-found]
     HTMLHeaderTextSplitter,
     HTMLSectionSplitter,
     RecursiveCharacterTextSplitter,
