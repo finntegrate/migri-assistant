@@ -97,7 +97,11 @@ class MigriAssistantApp:
                 "Error retrieving documents.",
             )
 
-    def respond(self, message, chat_history) -> tuple[str, list[dict[str, str]], str]:
+    def respond(
+        self,
+        message: str,
+        chat_history: list[dict[str, str]],
+    ) -> tuple[str, list[dict[str, str]], str]:
         """Process user message and update the chat history.
 
         Args:

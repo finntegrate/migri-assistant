@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Generator
+from typing import Any
 
 from scrapy import signals
 from scrapy.crawler import CrawlerRunner
@@ -28,7 +29,7 @@ class ScrapyRunner:
         )
         self.logger = logging.getLogger(__name__)
 
-    def _item_scraped(self, item, response, spider) -> None:
+    def _item_scraped(self, item: dict, response: Any, spider: Any) -> None:
         """Callback function to collect scraped items."""
         self.results.append(item)
 

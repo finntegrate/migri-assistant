@@ -175,7 +175,7 @@ class ChromaStore:
             logger.error(f"Failed to get document {document_id}: {e}")
             return None
 
-    def _enhance_document_with_citation(self, doc) -> None:
+    def _enhance_document_with_citation(self, doc: Any) -> None:
         """
         Enhance a document with citation information.
 

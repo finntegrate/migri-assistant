@@ -4,6 +4,7 @@ import logging
 import os
 from pathlib import Path
 from string import Template
+from typing import Any
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -35,7 +36,7 @@ def get_prompt_path(prompt_name: str) -> str:
     return str(md_path)
 
 
-def load_prompt(prompt_name: str, **kwargs) -> str:
+def load_prompt(prompt_name: str, **kwargs: Any) -> str:
     """Load a prompt template from file and substitute any variables.
 
     Args:

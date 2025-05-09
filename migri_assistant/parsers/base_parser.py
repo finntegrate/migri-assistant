@@ -66,7 +66,7 @@ class BaseParser(ABC):
             self.logger.warning(f"URL mapping file not found: {mapping_file}")
             # Still continue processing - URL mappings are optional
 
-    def _get_original_url(self, file_path) -> str | None:
+    def _get_original_url(self, file_path: str | Path) -> str | None:
         """
         Get the original URL for a file path from the URL mappings.
 
