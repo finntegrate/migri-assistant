@@ -226,7 +226,7 @@ def main(
         num_results: Number of documents to retrieve from the vector store
         share: Whether to create a shareable link for the app
     """
-    # Create and launch the app
+    # Create the app
     app = MigriAssistantApp(
         collection_name=collection_name,
         persist_directory=persist_directory,
@@ -234,6 +234,11 @@ def main(
         max_tokens=max_tokens,
         num_results=num_results,
     )
+
+    # Check model availability
+    app.check_model_availability()
+
+    # Launch the app
     app.launch(share=share)
 
 
