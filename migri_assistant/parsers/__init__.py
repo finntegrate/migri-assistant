@@ -6,6 +6,19 @@ from HTML files saved by the crawler module.
 """
 
 from migri_assistant.parsers.base_parser import BaseParser
+from migri_assistant.parsers.config_models import (
+    HtmlToMarkdownConfig,
+    ParserConfigRegistry,
+    SiteParserConfig,
+)
 from migri_assistant.parsers.migri_parser import MigriParser
+from migri_assistant.parsers.universal_parser import UniversalParser
 
-__all__ = ["BaseParser", "MigriParser"]
+__all__ = [
+    "BaseParser",
+    "HtmlToMarkdownConfig",
+    "MigriParser",
+    "ParserConfigRegistry",
+    "SiteParserConfig",
+    "UniversalParser",
+]
