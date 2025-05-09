@@ -37,10 +37,13 @@ jobs:
           version: latest
 
       - name: Run Ruff linter with fixes
-        run: ruff check --fix .
+        run: uv run ruff check --fix .
 
       - name: Run Ruff formatter
-        run: ruff format .
+        run: uv run ruff format .
+
+      - name: Run type checking with Mypy
+        run: uv run mypy migri_assistant
 
       - name: Test with pytest and coverage
         run: uv run pytest --cov=migri_assistant --cov-report=xml --cov-report=term

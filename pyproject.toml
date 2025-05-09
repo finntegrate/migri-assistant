@@ -31,6 +31,9 @@ dev = [
     "pytest",
     "pytest-cov",
     "ruff",
+    "mypy",
+    "types-lxml",
+    "types-pyyaml",
 ]
 
 [project.scripts]
