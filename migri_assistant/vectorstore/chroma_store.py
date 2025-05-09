@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class ChromaStore:
     """LangChain-based ChromaDB vector store abstraction."""
 
-    def __init__(self, collection_name: str, persist_directory: str = "chroma_db"):
+    def __init__(self, collection_name: str, persist_directory: str = "chroma_db") -> None:
         """
         Initialize the ChromaDB vector store.
 
@@ -37,7 +37,7 @@ class ChromaStore:
         document_id: str,
         embedding: list[float] | None = None,
         metadata: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         """
         Add a document to the vector store.
 
@@ -80,7 +80,7 @@ class ChromaStore:
             logger.error(f"Failed to add document {document_id}: {e}")
             raise
 
-    def query(self, query_text: str, n_results: int = 5):
+    def query(self, query_text: str, n_results: int = 5) -> list[dict[str, Any]]:
         """
         Query the vector store by text.
 
@@ -103,7 +103,11 @@ class ChromaStore:
             logger.error(f"Failed to query vector store: {e}")
             return []
 
-    def query_with_embedding(self, embedding: list[float], n_results: int = 5):
+    def query_with_embedding(
+        self,
+        embedding: list[float],
+        n_results: int = 5,
+    ) -> list[dict[str, Any]]:
         """
         Query the vector store by embedding.
 
@@ -139,7 +143,7 @@ class ChromaStore:
             logger.error(f"Failed to query vector store with embedding: {e}")
             return []
 
-    def get_document(self, document_id: str):
+    def get_document(self, document_id: str) -> dict[str, Any] | None:
         """
         Get a document by ID.
 
@@ -171,7 +175,7 @@ class ChromaStore:
             logger.error(f"Failed to get document {document_id}: {e}")
             return None
 
-    def _enhance_document_with_citation(self, doc):
+    def _enhance_document_with_citation(self, doc) -> None:
         """
         Enhance a document with citation information.
 

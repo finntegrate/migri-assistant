@@ -22,7 +22,7 @@ class BaseParser(ABC):
         input_dir: str = "crawled_content",
         output_dir: str = "parsed_content",
         site_name: str | None = None,
-    ):
+    ) -> None:
         """
         Initialize the parser.
 
@@ -43,7 +43,7 @@ class BaseParser(ABC):
         # Create output directory if it doesn't exist
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def setup_logging(self):
+    def setup_logging(self) -> None:
         """Set up logging configuration"""
         logging.basicConfig(
             level=logging.INFO,
@@ -52,7 +52,7 @@ class BaseParser(ABC):
         )
         self.logger = logging.getLogger(__name__)
 
-    def _load_url_mappings(self):
+    def _load_url_mappings(self) -> None:
         """Load URL mappings from the JSON file"""
         mapping_file = os.path.join(self.input_dir, "url_mappings.json")
         if os.path.exists(mapping_file):
@@ -66,7 +66,7 @@ class BaseParser(ABC):
             self.logger.warning(f"URL mapping file not found: {mapping_file}")
             # Still continue processing - URL mappings are optional
 
-    def _get_original_url(self, file_path):
+    def _get_original_url(self, file_path) -> str | None:
         """
         Get the original URL for a file path from the URL mappings.
 

@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import signal
+from collections.abc import Generator
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -13,19 +14,19 @@ class BaseCrawler(Spider):
     name = "base_crawler"  # Changed from web_spider
 
     @classmethod
-    def from_crawler(cls, crawler, *args, **kwargs):
+    def from_crawler(cls, crawler, *args, **kwargs) -> "BaseCrawler":
         """Connect the spider_closed signal before initializing the spider"""
         spider = super().from_crawler(crawler, *args, **kwargs)
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
 
         # Add a better SIGINT handling without directly using crawler.engine
-        def sigint_handler(signum, frame):
+        def sigint_handler(signum, frame) -> None:
             logging.info("Interrupted by Ctrl+C. Shutting down gracefully...")
             # Use reactor to stop instead of trying to close the spider directly
             from twisted.internet import reactor
 
-            if reactor.running:
-                reactor.callFromThread(reactor.stop)
+            if reactor.running:  # type: ignore[attr-defined]
+                reactor.callFromThread(reactor.stop)  # type: ignore[attr-defined]
 
         # Register signal handler
         signal.signal(signal.SIGINT, sigint_handler)
@@ -40,7 +41,7 @@ class BaseCrawler(Spider):
         output_dir="crawled_content",
         *args,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(*args, **kwargs)
         # Convert single URL to list if needed
         if isinstance(start_urls, str):
@@ -88,14 +89,14 @@ class BaseCrawler(Spider):
         logging.info(f"Allowed domains: {self.allowed_domains}")
         logging.info(f"Output directory: {self.output_dir}")
 
-    def start_requests(self):
+    def start_requests(self) -> Generator[Request, None, None]:
         """
         Start the crawling process with the provided URLs.
         """
         for url in self.start_urls:
             yield Request(url=url, callback=self.parse, cb_kwargs={"current_depth": 0})
 
-    def parse(self, response, current_depth=0):
+    def parse(self, response, current_depth=0) -> Generator[dict, None, None]:
         """
         Parse a web page, yield its content, and follow links up to the specified depth.
         """
@@ -155,7 +156,7 @@ class BaseCrawler(Spider):
         except Exception as e:
             logging.error(f"Error processing {url}: {str(e)}")
 
-    def _save_html_content(self, url, html_content):
+    def _save_html_content(self, url, html_content) -> str:
         """Save the HTML content to a file"""
         # Convert the URL to a file path
         file_path = self._get_file_path_from_url(url)
@@ -171,7 +172,7 @@ class BaseCrawler(Spider):
 
         return file_path
 
-    def _get_file_path_from_url(self, url):
+    def _get_file_path_from_url(self, url) -> str:
         """Convert a URL to a file path"""
         parsed_url = urlparse(url)
         domain = parsed_url.netloc
@@ -199,7 +200,7 @@ class BaseCrawler(Spider):
 
         return full_path
 
-    def _save_url_mappings(self):
+    def _save_url_mappings(self) -> None:
         """Save the URL mappings to a JSON file"""
         try:
             with open(self.mapping_file, "w", encoding="utf-8") as f:
@@ -210,7 +211,7 @@ class BaseCrawler(Spider):
         except Exception as e:
             logging.error(f"Error saving URL mappings: {str(e)}")
 
-    def spider_closed(self, spider):
+    def spider_closed(self, spider) -> None:
         """Called when the spider is closed"""
         logging.info(f"Crawler closed. Visited {len(self.visited_urls)} pages")
 
@@ -218,12 +219,12 @@ class BaseCrawler(Spider):
         self._save_url_mappings()
         logging.info(f"Saved final URL mappings with {len(self.url_mappings)} entries")
 
-    def errback_handler(self, failure):
+    def errback_handler(self, failure) -> None:
         """Handle request failures gracefully"""
         request = failure.request
         logging.warning(f"Error on {request.url}: {failure.value}")
 
-    def _extract_links(self, response):
+    def _extract_links(self, response) -> list[str]:
         """Extract valid links to follow"""
         # Using a simple approach for now, extracting all links
         links = response.css("a::attr(href)").getall()
