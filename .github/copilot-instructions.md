@@ -41,7 +41,8 @@ uv run pytest
 
 ## Code Coverage
 
-We aim for high test coverage. When submitting code:
+We aim for >= 80% test coverage before merging any pull requests.
+
 
 1. Check your coverage with:
 
