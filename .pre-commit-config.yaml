@@ -37,6 +37,21 @@ repos:
           - pydantic
           - types-PyYAML
           - types-lxml
+          - scrapy
+          - twisted
+          - pytest
+          - torch
+          - chromadb
+          - langchain-chroma
+          - langchain-core
+          - langchain-huggingface
+          - langchain-text-splitters
+          - langchain-community
+          - langchain
+          - ollama
+          - html2text
+          - gradio
+          - typer
         # Using project's mypy.ini for configuration
         args: [--config-file=mypy.ini]
         exclude: ^tests/

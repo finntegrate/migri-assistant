@@ -117,9 +117,8 @@ class BaseCrawler(Spider):
 
         try:
             # Check if it's HTML content type
-            content_type = (
-                response.headers.get("Content-Type", b"").decode("utf-8", errors="ignore").lower()
-            )
+            header_value = response.headers.get("Content-Type", b"") or b""
+            content_type = header_value.decode("utf-8", errors="ignore").lower()
 
             # Only process HTML pages
             if "text/html" not in content_type:
