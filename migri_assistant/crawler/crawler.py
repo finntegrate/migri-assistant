@@ -4,23 +4,26 @@ import os
 import signal
 from collections.abc import Generator
 from datetime import datetime
+from typing import Any
 from urllib.parse import urlparse
 
 from scrapy import Spider, signals
-from scrapy.http import Request
+from scrapy.crawler import Crawler
+from scrapy.http import Request, Response
+from twisted.python.failure import Failure
 
 
 class BaseCrawler(Spider):
     name = "base_crawler"  # Changed from web_spider
 
     @classmethod
-    def from_crawler(cls, crawler, *args, **kwargs) -> "BaseCrawler":
+    def from_crawler(cls, crawler: Crawler, *args: Any, **kwargs: Any) -> "BaseCrawler":
         """Connect the spider_closed signal before initializing the spider"""
         spider = super().from_crawler(crawler, *args, **kwargs)
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
 
         # Add a better SIGINT handling without directly using crawler.engine
-        def sigint_handler(signum, frame) -> None:
+        def sigint_handler(signum: int, frame: Any) -> None:
             logging.info("Interrupted by Ctrl+C. Shutting down gracefully...")
             # Use reactor to stop instead of trying to close the spider directly
             from twisted.internet import reactor
@@ -35,14 +38,14 @@ class BaseCrawler(Spider):
 
     def __init__(
         self,
-        start_urls=None,
-        allowed_domains=None,
-        depth=1,
-        output_dir="crawled_content",
-        *args,
-        **kwargs,
+        start_urls: str | list[str] | None = None,
+        allowed_domains: list[str] | None = None,
+        depth: int = 1,
+        output_dir: str = "crawled_content",
+        *args: Any,
+        **kwargs: Any,
     ) -> None:
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         # Convert single URL to list if needed
         if isinstance(start_urls, str):
             self.start_urls = [start_urls]
@@ -69,7 +72,7 @@ class BaseCrawler(Spider):
         self.visited_urls: set[str] = set()
 
         # URL mapping dictionary to store file path -> original URL mappings
-        self.url_mappings = {}
+        self.url_mappings: dict[str, dict[str, str]] = {}
 
         # Path for the URL mapping file
         self.mapping_file = os.path.join(self.output_dir, "url_mappings.json")
@@ -96,7 +99,11 @@ class BaseCrawler(Spider):
         for url in self.start_urls:
             yield Request(url=url, callback=self.parse, cb_kwargs={"current_depth": 0})
 
-    def parse(self, response, current_depth=0) -> Generator[dict, None, None]:
+    def parse(
+        self,
+        response: Response,
+        current_depth: int = 0,
+    ) -> Generator[dict[str, Any] | Request, None, None]:
         """
         Parse a web page, yield its content, and follow links up to the specified depth.
         """
@@ -156,7 +163,7 @@ class BaseCrawler(Spider):
         except Exception as e:
             logging.error(f"Error processing {url}: {str(e)}")
 
-    def _save_html_content(self, url, html_content) -> str:
+    def _save_html_content(self, url: str, html_content: str) -> str:
         """Save the HTML content to a file"""
         # Convert the URL to a file path
         file_path = self._get_file_path_from_url(url)
@@ -172,7 +179,7 @@ class BaseCrawler(Spider):
 
         return file_path
 
-    def _get_file_path_from_url(self, url) -> str:
+    def _get_file_path_from_url(self, url: str) -> str:
         """Convert a URL to a file path"""
         parsed_url = urlparse(url)
         domain = parsed_url.netloc
@@ -211,7 +218,7 @@ class BaseCrawler(Spider):
         except Exception as e:
             logging.error(f"Error saving URL mappings: {str(e)}")
 
-    def spider_closed(self, spider) -> None:
+    def spider_closed(self, spider: Spider) -> None:
         """Called when the spider is closed"""
         logging.info(f"Crawler closed. Visited {len(self.visited_urls)} pages")
 
@@ -219,12 +226,12 @@ class BaseCrawler(Spider):
         self._save_url_mappings()
         logging.info(f"Saved final URL mappings with {len(self.url_mappings)} entries")
 
-    def errback_handler(self, failure) -> None:
+    def errback_handler(self, failure: Failure) -> None:
         """Handle request failures gracefully"""
-        request = failure.request
+        request = failure.request  # type: ignore[attr-defined]
         logging.warning(f"Error on {request.url}: {failure.value}")
 
-    def _extract_links(self, response) -> list[str]:
+    def _extract_links(self, response: Response) -> list[str]:
         """Extract valid links to follow"""
         # Using a simple approach for now, extracting all links
         links = response.css("a::attr(href)").getall()
