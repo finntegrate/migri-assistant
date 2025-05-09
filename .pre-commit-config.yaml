@@ -37,24 +37,8 @@ repos:
           - pydantic
           - types-PyYAML
           - types-lxml
-        # Balanced settings for gradual type adoption
-        args: [
-            --ignore-missing-imports, # Ignore imports that can't be resolved
-            --allow-untyped-defs, # Allow functions without type annotations
-            --allow-subclassing-any, # Allow subclassing Any typed classes
-            --allow-untyped-decorators, # Allow decorators without type annotations
-            --allow-incomplete-defs, # Allow incomplete type annotations in functions
-            --implicit-optional, # Allow None as an implicit Optional
-            --disable-error-code=var-annotated, # Disable errors about missing variable annotations
-            --disable-error-code=union-attr, # Disable union attribute access errors
-            --disable-error-code=operator, # Disable operator type errors
-            --disable-error-code=index, # Disable indexing type errors
-            --disable-error-code=return-value, # Disable return value type errors
-            --disable-error-code=assignment, # Disable assignment type errors
-            --warn-redundant-casts, # Warn about redundant type casts
-            --warn-unreachable, # Warn about unreachable code
-            --pretty, # Prettier error messages
-          ]
+        # Using project's mypy.ini for configuration
+        args: [--config-file=mypy.ini]
         exclude: ^tests/
   - repo: https://github.com/google/keep-sorted
     rev: v0.6.0
