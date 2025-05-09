@@ -11,13 +11,11 @@ from migri_assistant.parsers.config_models import (
     ParserConfigRegistry,
     SiteParserConfig,
 )
-from migri_assistant.parsers.migri_parser import MigriParser
 from migri_assistant.parsers.universal_parser import UniversalParser
 
 __all__ = [
     "BaseParser",
     "HtmlToMarkdownConfig",
-    "MigriParser",
     "ParserConfigRegistry",
     "SiteParserConfig",
     "UniversalParser",
