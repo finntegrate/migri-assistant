@@ -23,6 +23,7 @@ dependencies = [
     "langchain-huggingface>=0.1.2",
     "gradio>=5.25.2",
     "ollama>=0.4.8",
+    "pydantic>=2.11.3",
 ]
 
 [project.optional-dependencies]
