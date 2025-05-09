@@ -20,7 +20,7 @@ DOWNLOAD_DELAY = 1
 COOKIES_ENABLED = False
 
 # Configure item pipelines
-ITEM_PIPELINES = {}
+ITEM_PIPELINES: dict[str, int] = {}
 
 # Enable and configure the AutoThrottle extension
 AUTOTHROTTLE_ENABLED = True

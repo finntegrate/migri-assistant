@@ -36,7 +36,7 @@ class ChromaStore:
         self,
         document_id: str,
         embedding: list[float] | None = None,
-        metadata: dict[str, Any] = None,
+        metadata: dict[str, Any] | None = None,
     ):
         """
         Add a document to the vector store.
@@ -51,13 +51,13 @@ class ChromaStore:
         """
         try:
             # Extract content from metadata if available
-            document_text = metadata.get("content", "")
+            document_text = metadata.get("content", "") if metadata else ""
 
             # If content is missing from metadata but available elsewhere, try to find it
-            if not document_text and hasattr(metadata, "get"):
+            if not document_text and metadata is not None:
                 # Look for content in other common field names
                 for field in ["text", "body", "page_content", "full_text"]:
-                    if field in metadata:
+                    if metadata is not None and field in metadata:
                         document_text = metadata[field]
                         break
 
@@ -70,7 +70,7 @@ class ChromaStore:
             # Note: LangChain's Chroma will compute embeddings automatically if not provided
             self.vector_db.add_texts(
                 texts=[document_text],
-                metadatas=[metadata],
+                metadatas=[metadata] if metadata is not None else None,
                 ids=[document_id],
             )
 
@@ -118,18 +118,21 @@ class ChromaStore:
             # Use the underlying Chroma client for this more specialized query
             collection = self.vector_db._collection
             results = collection.query(
-                query_embeddings=[embedding],
+                query_embeddings=[embedding],  # type: ignore
                 n_results=n_results,
-                include=["documents", "metadatas", "distances"],
+                include=["documents", "metadatas", "distances"],  # type: ignore
             )
 
             # Add source URLs to metadata if available
-            if results and "metadatas" in results:
-                for metadata in results["metadatas"][0]:
-                    if "source_url" in metadata:
-                        metadata["citation_url"] = metadata["source_url"]
-                    elif "url" in metadata:
-                        metadata["citation_url"] = metadata["url"]
+            if results and "metadatas" in results and results.get("metadatas"):
+                metadatas = results["metadatas"]
+                if metadatas and len(metadatas) > 0:
+                    for metadata in metadatas[0]:
+                        if isinstance(metadata, dict):
+                            if "source_url" in metadata:
+                                metadata["citation_url"] = metadata["source_url"]  # type: ignore
+                            elif "url" in metadata:
+                                metadata["citation_url"] = metadata["url"]  # type: ignore
 
             return results
         except Exception as e:
@@ -151,16 +154,17 @@ class ChromaStore:
             collection = self.vector_db._collection
             result = collection.get(
                 ids=[document_id],
-                include=["documents", "metadatas"],
+                include=["documents", "metadatas"],  # type: ignore
             )
 
             # Add citation information
             if result and "metadatas" in result and result["metadatas"]:
                 for metadata in result["metadatas"]:
-                    if "source_url" in metadata:
-                        metadata["citation_url"] = metadata["source_url"]
-                    elif "url" in metadata:
-                        metadata["citation_url"] = metadata["url"]
+                    if isinstance(metadata, dict):
+                        if "source_url" in metadata:
+                            metadata["citation_url"] = metadata["source_url"]  # type: ignore
+                        elif "url" in metadata:
+                            metadata["citation_url"] = metadata["url"]  # type: ignore
 
             return result
         except Exception as e:

@@ -3,7 +3,7 @@ import logging
 from scrapy import signals
 from scrapy.crawler import CrawlerRunner
 from scrapy.utils.project import get_project_settings
-from twisted.internet import defer, reactor
+from twisted.internet import defer, reactor  # type: ignore
 
 from migri_assistant.crawler.crawler import BaseCrawler
 

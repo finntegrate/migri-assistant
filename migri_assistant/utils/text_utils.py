@@ -112,8 +112,9 @@ def chunk_html_content(
                 ("h4", "Header 4"),
                 ("h5", "Header 5"),
             ]
-            html_splitter = HTMLSectionSplitter(headers_to_split_on)
-            split_docs = html_splitter.split_text(html_content)
+            # Using HTMLSectionSplitter but var type should match the interface
+            section_splitter: HTMLHeaderTextSplitter = HTMLSectionSplitter(headers_to_split_on)  # type: ignore
+            split_docs = section_splitter.split_text(html_content)
 
         else:
             # For semantic chunking, try simpler approach first for better reliability
