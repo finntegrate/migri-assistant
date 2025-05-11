@@ -70,11 +70,18 @@ ollama pull llama3.2
 The tool follows a three-step process to crawl, parse, and vectorize content:
 
 1. **Crawl** a website to retrieve and save HTML content:
+Migri example:
 ```bash
 uv run -m migri_assistant.cli crawl https://migri.fi/en/home --depth 2 --output-dir crawled_content
 ```
 
-2. **Parse** the HTML content into structured Markdown:
+Kela example:
+```bash
+uv run -m migri_assistant.cli crawl https://www.kela.fi/main-page --depth 2 --output-dir crawled_content
+```
+
+1. **Parse** the HTML content into structured Markdown:
+
 ```bash
 uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site migri
 ```

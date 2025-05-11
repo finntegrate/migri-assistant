@@ -41,8 +41,7 @@ sites:
     base_dir: "www.kela.fi"
     title_selector: "//h1 | //title"
     content_selectors:
-      - '//div[@class="main-content"]'
-      - '//div[@id="content"]'
+      - '//div[@id="content-root"]'
     fallback_to_body: true
     description: "Kela (Social Insurance Institution of Finland) website"
     markdown_config:

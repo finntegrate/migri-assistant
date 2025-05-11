@@ -4,9 +4,10 @@ from typing import Any
 
 from scrapy import signals
 from scrapy.crawler import CrawlerRunner
-from scrapy.utils.project import get_project_settings
+from scrapy.settings import Settings
 from twisted.internet import defer, reactor  # type: ignore
 
+from migri_assistant.crawler import settings as crawler_settings
 from migri_assistant.crawler.crawler import BaseCrawler
 
 
@@ -55,22 +56,15 @@ class ScrapyRunner:
             List containing basic information about crawled pages.
         """
         self.logger.info(f"Starting crawl for URLs: {start_urls}, depth: {depth}")
-        self.results = []  # Reset results for this run
+        self.results = []  # Reset results for this run        # Configure Scrapy settings
+        settings = Settings()
+        # Copy all settings from our crawler settings module
+        for setting in dir(crawler_settings):
+            if setting.isupper():
+                settings.set(setting, getattr(crawler_settings, setting))
 
-        # Configure Scrapy settings
-        settings = get_project_settings()
-        settings.update(
-            {
-                "LOG_LEVEL": "INFO",
-                "DOWNLOAD_DELAY": 1,
-                "ROBOTSTXT_OBEY": True,
-                "COOKIES_ENABLED": False,  # Added to help with stability
-                "RETRY_ENABLED": True,  # Added to improve reliability
-                "RETRY_TIMES": 2,  # Added to improve reliability
-                "DOWNLOAD_TIMEOUT": 30,  # Added to prevent hanging
-                "TWISTED_REACTOR": "twisted.internet.selectreactor.SelectReactor",
-            },
-        )
+        # Update with additional settings from our settings module
+        settings.update(crawler_settings.DEFAULT_SETTINGS)
         if custom_settings:
             settings.update(custom_settings)
 

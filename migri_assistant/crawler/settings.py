@@ -33,3 +33,15 @@ AUTOTHROTTLE_DEBUG = False
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
+
+# Additional default settings used by the ScrapyRunner
+DEFAULT_SETTINGS = {
+    "LOG_LEVEL": "INFO",
+    "DOWNLOAD_DELAY": 1,
+    "ROBOTSTXT_OBEY": True,
+    "COOKIES_ENABLED": False,  # Added to help with stability
+    "RETRY_ENABLED": True,  # Added to improve reliability
+    "RETRY_TIMES": 2,  # Added to improve reliability
+    "DOWNLOAD_TIMEOUT": 30,  # Added to prevent hanging
+    "TWISTED_REACTOR": "twisted.internet.selectreactor.SelectReactor",
+}
