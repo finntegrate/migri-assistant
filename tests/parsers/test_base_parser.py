@@ -162,7 +162,7 @@ class TestBaseParser(unittest.TestCase):
         # Test file inside the input directory
         file_path = Path(os.path.join(self.input_dir, self.domain1, "test.html"))
         filename = self.parser._get_output_filename(file_path)
-        self.assertEqual(filename, "test")
+        self.assertEqual(filename, f"{self.domain1}/test")
 
         # Test file with subdirectories
         file_path = Path(
@@ -173,7 +173,7 @@ class TestBaseParser(unittest.TestCase):
             f.write("<html><body><h1>Subdir Page</h1></body></html>")
 
         filename = self.parser._get_output_filename(file_path)
-        self.assertEqual(filename, "subdir_page")
+        self.assertEqual(filename, f"{self.domain1}/subdir/page")
 
         # Test file outside the input directory
         outside_file = os.path.join(self.temp_dir, "outside.html")
