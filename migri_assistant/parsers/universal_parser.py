@@ -273,109 +273,85 @@ class UniversalParser(BaseParser):
 
     def parse_file(self, html_file: str | Path) -> dict[str, Any] | None:
         """
-        Parse a single HTML file.
+        Parse a single HTML file from the configured domain.
 
         Args:
             html_file: Path to the HTML file
 
         Returns:
-            Dictionary containing information about the parsed file or None if the
-            file doesn't belong to the configured site
+            Dictionary containing information about the parsed file
         """
-        # Verify the file belongs to the specified site before parsing
-        file_domain = self._extract_domain_from_path(html_file)
-
-        if not file_domain or file_domain != self.config.base_dir:
-            self.logger.info(
-                f"Skipping {html_file}: Does not belong to {self.site_type} site "
-                f"(expected domain: {self.config.base_dir}, found: {file_domain})",
-            )
-            return None
-
         # Get the original URL of this file from URL mappings if available
         self.current_base_url = self._get_original_url(html_file)
 
-        # If no URL mapping found, construct the URL from configuration and file path
+        # If no URL mapping found, construct URL from configuration and file path
         if not self.current_base_url:
             file_path_str = str(html_file)
-            # Extract path after base_dir
-            path_parts = file_path_str.split(self.config.base_dir)
-            if len(path_parts) > 1:
-                relative_path = path_parts[1].lstrip("/")
-                # Construct URL from base_url and the relative path
-                self.current_base_url = f"{self.config.base_url}/{relative_path}"
-                self.logger.info(f"Constructed base URL from config: {self.current_base_url}")
-            else:
-                # If we can't extract a path, use the base_url as fallback
-                self.current_base_url = self.config.base_url
-                self.logger.info(f"Using config base URL as fallback: {self.current_base_url}")
 
-        self.logger.info(f"Using base URL: {self.current_base_url}")
+            # Create a relative path from the file path
+            try:
+                # Get the path relative to the input_dir/base_dir
+                domain_dir = os.path.join(self.input_dir, self.config.base_dir)
+                rel_path = os.path.relpath(file_path_str, domain_dir)
+
+                # Only use relative path if it doesn't start with '..' (outside domain dir)
+                if not rel_path.startswith(".."):
+                    rel_path = rel_path.replace("\\", "/")  # Normalize path separators
+                    self.current_base_url = f"{self.config.base_url}/{rel_path}"
+                    self.logger.info(
+                        f"Constructed base URL: {self.current_base_url}",
+                    )
+                else:
+                    # Fallback to base_url if file is not in domain dir
+                    self.current_base_url = self.config.base_url
+                    self.logger.info(f"Using base URL fallback: {self.current_base_url}")
+            except ValueError:
+                # Fallback to base_url if there's an error
+                self.current_base_url = self.config.base_url
+                self.logger.info(f"Using base URL fallback: {self.current_base_url}")
 
         # Call the parent method to continue with parsing
         return super().parse_file(html_file)
 
-    def _file_belongs_to_domain(self, file_path: str | Path) -> bool:
+    def _is_file_in_domain_dir(self, file_path: str | Path) -> bool:
         """
-        Check if a file belongs to the configured domain based on its path.
+        Check if a file is within the specified domain directory.
+
+        This is a utility method used internally to verify file locations.
 
         Args:
             file_path: Path to the file to check
 
         Returns:
-            True if the file belongs to the configured domain, False otherwise
+            True if the file is within the domain directory, False otherwise
         """
-        # Get the domain from the file path
-        domain = self._extract_domain_from_path(file_path)
+        domain_dir = os.path.join(self.input_dir, self.config.base_dir)
+        file_path_str = str(file_path)
 
-        # Check if the domain matches the configured domain
-        return domain == self.config.base_dir
-
-    def _extract_domain_from_path(self, file_path: str | Path) -> str | None:
-        """
-        Extract the domain part from a file path.
-
-        Args:
-            file_path: Path to the file
-
-        Returns:
-            Domain name or None if not found
-        """
         try:
-            path = Path(file_path)
-            # Try to extract domain from the path structure:
-            # input_dir/domain/path/to/file.html
-            relative_to_input = path.relative_to(self.input_dir)
-            if len(relative_to_input.parts) > 0:
-                return relative_to_input.parts[0]
-        except (ValueError, IndexError):
-            # If the file is not relative to input_dir, check if it contains the domain directly
-            file_path_str = str(file_path)
-            if self.config.base_dir in file_path_str:
-                return self.config.base_dir
-
-        return None
+            rel_path = os.path.relpath(file_path_str, domain_dir)
+            return not rel_path.startswith("..")
+        except ValueError:
+            return False
 
     def parse_all(self, domain: str | None = None) -> list[dict[str, Any]]:
         """
-        Parse all HTML files in the input directory for the configured site.
+        Parse all HTML files in the configured site's directory.
 
-        This override ensures we only parse files for the specific site
-        we've been configured to handle.
+        This parser is focused on processing only files within the specific
+        domain directory defined in the configuration.
 
         Args:
-            domain: If provided, this will override the configured domain
-                   (maintained for backward compatibility)
+            domain: Optional domain parameter (ignored in this implementation as
+                   we always use the configured domain)
 
         Returns:
-            List of dictionaries containing information about the parsed files
+            List of dictionaries containing information about parsed files
         """
-        # If no domain is explicitly provided, use the one from the configuration
-        domain_to_use = domain if domain is not None else self.config.base_dir
-
         self.logger.info(
-            f"Parsing all HTML files for site '{self.site_type}' with domain '{domain_to_use}'",
+            f"Parsing HTML files for site '{self.site_type}' "
+            f"from directory '{self.config.base_dir}'",
         )
 
-        # Use the specified domain or the configured one
-        return super().parse_all(domain=domain_to_use)
+        # Always use the domain from the configuration, ignoring any provided domain
+        return super().parse_all(domain=self.config.base_dir)

@@ -238,7 +238,7 @@ class TestUniversalParser(unittest.TestCase):
     def test_parse_all(self):
         """Test parsing all HTML files."""
         # Parse all files
-        results = self.parser.parse_all(domain=self.domain)
+        results = self.parser.parse_all()
 
         # Check that we parsed 3 files
         self.assertEqual(len(results), 3)
