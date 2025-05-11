@@ -56,28 +56,15 @@ class ScrapyRunner:
             List containing basic information about crawled pages.
         """
         self.logger.info(f"Starting crawl for URLs: {start_urls}, depth: {depth}")
-        self.results = []  # Reset results for this run
-
-        # Configure Scrapy settings
+        self.results = []  # Reset results for this run        # Configure Scrapy settings
         settings = Settings()
         # Copy all settings from our crawler settings module
         for setting in dir(crawler_settings):
             if setting.isupper():
                 settings.set(setting, getattr(crawler_settings, setting))
 
-        # Update with additional settings
-        settings.update(
-            {
-                "LOG_LEVEL": "INFO",
-                "DOWNLOAD_DELAY": 1,
-                "ROBOTSTXT_OBEY": True,
-                "COOKIES_ENABLED": False,  # Added to help with stability
-                "RETRY_ENABLED": True,  # Added to improve reliability
-                "RETRY_TIMES": 2,  # Added to improve reliability
-                "DOWNLOAD_TIMEOUT": 30,  # Added to prevent hanging
-                "TWISTED_REACTOR": "twisted.internet.selectreactor.SelectReactor",
-            },
-        )
+        # Update with additional settings from our settings module
+        settings.update(crawler_settings.DEFAULT_SETTINGS)
         if custom_settings:
             settings.update(custom_settings)
 
