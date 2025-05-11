@@ -334,16 +334,12 @@ class UniversalParser(BaseParser):
         except ValueError:
             return False
 
-    def parse_all(self, domain: str | None = None) -> list[dict[str, Any]]:
+    def parse_all(self) -> list[dict[str, Any]]:
         """
         Parse all HTML files in the configured site's directory.
 
         This parser is focused on processing only files within the specific
         domain directory defined in the configuration.
-
-        Args:
-            domain: Optional domain parameter (ignored in this implementation as
-                   we always use the configured domain)
 
         Returns:
             List of dictionaries containing information about parsed files
@@ -352,5 +348,13 @@ class UniversalParser(BaseParser):
             f"Parsing HTML files for site '{self.site}' from directory '{self.config.base_dir}'",
         )
 
-        # Always use the domain from the configuration, ignoring any provided domain
-        return super().parse_all(domain=self.config.base_dir)
+        # To limit processing to only files in the site's configured directory,
+        # we need to temporarily change the input_dir
+        original_input_dir = self.input_dir
+        self.input_dir = os.path.join(original_input_dir, self.config.base_dir)
+
+        try:
+            return super().parse_all()
+        finally:
+            # Restore the original input directory
+            self.input_dir = original_input_dir

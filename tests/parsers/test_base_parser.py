@@ -126,10 +126,18 @@ class TestBaseParser(unittest.TestCase):
             content = f.read()
             self.assertIn("Total pages parsed: 3", content)
 
-    def test_parse_all_with_domain_filter(self):
-        """Test parsing HTML files with domain filter"""
-        # Parse only domain1 files
-        results = self.parser.parse_all(domain=self.domain1)
+    def test_parse_with_specific_directory(self):
+        """Test parsing HTML files from a specific directory"""
+        # Create a parser specifically for domain1
+        domain1_parser = MockParser(
+            input_dir=os.path.join(self.input_dir, self.domain1),
+            output_dir=self.output_dir,
+            site_name="domain1_site",
+        )
+        domain1_parser.logger = MagicMock()
+
+        # Parse files in domain1 directory
+        results = domain1_parser.parse_all()
 
         # Check that we parsed 2 files (domain1 has 2 files)
         self.assertEqual(len(results), 2)
@@ -139,8 +147,14 @@ class TestBaseParser(unittest.TestCase):
         self.assertIn("Example Home", titles)
         self.assertIn("About Us", titles)
 
-        # Test nonexistent domain
-        results = self.parser.parse_all(domain="nonexistent.com")
+        # Test with nonexistent directory
+        nonexistent_parser = MockParser(
+            input_dir=os.path.join(self.input_dir, "nonexistent.com"),
+            output_dir=self.output_dir,
+            site_name="nonexistent_site",
+        )
+        nonexistent_parser.logger = MagicMock()
+        results = nonexistent_parser.parse_all()
         self.assertEqual(len(results), 0)
 
     def test_get_output_filename(self):

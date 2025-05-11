@@ -147,8 +147,8 @@ class TestCli:
         # Check that list_available_site_configs was called with the correct parameter
         mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
 
-        # Check that parse_all was called correctly
-        mock_parser_instance.parse_all.assert_called_once_with(domain=None)
+        # Check that parse_all was called correctly (without domain parameter)
+        mock_parser_instance.parse_all.assert_called_once_with()
 
         # Check expected output in stdout
         assert "Starting HTML parsing" in result.stdout
@@ -171,8 +171,8 @@ class TestCli:
         # Check that the command ran successfully
         assert result.exit_code == 0
 
-        # Check that parse_all was called with the domain filter
-        mock_parser_instance.parse_all.assert_called_once_with(domain="example.com")
+        # Check that parse_all was called correctly (domain is now handled internally)
+        mock_parser_instance.parse_all.assert_called_once_with()
 
         # Check that list_available_site_configs was called with the correct parameter
         mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
@@ -258,8 +258,8 @@ class TestCli:
             config_path="custom_configs.yaml",
         )
 
-        # Check that parse_all was called correctly
-        mock_parser_instance.parse_all.assert_called_once_with(domain=None)
+        # Check that parse_all was called correctly (without domain parameter)
+        mock_parser_instance.parse_all.assert_called_once_with()
 
     @patch("migri_assistant.cli.MarkdownVectorizer")
     def test_vectorize_command(self, mock_vectorizer, runner):

@@ -177,10 +177,11 @@ def parse(
             raise typer.Exit(code=1)
 
         # Start parsing
-        results = parser.parse_all(domain=domain)
+        # Domain filtering is now handled by the parser based on its configuration
+        results = parser.parse_all()
 
         # Output information
-        site_name = parser.config.site_name
+        site_name = parser.config.site_name if hasattr(parser, "config") else parser.site_name
         typer.echo(f"✅ Parsing completed! Processed {len(results)} files.")
         typer.echo(f"📝 Content saved as Markdown files in {output_dir}")
         typer.echo(f"📝 Index created at {output_dir}/{site_name}/index.md")
