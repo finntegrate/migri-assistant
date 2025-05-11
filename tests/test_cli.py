@@ -128,7 +128,7 @@ class TestCli:
                 "test_input",
                 "--output-dir",
                 "test_output",
-                "--site-type",
+                "--site",
                 "migri",
             ],
         )
@@ -138,7 +138,7 @@ class TestCli:
 
         # Check that the parser was initialized correctly
         mock_universal_parser.assert_called_once_with(
-            site_type="migri",
+            site="migri",
             input_dir="test_input",
             output_dir="test_output",
             config_path=None,
@@ -149,7 +149,7 @@ class TestCli:
 
         # Check expected output in stdout
         assert "Starting HTML parsing" in result.stdout
-        assert "Using configuration for site type: migri" in result.stdout
+        assert "Using configuration for site: migri" in result.stdout
         assert "Parsing completed" in result.stdout
         assert "Processed 3 files" in result.stdout
 
@@ -163,7 +163,7 @@ class TestCli:
         mock_universal_parser.list_available_site_configs.return_value = ["migri"]
 
         # Run the command with domain filter
-        result = runner.invoke(app, ["parse", "--domain", "example.com", "--site-type", "migri"])
+        result = runner.invoke(app, ["parse", "--domain", "example.com", "--site", "migri"])
 
         # Check that the command ran successfully
         assert result.exit_code == 0
@@ -176,18 +176,18 @@ class TestCli:
         assert "Processed 2 files" in result.stdout
 
     @patch("migri_assistant.cli.UniversalParser")
-    def test_parse_command_unsupported_site_type(self, mock_universal_parser, runner):
-        """Test the parse command with an unsupported site type."""
+    def test_parse_command_unsupported_site(self, mock_universal_parser, runner):
+        """Test the parse command with an unsupported site."""
         # Mock the list_available_site_configs method to return only valid sites
         mock_universal_parser.list_available_site_configs.return_value = ["migri", "kela"]
-        # Run the command with an unsupported site type
-        result = runner.invoke(app, ["parse", "--site-type", "unsupported"])
+        # Run the command with an unsupported site
+        result = runner.invoke(app, ["parse", "--site", "unsupported"])
 
         # Check that the command exited with error code
         assert result.exit_code == 1
 
         # Check expected output in stdout
-        assert "Unsupported site type: unsupported" in result.stdout
+        assert "Unsupported site: unsupported" in result.stdout
 
     @patch("migri_assistant.cli.UniversalParser")
     def test_parse_command_exception(self, mock_universal_parser, runner):
@@ -199,7 +199,7 @@ class TestCli:
         mock_universal_parser.list_available_site_configs.return_value = ["migri"]
 
         # Run the command
-        result = runner.invoke(app, ["parse", "--site-type", "migri"])
+        result = runner.invoke(app, ["parse", "--site", "migri"])
 
         # Check that the command exited with error code
         assert result.exit_code == 1

@@ -31,7 +31,7 @@ class UniversalParser(BaseParser):
 
     def __init__(
         self,
-        site_type: str,
+        site: str,
         input_dir: str = "crawled_content",
         output_dir: str = "parsed_content",
         config_path: str | None = None,
@@ -40,13 +40,13 @@ class UniversalParser(BaseParser):
         Initialize the universal parser.
 
         Args:
-            site_type: Type of site to parse (must match a key in config)
+            site: Site to parse (must match a key in config)
             input_dir: Directory containing HTML files to parse
             output_dir: Directory to save parsed content
             config_path: Optional path to custom config file
         """
-        self.site_type = site_type
-        self.config = self._load_site_config(site_type, config_path)
+        self.site = site
+        self.config = self._load_site_config(site, config_path)
         self.current_base_url: str | None = None  # Will store the base URL of the current document
 
         super().__init__(
@@ -57,39 +57,39 @@ class UniversalParser(BaseParser):
 
         logging.info(f"Initialized UniversalParser for {self.config.site_name}")
 
-    def _load_site_config(self, site_type: str, config_path: str | None = None) -> SiteParserConfig:
+    def _load_site_config(self, site: str, config_path: str | None = None) -> SiteParserConfig:
         """
         Load site-specific configuration and validate required fields.
 
         Args:
-            site_type: Type of site to load config for
+            site: Site to load config for
             config_path: Optional path to custom config file
 
         Returns:
-            SiteParserConfig for the specified site type
+            SiteParserConfig for the specified site
 
         Raises:
-            ValueError: If the site type doesn't exist or configuration is invalid
+            ValueError: If the site doesn't exist or configuration is invalid
         """
         # Load default or custom configs
         config_registry = self._load_config_registry(config_path)
 
-        # Check if the site type exists in our registry
-        if site_type not in config_registry.sites:
-            raise ValueError(f"No configuration found for site type: {site_type}")
+        # Check if the site exists in our registry
+        if site not in config_registry.sites:
+            raise ValueError(f"No configuration found for site: {site}")
 
-        config = config_registry.sites[site_type]
+        config = config_registry.sites[site]
 
         # Validate required fields
         if not config.base_url or not config.base_url.startswith(("http://", "https://")):
             raise ValueError(
-                f"Invalid base_url '{config.base_url}' for site type '{site_type}'. "
+                f"Invalid base_url '{config.base_url}' for site '{site}'. "
                 "Must be a valid absolute URL starting with http:// or https://",
             )
 
         if not config.base_dir:
             raise ValueError(
-                f"Missing base_dir for site type '{site_type}'. "
+                f"Missing base_dir for site '{site}'. "
                 "This field is required for domain-specific URL handling",
             )
 
@@ -255,21 +255,21 @@ class UniversalParser(BaseParser):
     @classmethod
     def get_site_config(
         cls,
-        site_type: str,
+        site: str,
         config_path: str | None = None,
     ) -> SiteParserConfig | None:
         """
         Get detailed information about a specific site configuration.
 
         Args:
-            site_type: Site type to get configuration for
+            site: Site to get configuration for
             config_path: Optional path to custom config file
 
         Returns:
             SiteParserConfig for the specified site, or None if not found
         """
         config_registry = cls._load_config_registry(config_path)
-        return config_registry.sites.get(site_type)
+        return config_registry.sites.get(site)
 
     def parse_file(self, html_file: str | Path) -> dict[str, Any] | None:
         """
@@ -349,8 +349,7 @@ class UniversalParser(BaseParser):
             List of dictionaries containing information about parsed files
         """
         self.logger.info(
-            f"Parsing HTML files for site '{self.site_type}' "
-            f"from directory '{self.config.base_dir}'",
+            f"Parsing HTML files for site '{self.site}' from directory '{self.config.base_dir}'",
         )
 
         # Always use the domain from the configuration, ignoring any provided domain

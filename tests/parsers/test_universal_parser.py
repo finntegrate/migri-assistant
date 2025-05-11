@@ -118,7 +118,7 @@ class TestUniversalParser(unittest.TestCase):
 
         # Create default parser
         self.parser = UniversalParser(
-            site_type="example",
+            site="example",
             input_dir=self.input_dir,
             output_dir=self.output_dir,
             config_path=self.config_path,
@@ -133,7 +133,7 @@ class TestUniversalParser(unittest.TestCase):
 
     def test_init(self):
         """Test parser initialization."""
-        self.assertEqual(self.parser.site_type, "example")
+        self.assertEqual(self.parser.site, "example")
         self.assertEqual(self.parser.input_dir, self.input_dir)
         self.assertEqual(self.parser.output_dir, os.path.join(self.output_dir, "example"))
         self.assertEqual(self.parser.site_name, "example")
@@ -145,11 +145,11 @@ class TestUniversalParser(unittest.TestCase):
         self.assertTrue(self.parser.config.fallback_to_body)
         self.assertEqual(self.parser.config.description, "Example Website for Testing")
 
-    def test_init_with_invalid_site_type(self):
-        """Test initialization with invalid site type."""
+    def test_init_with_invalid_site(self):
+        """Test initialization with invalid site."""
         with self.assertRaises(ValueError):
             UniversalParser(
-                site_type="nonexistent",
+                site="nonexistent",
                 input_dir=self.input_dir,
                 output_dir=self.output_dir,
                 config_path=self.config_path,
@@ -194,7 +194,7 @@ class TestUniversalParser(unittest.TestCase):
         """Test behavior when no selectors match and fallback is disabled."""
         # Create parser with no fallback config
         no_fallback_parser = UniversalParser(
-            site_type="no_fallback",
+            site="no_fallback",
             input_dir=self.input_dir,
             output_dir=self.output_dir,
             config_path=self.config_path,

@@ -82,7 +82,7 @@ class TestRelativeLinks(unittest.TestCase):
 
         # Create parser
         self.parser = UniversalParser(
-            site_type="test_site",
+            site="test_site",
             input_dir=self.input_dir,
             output_dir=self.output_dir,
             config_path=self.config_path,
@@ -183,7 +183,7 @@ class TestRelativeLinks(unittest.TestCase):
 
         # Create a new parser with the updated config
         parser = UniversalParser(
-            site_type="test_site",
+            site="test_site",
             input_dir=self.input_dir,
             output_dir=self.output_dir,
             config_path=self.config_path,

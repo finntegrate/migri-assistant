@@ -76,10 +76,10 @@ uv run -m migri_assistant.cli crawl https://migri.fi/en/home --depth 2 --output-
 
 2. **Parse** the HTML content into structured Markdown:
 ```bash
-uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site-type migri
+uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site migri
 ```
 
-The `--site-type` parameter specifies which site configuration to use. The parser will:
+The `--site` parameter specifies which site configuration to use. The parser will:
 - Process only files located in the domain directory defined by the site's configuration
 - Apply site-specific selectors to extract the relevant content
 - Convert relative links to absolute URLs using the site's base URL
@@ -97,16 +97,16 @@ For example, to parse content from different sites:
 
 ```bash
 # Parse the Finnish Immigration Service (Migri) site
-uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site-type migri
+uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site migri
 
 # Parse the TE Services site
-uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site-type te_palvelut
+uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site te_palvelut
 
 # Parse the Kela site
-uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site-type kela
+uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site kela
 ```
 
-Available site types include any defined in the parser configurations (`parser_configs.yaml`). To see all available site configurations:
+Available sites include any defined in the parser configurations (`parser_configs.yaml`). To see all available site configurations:
 
 ```bash
 uv run -m migri_assistant.cli info --list-site-configs
@@ -161,7 +161,7 @@ Available commands:
 To view available site configurations for parsing:
 
 ```bash
-# List all available site types
+# List all available sites
 uv run -m migri_assistant.cli info --list-site-configs
 
 # Show detailed configuration for a specific site
@@ -183,7 +183,7 @@ This will save HTML files in `crawled_content/migri.fi/` and create a URL mappin
 ### 2. Parse the Migri Content
 
 ```bash
-uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site-type migri
+uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site migri
 ```
 
 This will process only files in the `migri.fi` directory using Migri's content selectors.
@@ -208,7 +208,7 @@ Each site configuration includes:
 
 ```yaml
 sites:
-  migri:                                    # Site type key used with --site-type
+  migri:                                    # Site key used with --site
     site_name: "migri"                      # Name for output directories and logs
     base_url: "https://migri.fi"            # Base URL for converting relative links
     base_dir: "migri.fi"                    # Directory name in crawled_content
@@ -236,7 +236,7 @@ To add support for a new website:
 1. Determine the site's structure by examining a few pages
 2. Identify the appropriate XPath selectors for title and main content
 3. Add a new entry to `parser_configs.yaml` with the required fields
-4. Use the unique site type key with the parse command
+4. Use the unique site key with the parse command
 
 For example, to add support for a hypothetical "example.com":
 
@@ -266,7 +266,7 @@ Then use it with:
 uv run -m migri_assistant.cli crawl https://example.com --depth 2
 
 # Parse using the new configuration
-uv run -m migri_assistant.cli parse --site-type example
+uv run -m migri_assistant.cli parse --site example
 ```
 
 ## Contributing
