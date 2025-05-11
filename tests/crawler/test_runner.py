@@ -13,12 +13,12 @@ class TestScrapyRunner(unittest.TestCase):
 
     @patch("migri_assistant.crawler.runner.CrawlerRunner")
     @patch("migri_assistant.crawler.runner.reactor")
-    @patch("migri_assistant.crawler.runner.get_project_settings")
-    def test_run_basic(self, mock_get_project_settings, mock_reactor, mock_crawler_runner):
+    @patch("migri_assistant.crawler.runner.Settings")
+    def test_run_basic(self, mock_settings_class, mock_reactor, mock_crawler_runner):
         """Test the basic functionality of the run method."""
-        # Mock project settings
+        # Mock Settings class
         mock_settings = MagicMock()
-        mock_get_project_settings.return_value = mock_settings
+        mock_settings_class.return_value = mock_settings
 
         # Mock crawler runner and crawler
         mock_crawler_instance = MagicMock()
@@ -67,12 +67,12 @@ class TestScrapyRunner(unittest.TestCase):
 
     @patch("migri_assistant.crawler.runner.CrawlerRunner")
     @patch("migri_assistant.crawler.runner.reactor")
-    @patch("migri_assistant.crawler.runner.get_project_settings")
-    def test_run_with_error(self, mock_get_project_settings, mock_reactor, mock_crawler_runner):
+    @patch("migri_assistant.crawler.runner.Settings")
+    def test_run_with_error(self, mock_settings_class, mock_reactor, mock_crawler_runner):
         """Test error handling in the run method."""
-        # Mock project settings
+        # Mock Settings class
         mock_settings = MagicMock()
-        mock_get_project_settings.return_value = mock_settings
+        mock_settings_class.return_value = mock_settings
 
         # Mock crawler runner to raise an exception
         mock_crawler_runner.return_value.create_crawler.side_effect = Exception(

@@ -4,9 +4,10 @@ from typing import Any
 
 from scrapy import signals
 from scrapy.crawler import CrawlerRunner
-from scrapy.utils.project import get_project_settings
+from scrapy.settings import Settings
 from twisted.internet import defer, reactor  # type: ignore
 
+from migri_assistant.crawler import settings as crawler_settings
 from migri_assistant.crawler.crawler import BaseCrawler
 
 
@@ -58,7 +59,13 @@ class ScrapyRunner:
         self.results = []  # Reset results for this run
 
         # Configure Scrapy settings
-        settings = get_project_settings()
+        settings = Settings()
+        # Copy all settings from our crawler settings module
+        for setting in dir(crawler_settings):
+            if setting.isupper():
+                settings.set(setting, getattr(crawler_settings, setting))
+
+        # Update with additional settings
         settings.update(
             {
                 "LOG_LEVEL": "INFO",
