@@ -297,7 +297,7 @@ class UniversalParser(BaseParser):
                 # Only use relative path if it doesn't start with '..' (outside domain dir)
                 if not rel_path.startswith(".."):
                     rel_path = rel_path.replace("\\", "/")  # Normalize path separators
-                    self.current_base_url = f"{self.config.base_url}/{rel_path}"
+                    self.current_base_url = urljoin(self.config.base_url, rel_path)
                     self.logger.info(
                         f"Constructed base URL: {self.current_base_url}",
                     )
