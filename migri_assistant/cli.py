@@ -119,11 +119,11 @@ def parse(
         "-d",
         help="Domain to parse (e.g. 'migri.fi'). If not provided, all domains are parsed.",
     ),
-    site_type: str = typer.Option(
+    site: str = typer.Option(
         "migri",
-        "--site-type",
+        "--site",
         "-s",
-        help="Type of site to parse (loads appropriate configuration for content extraction)",
+        help="Site to parse (loads appropriate configuration for content extraction)",
     ),
     config_path: str | None = typer.Option(
         None,
@@ -160,27 +160,28 @@ def parse(
     typer.echo(f"📄 Saving parsed content to: {output_dir}")
 
     try:
-        # Check if the site type is supported by listing available configurations
-        available_sites = UniversalParser.list_available_site_configs()
+        # Check if the site is supported by listing available configurations
+        available_sites = UniversalParser.list_available_site_configs(config_path)
 
-        if site_type in available_sites:
-            typer.echo(f"🔧 Using configuration for site type: {site_type}")
+        if site in available_sites:
+            typer.echo(f"🔧 Using configuration for site: {site}")
             parser = UniversalParser(
-                site_type=site_type,
+                site=site,
                 input_dir=input_dir,
                 output_dir=output_dir,
                 config_path=config_path,
             )
         else:
-            typer.echo(f"❌ Unsupported site type: {site_type}")
-            typer.echo(f"Available site types: {', '.join(available_sites)}")
+            typer.echo(f"❌ Unsupported site: {site}")
+            typer.echo(f"Available sites: {', '.join(available_sites)}")
             raise typer.Exit(code=1)
 
         # Start parsing
-        results = parser.parse_all(domain=domain)
+        # Domain filtering is now handled by the parser based on its configuration
+        results = parser.parse_all()
 
         # Output information
-        site_name = parser.config.site_name
+        site_name = parser.config.site_name if hasattr(parser, "config") else parser.site_name
         typer.echo(f"✅ Parsing completed! Processed {len(results)} files.")
         typer.echo(f"📝 Content saved as Markdown files in {output_dir}")
         typer.echo(f"📝 Index created at {output_dir}/{site_name}/index.md")
@@ -280,8 +281,47 @@ def vectorize(
 
 
 @app.command()
-def info() -> None:
+def info(
+    list_site_configs: bool = typer.Option(
+        False,
+        "--list-site-configs",
+        "-l",
+        help="List all available site configurations for parsing",
+    ),
+    show_site_config: str = typer.Option(
+        None,
+        "--show-site-config",
+        "-s",
+        help="Show detailed configuration for a specific site",
+    ),
+) -> None:
     """Show information about the Migri Assistant and available commands."""
+    if list_site_configs:
+        # List all available site configurations
+        site_configs = UniversalParser.list_available_site_configs()
+        typer.echo("Available site configurations for parsing:")
+        for site_name in site_configs:
+            typer.echo(f"  - {site_name}")
+        return
+
+    if show_site_config:
+        # Show details for a specific site configuration
+        config = UniversalParser.get_site_config(show_site_config)
+        if config:
+            typer.echo(f"Configuration for site: {show_site_config}")
+            typer.echo(f"  Site name: {config.site_name}")
+            typer.echo(f"  Base URL: {config.base_url}")
+            typer.echo(f"  Base directory: {config.base_dir}")
+            typer.echo(f"  Description: {config.description}")
+            typer.echo("  Content selectors:")
+            for selector in config.content_selectors:
+                typer.echo(f"    - {selector}")
+            typer.echo(f"  Fallback to body: {config.fallback_to_body}")
+        else:
+            typer.echo(f"Error: Site configuration '{show_site_config}' not found")
+        return
+
+    # Show general information
     typer.echo("Migri Assistant - Web crawling and parsing tool")
     typer.echo("\nAvailable commands:")
     typer.echo("  crawl      - Crawl websites and save HTML content")
@@ -290,7 +330,6 @@ def info() -> None:
     typer.echo("  gradio_app - Launch the Gradio web interface for querying with the RAG chatbot")
     typer.echo("  info       - Show this information")
     typer.echo("  dev        - Launch the development server for the Migri Assistant chatbot")
-    typer.echo("  list_sites - List available site configurations for the parser")
     typer.echo("\nRun a command with --help for more information")
 
 
@@ -386,7 +425,7 @@ def list_sites(
     """
     List available site configurations for the parser.
 
-    This command lists all the available site types that can be used with the parse command.
+    This command lists all the available sites that can be used with the parse command.
     Use the --verbose flag to see detailed information about each site's configuration.
     """
     try:
@@ -395,12 +434,12 @@ def list_sites(
 
         typer.echo("📋 Available Site Configurations:")
 
-        for site_type in available_sites:
+        for site_name in available_sites:
             if verbose:
                 # Get detailed configuration for the site
-                site_config = UniversalParser.get_site_config(site_type, config_path)
+                site_config = UniversalParser.get_site_config(site_name, config_path)
                 if site_config:
-                    typer.echo(f"\n📄 {site_type}:")
+                    typer.echo(f"\n📄 {site_name}:")
                     typer.echo(f"  Site name: {site_config.site_name}")
                     typer.echo(f"  Description: {site_config.description or 'No description'}")
                     typer.echo(f"  Title selector: {site_config.title_selector}")
@@ -409,13 +448,13 @@ def list_sites(
                         typer.echo(f"    - {selector}")
                     typer.echo(f"  Fallback to body: {site_config.fallback_to_body}")
             else:
-                site_config = UniversalParser.get_site_config(site_type, config_path)
+                site_config = UniversalParser.get_site_config(site_name, config_path)
                 description = ""
                 if site_config and site_config.description:
                     description = f" - {site_config.description}"
-                typer.echo(f"  • {site_type}{description}")
+                typer.echo(f"  • {site_name}{description}")
 
-        typer.echo("\nUse these site types with the parse command, e.g.:")
+        typer.echo("\nUse these sites with the parse command, e.g.:")
         typer.echo(f"  $ python -m migri_assistant.cli parse -s {available_sites[0]}")
 
     except Exception as e:

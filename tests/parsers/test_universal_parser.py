@@ -88,6 +88,8 @@ class TestUniversalParser(unittest.TestCase):
             "sites": {
                 "example": {
                     "site_name": "example",
+                    "base_url": f"https://{self.domain}",
+                    "base_dir": self.domain,
                     "title_selector": "//title",
                     "content_selectors": [
                         '//div[@id="main-content"]',
@@ -100,6 +102,8 @@ class TestUniversalParser(unittest.TestCase):
                 },
                 "no_fallback": {
                     "site_name": "no_fallback",
+                    "base_url": f"https://{self.domain}",
+                    "base_dir": self.domain,
                     "title_selector": "//h1",
                     "content_selectors": ['//div[@id="does-not-exist"]'],
                     "fallback_to_body": False,
@@ -114,7 +118,7 @@ class TestUniversalParser(unittest.TestCase):
 
         # Create default parser
         self.parser = UniversalParser(
-            site_type="example",
+            site="example",
             input_dir=self.input_dir,
             output_dir=self.output_dir,
             config_path=self.config_path,
@@ -129,7 +133,7 @@ class TestUniversalParser(unittest.TestCase):
 
     def test_init(self):
         """Test parser initialization."""
-        self.assertEqual(self.parser.site_type, "example")
+        self.assertEqual(self.parser.site, "example")
         self.assertEqual(self.parser.input_dir, self.input_dir)
         self.assertEqual(self.parser.output_dir, os.path.join(self.output_dir, "example"))
         self.assertEqual(self.parser.site_name, "example")
@@ -141,11 +145,11 @@ class TestUniversalParser(unittest.TestCase):
         self.assertTrue(self.parser.config.fallback_to_body)
         self.assertEqual(self.parser.config.description, "Example Website for Testing")
 
-    def test_init_with_invalid_site_type(self):
-        """Test initialization with invalid site type."""
+    def test_init_with_invalid_site(self):
+        """Test initialization with invalid site."""
         with self.assertRaises(ValueError):
             UniversalParser(
-                site_type="nonexistent",
+                site="nonexistent",
                 input_dir=self.input_dir,
                 output_dir=self.output_dir,
                 config_path=self.config_path,
@@ -190,7 +194,7 @@ class TestUniversalParser(unittest.TestCase):
         """Test behavior when no selectors match and fallback is disabled."""
         # Create parser with no fallback config
         no_fallback_parser = UniversalParser(
-            site_type="no_fallback",
+            site="no_fallback",
             input_dir=self.input_dir,
             output_dir=self.output_dir,
             config_path=self.config_path,
@@ -234,7 +238,7 @@ class TestUniversalParser(unittest.TestCase):
     def test_parse_all(self):
         """Test parsing all HTML files."""
         # Parse all files
-        results = self.parser.parse_all(domain=self.domain)
+        results = self.parser.parse_all()
 
         # Check that we parsed 3 files
         self.assertEqual(len(results), 3)
@@ -269,6 +273,131 @@ class TestUniversalParser(unittest.TestCase):
         # Test getting non-existent site config
         config = UniversalParser.get_site_config("nonexistent", self.config_path)
         self.assertIsNone(config)
+
+    def test_convert_element_link_to_absolute(self):
+        """Test converting a single element's link attribute to absolute URL."""
+        from lxml import html as lxml_html
+
+        # Setup test cases
+        base_url = "https://example.com/path/"
+        absolute_prefixes = ("http://", "https://", "//", "mailto:", "#")
+
+        # Case 1: Relative link that should be converted
+        element1 = lxml_html.fromstring('<a href="page.html">Link</a>')
+        result1 = UniversalParser._convert_element_link_to_absolute(
+            element1,
+            "href",
+            base_url,
+            absolute_prefixes,
+        )
+        self.assertTrue(result1)
+        self.assertEqual(element1.get("href"), "https://example.com/path/page.html")
+
+        # Case 2: Relative link with leading slash
+        element2 = lxml_html.fromstring('<a href="/another-page.html">Link</a>')
+        result2 = UniversalParser._convert_element_link_to_absolute(
+            element2,
+            "href",
+            base_url,
+            absolute_prefixes,
+        )
+        self.assertTrue(result2)
+        self.assertEqual(element2.get("href"), "https://example.com/another-page.html")
+
+        # Case 3: Absolute link that should not be converted (http://)
+        element3 = lxml_html.fromstring('<a href="http://other-domain.com/page">Link</a>')
+        result3 = UniversalParser._convert_element_link_to_absolute(
+            element3,
+            "href",
+            base_url,
+            absolute_prefixes,
+        )
+        self.assertFalse(result3)
+        self.assertEqual(element3.get("href"), "http://other-domain.com/page")
+
+        # Case 4: Protocol-relative URL that should not be converted (//)
+        element4 = lxml_html.fromstring('<a href="//cdn.example.com/script.js">Link</a>')
+        result4 = UniversalParser._convert_element_link_to_absolute(
+            element4,
+            "href",
+            base_url,
+            absolute_prefixes,
+        )
+        self.assertFalse(result4)
+        self.assertEqual(element4.get("href"), "//cdn.example.com/script.js")
+
+        # Case 5: Empty link
+        element5 = lxml_html.fromstring('<a href="">Link</a>')
+        result5 = UniversalParser._convert_element_link_to_absolute(
+            element5,
+            "href",
+            base_url,
+            absolute_prefixes,
+        )
+        self.assertFalse(result5)  # Empty links are not considered for conversion
+        self.assertEqual(element5.get("href"), "")
+
+        # Case 6: Missing attribute
+        element6 = lxml_html.fromstring("<a>Link</a>")
+        result6 = UniversalParser._convert_element_link_to_absolute(
+            element6,
+            "href",
+            base_url,
+            absolute_prefixes,
+        )
+        self.assertFalse(result6)
+        self.assertIsNone(element6.get("href"))
+
+    def test_convert_relative_links_to_absolute(self):
+        """Test converting all relative links in HTML content to absolute URLs."""
+        # Create HTML with various link types
+        html_content = """
+        <html>
+            <body>
+                <a href="relative.html">Relative Link</a>
+                <a href="/root-relative.html">Root Relative Link</a>
+                <a href="http://example.org/absolute">Absolute Link</a>
+                <a href="https://example.org/secure">Secure Link</a>
+                <a href="//cdn.example.org/script.js">Protocol Relative Link</a>
+                <a href="mailto:test@example.com">Email Link</a>
+                <a href="#section">Anchor Link</a>
+                <img src="image.jpg">
+                <img src="/images/logo.png">
+                <img src="http://example.org/image.jpg">
+                <img src="https://example.org/secure.jpg">
+                <img src="//cdn.example.org/image.jpg">
+                <img src="data:image/png;base64,abc123">
+            </body>
+        </html>
+        """
+
+        # Set the base URL
+        self.parser.current_base_url = "https://test.com/subdir/"
+
+        # Convert links
+        result = self.parser._convert_relative_links_to_absolute(html_content)
+
+        # Check that the conversion was successful
+        self.assertIn('href="https://test.com/subdir/relative.html"', result)
+        self.assertIn('href="https://test.com/root-relative.html"', result)
+        self.assertIn('href="http://example.org/absolute"', result)  # Unchanged
+        self.assertIn('href="https://example.org/secure"', result)  # Unchanged
+        self.assertIn('href="//cdn.example.org/script.js"', result)  # Unchanged
+        self.assertIn('href="mailto:test@example.com"', result)  # Unchanged
+        self.assertIn('href="#section"', result)  # Unchanged
+        self.assertIn('src="https://test.com/subdir/image.jpg"', result)
+        self.assertIn('src="https://test.com/images/logo.png"', result)
+        self.assertIn('src="http://example.org/image.jpg"', result)  # Unchanged
+        self.assertIn('src="https://example.org/secure.jpg"', result)  # Unchanged
+        self.assertIn('src="//cdn.example.org/image.jpg"', result)  # Unchanged
+        self.assertIn('src="data:image/png;base64,abc123"', result)  # Unchanged
+
+    def test_convert_relative_links_no_base_url(self):
+        """Test that conversion is skipped when no base URL is available."""
+        html_content = '<a href="page.html">Link</a>'
+        self.parser.current_base_url = None
+        result = self.parser._convert_relative_links_to_absolute(html_content)
+        self.assertEqual(result, html_content)  # Should be unchanged
 
 
 class TestSiteParserConfig:

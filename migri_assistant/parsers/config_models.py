@@ -33,6 +33,14 @@ class SiteParserConfig(BaseModel):
     """
 
     site_name: str
+    base_url: str = Field(
+        "https://example.com",
+        description="Base URL of the website (e.g., 'https://migri.fi')",
+    )
+    base_dir: str = Field(
+        "example.com",
+        description="Base directory name in the crawled content (e.g., 'migri.fi')",
+    )
     title_selector: str = "//title"
     content_selectors: list[str] = Field(
         ...,

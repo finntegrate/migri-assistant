@@ -111,12 +111,9 @@ class BaseParser(ABC):
         self.logger.debug(f"No URL mapping found for {file_path}")
         return None
 
-    def parse_all(self, domain: str | None = None) -> list[dict[str, Any]]:
+    def parse_all(self) -> list[dict[str, Any]]:
         """
-        Parse all HTML files in the input directory, optionally filtered by domain.
-
-        Args:
-            domain: Optional domain to filter files by
+        Parse all HTML files in the input directory.
 
         Returns:
             List of dictionaries containing information about the parsed files
@@ -124,14 +121,7 @@ class BaseParser(ABC):
         results: list[dict[str, Any]] = []
 
         # Get all HTML files
-        if domain:
-            # If domain is specified, look in that subdirectory
-            html_dir = os.path.join(self.input_dir, domain)
-            if not os.path.exists(html_dir):
-                self.logger.warning(f"Domain directory not found: {html_dir}")
-                return results
-        else:
-            html_dir = self.input_dir
+        html_dir = self.input_dir
 
         # Find all HTML files recursively
         html_files = []
