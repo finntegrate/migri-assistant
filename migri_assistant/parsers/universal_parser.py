@@ -205,10 +205,6 @@ class UniversalParser(BaseParser):
         Returns:
             Markdown formatted text
         """
-        # First convert any relative links to absolute links
-        if self.current_base_url:
-            html_content = self._convert_relative_links_to_absolute(html_content)
-
         # Configure html2text with site-specific settings
         config = self.config.markdown_config
         text_maker = html2text.HTML2Text()
@@ -269,6 +265,25 @@ class UniversalParser(BaseParser):
         """
         # Get the original URL of this file to use as base URL for relative links
         self.current_base_url = self._get_original_url(html_file)
+
+        # If no URL mapping found, try to construct a base URL using domain information
+        if not self.current_base_url:
+            domain = self._extract_domain_from_path(html_file)
+
+            if domain and domain == self.config.base_dir:
+                file_path_str = str(html_file)
+                # Extract path after base_dir
+                path_parts = file_path_str.split(self.config.base_dir)
+                if len(path_parts) > 1:
+                    relative_path = path_parts[1].lstrip("/")
+                    # Construct URL from base_url and the relative path
+                    self.current_base_url = f"{self.config.base_url}/{relative_path}"
+                    self.logger.info(f"Constructed base URL from config: {self.current_base_url}")
+                else:
+                    # If we can't extract a path, use the base_url as fallback
+                    self.current_base_url = self.config.base_url
+                    self.logger.info(f"Using config base URL as fallback: {self.current_base_url}")
+
         if self.current_base_url:
             self.logger.info(f"Using base URL: {self.current_base_url}")
         else:
@@ -278,3 +293,43 @@ class UniversalParser(BaseParser):
 
         # Call the parent method to continue with parsing
         return super().parse_file(html_file)
+
+    def _file_belongs_to_domain(self, file_path: str | Path) -> bool:
+        """
+        Check if a file belongs to the configured domain based on its path.
+
+        Args:
+            file_path: Path to the file to check
+
+        Returns:
+            True if the file belongs to the configured domain, False otherwise
+        """
+        file_path_str = str(file_path)
+        return self.config.base_dir in file_path_str
+
+    def _extract_domain_from_path(self, file_path: str | Path) -> str | None:
+        """
+        Extract the domain part from a file path.
+
+        Args:
+            file_path: Path to the file
+
+        Returns:
+            Domain name or None if not found
+        """
+        try:
+            path = Path(file_path)
+            # Try to extract domain from the path structure:
+            # input_dir/domain/path/to/file.html
+            relative_to_input = path.relative_to(self.input_dir)
+            if len(relative_to_input.parts) > 0:
+                return relative_to_input.parts[0]
+        except (ValueError, IndexError):
+            pass
+
+        # Fallback: try to match any known domain in the path
+        file_path_str = str(file_path)
+        if self.config.base_dir in file_path_str:
+            return self.config.base_dir
+
+        return None

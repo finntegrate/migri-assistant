@@ -2,6 +2,8 @@
 sites:
   migri:
     site_name: "migri"
+    base_url: "https://migri.fi"
+    base_dir: "migri.fi"
     title_selector: "//title"
     content_selectors:
       - '//div[@id="main-content"]'
@@ -21,6 +23,8 @@ sites:
   # Example configuration for TE Services website
   te_palvelut:
     site_name: "te_services"
+    base_url: "https://toimistot.te-palvelut.fi"
+    base_dir: "toimistot.te-palvelut.fi"
     title_selector: "//title"
     content_selectors:
       - '//div[@class="content-main"]'
@@ -33,6 +37,8 @@ sites:
   # Example configuration for Kela website
   kela:
     site_name: "kela"
+    base_url: "https://www.kela.fi"
+    base_dir: "www.kela.fi"
     title_selector: "//h1 | //title"
     content_selectors:
       - '//div[@class="main-content"]'

@@ -150,3 +150,58 @@ class TestRelativeLinks(unittest.TestCase):
         self.assertIn(f"https://{self.domain}/relative/path", markdown_content)
         self.assertIn(f"https://{self.domain}/images/test.png", markdown_content)
         self.assertIn(f"https://{self.domain}/page2.html", markdown_content)
+
+    def test_domain_specific_url_handling(self):
+        """Test handling of domain-specific URLs."""
+        # Create a file in a domain-specific directory
+        domain_file_path = os.path.join(self.domain_dir, "subdir", "domain-specific.html")
+        os.makedirs(os.path.dirname(domain_file_path), exist_ok=True)
+
+        with open(domain_file_path, "w") as f:
+            f.write("""
+            <html>
+                <head><title>Domain Specific</title></head>
+                <body>
+                    <div id="content">
+                        <h1>Domain Specific Page</h1>
+                        <p>This page has <a href="/domain/path">relative domain links</a>.</p>
+                        <img src="/domain/image.png" alt="Domain Image">
+                    </div>
+                </body>
+            </html>
+            """)
+
+        # Update test configuration with domain-specific base URL and dir
+        self.test_config["sites"]["test_site"]["base_url"] = f"https://{self.domain}"
+        self.test_config["sites"]["test_site"]["base_dir"] = self.domain
+
+        # Save updated test configuration
+        with open(self.config_path, "w") as f:
+            yaml.dump(self.test_config, f)
+
+        # Create a new parser with the updated config
+        parser = UniversalParser(
+            site_type="test_site",
+            input_dir=self.input_dir,
+            output_dir=self.output_dir,
+            config_path=self.config_path,
+        )
+
+        # Delete URL mappings to force using domain-based URL construction
+        parser.url_mappings = {}
+
+        # Parse the file
+        result = parser.parse_file(domain_file_path)
+
+        # Verify results
+        self.assertIsNotNone(result)
+        self.assertTrue(parser.current_base_url.startswith(f"https://{self.domain}"))
+
+        # Read the output markdown file to verify links were converted
+        output_path = result["output_file"]
+        with open(output_path) as f:
+            markdown_content = f.read()
+
+        # Check that relative links were converted to absolute using the domain
+        self.assertIn(f"https://{self.domain}/domain/path", markdown_content)
+        self.assertIn(f"https://{self.domain}/domain/image.png", markdown_content)
