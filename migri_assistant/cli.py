@@ -161,7 +161,7 @@ def parse(
 
     try:
         # Check if the site is supported by listing available configurations
-        available_sites = UniversalParser.list_available_site_configs()
+        available_sites = UniversalParser.list_available_site_configs(config_path)
 
         if site in available_sites:
             typer.echo(f"🔧 Using configuration for site: {site}")

@@ -144,6 +144,9 @@ class TestCli:
             config_path=None,
         )
 
+        # Check that list_available_site_configs was called with the correct parameter
+        mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
+
         # Check that parse_all was called correctly
         mock_parser_instance.parse_all.assert_called_once_with(domain=None)
 
@@ -171,6 +174,9 @@ class TestCli:
         # Check that parse_all was called with the domain filter
         mock_parser_instance.parse_all.assert_called_once_with(domain="example.com")
 
+        # Check that list_available_site_configs was called with the correct parameter
+        mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
+
         # Check expected output in stdout
         assert "Starting HTML parsing" in result.stdout
         assert "Processed 2 files" in result.stdout
@@ -188,6 +194,9 @@ class TestCli:
 
         # Check expected output in stdout
         assert "Unsupported site: unsupported" in result.stdout
+
+        # Check that list_available_site_configs was called with the correct parameter
+        mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
 
     @patch("migri_assistant.cli.UniversalParser")
     def test_parse_command_exception(self, mock_universal_parser, runner):
@@ -207,6 +216,50 @@ class TestCli:
         # Check expected output in stdout
         assert "Starting HTML parsing" in result.stdout
         assert "Error during parsing: Test error" in result.stdout
+
+        # Check that list_available_site_configs was called with the correct parameter
+        mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
+
+    @patch("migri_assistant.cli.UniversalParser")
+    def test_parse_command_custom_config(self, mock_universal_parser, runner):
+        """Test the parse command with a custom config path."""
+        # Set up mock
+        mock_parser_instance = MagicMock()
+        mock_parser_instance.parse_all.return_value = ["file1", "file2"]
+        mock_universal_parser.return_value = mock_parser_instance
+        # Mock the list_available_site_configs method
+        mock_universal_parser.list_available_site_configs.return_value = ["custom_site"]
+
+        # Run the command with a custom config
+        result = runner.invoke(
+            app,
+            [
+                "parse",
+                "--site",
+                "custom_site",
+                "--config",
+                "custom_configs.yaml",
+            ],
+        )
+
+        # Check that the command ran successfully
+        assert result.exit_code == 0
+
+        # Check that list_available_site_configs was called with the custom config path
+        mock_universal_parser.list_available_site_configs.assert_called_once_with(
+            "custom_configs.yaml",
+        )
+
+        # Check that the parser was initialized correctly with the custom config
+        mock_universal_parser.assert_called_once_with(
+            site="custom_site",
+            input_dir="crawled_content",  # Default value
+            output_dir="parsed_content",  # Default value
+            config_path="custom_configs.yaml",
+        )
+
+        # Check that parse_all was called correctly
+        mock_parser_instance.parse_all.assert_called_once_with(domain=None)
 
     @patch("migri_assistant.cli.MarkdownVectorizer")
     def test_vectorize_command(self, mock_vectorizer, runner):
