@@ -176,6 +176,33 @@ class UniversalParser(BaseParser):
             self.logger.error(f"Error parsing HTML: {str(e)}")
             return "Error Parsing Page", f"Error parsing the HTML content: {str(e)}"
 
+    @staticmethod
+    def _convert_element_link_to_absolute(
+        element: html.HtmlElement,
+        attribute: str,
+        base_url: str,
+        absolute_prefixes: tuple[str, ...],
+    ) -> bool:
+        """
+        Convert a single element's link attribute to absolute URL if it's relative.
+
+        Args:
+            element: HTML element to process
+            attribute: Attribute name (e.g., 'href', 'src')
+            base_url: Base URL to use for conversion
+            absolute_prefixes: Tuple of prefixes that indicate absolute URLs
+
+        Returns:
+            True if the link was converted, False otherwise
+        """
+        link = element.get(attribute)
+        if not link or link.startswith(absolute_prefixes):
+            return False
+
+        absolute_url = urljoin(base_url, link)
+        element.set(attribute, absolute_url)
+        return True
+
     def _convert_relative_links_to_absolute(self, html_content: str) -> str:
         """
         Convert relative links in HTML content to absolute URLs.
@@ -193,19 +220,27 @@ class UniversalParser(BaseParser):
             # Parse the HTML
             tree = html.fromstring(html_content)
 
-            # Find all links and image sources
-            for element in tree.xpath("//*[@href]"):
-                href = element.get("href")
-                if href and not href.startswith(("http://", "https://", "mailto:", "#", "tel:")):
-                    absolute_url = urljoin(self.current_base_url, href)
-                    element.set("href", absolute_url)
+            # Define absolute prefixes for different attribute types
+            href_prefixes = ("http://", "https://", "//", "mailto:", "#", "tel:")
+            src_prefixes = ("http://", "https://", "//", "data:")
 
-            # Find all images
+            # Find all links and process them
+            for element in tree.xpath("//*[@href]"):
+                self._convert_element_link_to_absolute(
+                    element,
+                    "href",
+                    self.current_base_url,
+                    href_prefixes,
+                )
+
+            # Find all images and process them
             for element in tree.xpath("//*[@src]"):
-                src = element.get("src")
-                if src and not src.startswith(("http://", "https://", "data:")):
-                    absolute_url = urljoin(self.current_base_url, src)
-                    element.set("src", absolute_url)
+                self._convert_element_link_to_absolute(
+                    element,
+                    "src",
+                    self.current_base_url,
+                    src_prefixes,
+                )
 
             # Convert back to string
             return html.tostring(tree, encoding="unicode", pretty_print=True)
