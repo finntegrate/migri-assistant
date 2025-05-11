@@ -6,6 +6,9 @@ configurations and extracts content from HTML pages accordingly.
 
 import logging
 import os
+from pathlib import Path
+from typing import Any
+from urllib.parse import urljoin
 
 import html2text
 import yaml
@@ -44,6 +47,7 @@ class UniversalParser(BaseParser):
         """
         self.site_type = site_type
         self.config = self._load_site_config(site_type, config_path)
+        self.current_base_url: str | None = None  # Will store the base URL of the current document
 
         super().__init__(
             input_dir=input_dir,
@@ -117,6 +121,7 @@ class UniversalParser(BaseParser):
             # Find content using the configured selectors
             content_section = self.config.get_content_selector(tree)
 
+            # Prepare HTML content for conversion
             if content_section is not None:
                 # Get the HTML of just this element
                 content_html = html.tostring(
@@ -141,6 +146,9 @@ class UniversalParser(BaseParser):
                 self.logger.warning("No content found and no fallback configured")
                 content_html = ""
 
+            # Convert relative links to absolute links
+            content_html = self._convert_relative_links_to_absolute(content_html)
+
             # Convert HTML to Markdown using site-specific settings
             markdown_content = self._html_to_markdown(content_html)
 
@@ -149,6 +157,43 @@ class UniversalParser(BaseParser):
         except Exception as e:
             self.logger.error(f"Error parsing HTML: {str(e)}")
             return "Error Parsing Page", f"Error parsing the HTML content: {str(e)}"
+
+    def _convert_relative_links_to_absolute(self, html_content: str) -> str:
+        """
+        Convert relative links in HTML content to absolute URLs.
+
+        Args:
+            html_content: HTML content with potentially relative links
+
+        Returns:
+            HTML content with relative links converted to absolute URLs
+        """
+        if not self.current_base_url:
+            return html_content  # No base URL available, return unchanged
+
+        try:
+            # Parse the HTML
+            tree = html.fromstring(html_content)
+
+            # Find all links and image sources
+            for element in tree.xpath("//*[@href]"):
+                href = element.get("href")
+                if href and not href.startswith(("http://", "https://", "mailto:", "#", "tel:")):
+                    absolute_url = urljoin(self.current_base_url, href)
+                    element.set("href", absolute_url)
+
+            # Find all images
+            for element in tree.xpath("//*[@src]"):
+                src = element.get("src")
+                if src and not src.startswith(("http://", "https://", "data:")):
+                    absolute_url = urljoin(self.current_base_url, src)
+                    element.set("src", absolute_url)
+
+            # Convert back to string
+            return html.tostring(tree, encoding="unicode", pretty_print=True)
+        except Exception as e:
+            self.logger.error(f"Error converting relative links: {str(e)}")
+            return html_content  # Return original content if there's an error
 
     def _html_to_markdown(self, html_content: str) -> str:
         """
@@ -160,6 +205,10 @@ class UniversalParser(BaseParser):
         Returns:
             Markdown formatted text
         """
+        # First convert any relative links to absolute links
+        if self.current_base_url:
+            html_content = self._convert_relative_links_to_absolute(html_content)
+
         # Configure html2text with site-specific settings
         config = self.config.markdown_config
         text_maker = html2text.HTML2Text()
@@ -207,3 +256,25 @@ class UniversalParser(BaseParser):
         """
         config_registry = cls._load_config_registry(config_path)
         return config_registry.sites.get(site_type)
+
+    def parse_file(self, html_file: str | Path) -> dict[str, Any] | None:
+        """
+        Parse a single HTML file.
+
+        Args:
+            html_file: Path to the HTML file
+
+        Returns:
+            Dictionary containing information about the parsed file
+        """
+        # Get the original URL of this file to use as base URL for relative links
+        self.current_base_url = self._get_original_url(html_file)
+        if self.current_base_url:
+            self.logger.info(f"Using base URL: {self.current_base_url}")
+        else:
+            self.logger.warning(
+                f"No base URL found for {html_file}, relative links won't be converted",
+            )
+
+        # Call the parent method to continue with parsing
+        return super().parse_file(html_file)
