@@ -280,8 +280,47 @@ def vectorize(
 
 
 @app.command()
-def info() -> None:
+def info(
+    list_site_configs: bool = typer.Option(
+        False,
+        "--list-site-configs",
+        "-l",
+        help="List all available site configurations for parsing",
+    ),
+    show_site_config: str = typer.Option(
+        None,
+        "--show-site-config",
+        "-s",
+        help="Show detailed configuration for a specific site type",
+    ),
+) -> None:
     """Show information about the Migri Assistant and available commands."""
+    if list_site_configs:
+        # List all available site configurations
+        site_configs = UniversalParser.list_available_site_configs()
+        typer.echo("Available site configurations for parsing:")
+        for site_type in site_configs:
+            typer.echo(f"  - {site_type}")
+        return
+
+    if show_site_config:
+        # Show details for a specific site configuration
+        config = UniversalParser.get_site_config(show_site_config)
+        if config:
+            typer.echo(f"Configuration for site type: {show_site_config}")
+            typer.echo(f"  Site name: {config.site_name}")
+            typer.echo(f"  Base URL: {config.base_url}")
+            typer.echo(f"  Base directory: {config.base_dir}")
+            typer.echo(f"  Description: {config.description}")
+            typer.echo("  Content selectors:")
+            for selector in config.content_selectors:
+                typer.echo(f"    - {selector}")
+            typer.echo(f"  Fallback to body: {config.fallback_to_body}")
+        else:
+            typer.echo(f"Error: Site configuration '{show_site_config}' not found")
+        return
+
+    # Show general information
     typer.echo("Migri Assistant - Web crawling and parsing tool")
     typer.echo("\nAvailable commands:")
     typer.echo("  crawl      - Crawl websites and save HTML content")
@@ -290,7 +329,6 @@ def info() -> None:
     typer.echo("  gradio_app - Launch the Gradio web interface for querying with the RAG chatbot")
     typer.echo("  info       - Show this information")
     typer.echo("  dev        - Launch the development server for the Migri Assistant chatbot")
-    typer.echo("  list_sites - List available site configurations for the parser")
     typer.echo("\nRun a command with --help for more information")
 
 

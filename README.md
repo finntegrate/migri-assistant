@@ -79,7 +79,38 @@ uv run -m migri_assistant.cli crawl https://migri.fi/en/home --depth 2 --output-
 uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site-type migri
 ```
 
-The `--site-type` parameter specifies which site configuration to use. Available site types include `migri`, `te_palvelut`, `kela`, and any others defined in the parser configurations.
+The `--site-type` parameter specifies which site configuration to use. The parser will:
+- Process only files located in the domain directory defined by the site's configuration
+- Apply site-specific selectors to extract the relevant content
+- Convert relative links to absolute URLs using the site's base URL
+- Format the content according to the site's markdown configuration
+
+#### Site-Specific Parsing
+
+Each site configuration defines:
+- The domain directory to process (e.g., `migri.fi`)
+- The base URL for link conversions (e.g., `https://migri.fi`)
+- Selectors for extracting titles and content
+- HTML-to-Markdown conversion preferences
+
+For example, to parse content from different sites:
+
+```bash
+# Parse the Finnish Immigration Service (Migri) site
+uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site-type migri
+
+# Parse the TE Services site
+uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site-type te_palvelut
+
+# Parse the Kela site
+uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site-type kela
+```
+
+Available site types include any defined in the parser configurations (`parser_configs.yaml`). To see all available site configurations:
+
+```bash
+uv run -m migri_assistant.cli info --list-site-configs
+```
 
 3. **Vectorize** the parsed Markdown content into ChromaDB for semantic search:
 ```bash
@@ -126,6 +157,117 @@ Available commands:
 - `vectorize`: Vectorize parsed Markdown into ChromaDB
 - `gradio-app`: Launch the Gradio RAG chatbot interface
 - `info`: Show information about available commands
+
+To view available site configurations for parsing:
+
+```bash
+# List all available site types
+uv run -m migri_assistant.cli info --list-site-configs
+
+# Show detailed configuration for a specific site
+uv run -m migri_assistant.cli info --show-site-config migri
+```
+
+## End-to-End Workflow Example: Migri Site
+
+Here's a complete workflow for crawling, parsing, and querying the Finnish Immigration Service website:
+
+### 1. Crawl the Migri Website
+
+```bash
+uv run -m migri_assistant.cli crawl https://migri.fi/en/home --depth 2 --output-dir crawled_content
+```
+
+This will save HTML files in `crawled_content/migri.fi/` and create a URL mappings file.
+
+### 2. Parse the Migri Content
+
+```bash
+uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site-type migri
+```
+
+This will process only files in the `migri.fi` directory using Migri's content selectors.
+
+### 3. Vectorize and Query
+
+```bash
+# Vectorize the content
+uv run -m migri_assistant.cli vectorize --input-dir parsed_content --collection migri_docs
+
+# Launch the chatbot
+uv run -m migri_assistant.cli gradio-app --collection-name migri_docs
+```
+
+## Site Configurations
+
+The parser uses site-specific configurations to extract content correctly from different websites. These configurations are defined in `migri_assistant/config/parser_configs.yaml`.
+
+### Configuration Structure
+
+Each site configuration includes:
+
+```yaml
+sites:
+  migri:                                    # Site type key used with --site-type
+    site_name: "migri"                      # Name for output directories and logs
+    base_url: "https://migri.fi"            # Base URL for converting relative links
+    base_dir: "migri.fi"                    # Directory name in crawled_content
+    title_selector: "//title"               # XPath selector for page title
+    content_selectors:                      # Prioritized list of content selectors
+      - '//div[@id="main-content"]'
+      - "//main"
+      - "//article"
+      - '//div[@class="content"]'
+    fallback_to_body: true                  # Use body if selectors don't match
+    description: "Finnish Immigration Service website"
+    markdown_config:                        # HTML-to-Markdown settings
+      ignore_links: false
+      body_width: 0                         # No text wrapping
+      protect_links: true
+      unicode_snob: true
+      ignore_images: false
+      ignore_tables: false
+```
+
+### Adding a New Site
+
+To add support for a new website:
+
+1. Determine the site's structure by examining a few pages
+2. Identify the appropriate XPath selectors for title and main content
+3. Add a new entry to `parser_configs.yaml` with the required fields
+4. Use the unique site type key with the parse command
+
+For example, to add support for a hypothetical "example.com":
+
+```yaml
+sites:
+  # ... existing site configurations ...
+  example:
+    site_name: "example"
+    base_url: "https://example.com"
+    base_dir: "example.com"
+    title_selector: "//h1"
+    content_selectors:
+      - '//div[@class="content"]'
+      - '//main'
+    fallback_to_body: true
+    description: "Example website configuration"
+    markdown_config:
+      ignore_links: false
+      body_width: 0
+      protect_links: true
+```
+
+Then use it with:
+
+```bash
+# Crawl the site
+uv run -m migri_assistant.cli crawl https://example.com --depth 2
+
+# Parse using the new configuration
+uv run -m migri_assistant.cli parse --site-type example
+```
 
 ## Contributing
 
