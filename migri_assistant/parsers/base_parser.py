@@ -257,28 +257,30 @@ class BaseParser(ABC):
     def _get_output_filename(self, html_file_path: Path) -> str:
         """
         Generate an output filename for the parsed markdown file.
+        Preserves the directory structure from the input directory.
 
         Args:
             html_file_path: Path to the source HTML file
 
         Returns:
-            Output filename (without extension)
+            Output filename with path (without extension)
         """
-        # Try to extract domain from the file path
+        # Try to extract relative path from the file path
         try:
             rel_path = html_file_path.relative_to(self.input_dir)
             parts = rel_path.parts
-            # If there are at least two parts (domain and path), use them
+
+            # If there are parts (domain and path), preserve the structure
             if len(parts) >= 2:
-                # Join all parts except the first (domain) with underscores
-                file_stem = "_".join(parts[1:]).replace(".html", "")
+                # Preserve the original directory structure but replace .html extension
+                rel_output_path = str(rel_path).replace(".html", "")
+                return rel_output_path
             else:
-                file_stem = html_file_path.stem
+                # Just use filename if there's only one part
+                return html_file_path.stem
         except ValueError:
             # If the file is not in the input directory, just use its name
-            file_stem = html_file_path.stem
-
-        return file_stem
+            return html_file_path.stem
 
     def _save_markdown(
         self,
