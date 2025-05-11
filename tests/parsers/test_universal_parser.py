@@ -88,6 +88,8 @@ class TestUniversalParser(unittest.TestCase):
             "sites": {
                 "example": {
                     "site_name": "example",
+                    "base_url": f"https://{self.domain}",
+                    "base_dir": self.domain,
                     "title_selector": "//title",
                     "content_selectors": [
                         '//div[@id="main-content"]',
@@ -100,6 +102,8 @@ class TestUniversalParser(unittest.TestCase):
                 },
                 "no_fallback": {
                     "site_name": "no_fallback",
+                    "base_url": f"https://{self.domain}",
+                    "base_dir": self.domain,
                     "title_selector": "//h1",
                     "content_selectors": ['//div[@id="does-not-exist"]'],
                     "fallback_to_body": False,

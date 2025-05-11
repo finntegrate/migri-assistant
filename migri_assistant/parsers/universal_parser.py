@@ -59,7 +59,7 @@ class UniversalParser(BaseParser):
 
     def _load_site_config(self, site_type: str, config_path: str | None = None) -> SiteParserConfig:
         """
-        Load site-specific configuration.
+        Load site-specific configuration and validate required fields.
 
         Args:
             site_type: Type of site to load config for
@@ -67,6 +67,9 @@ class UniversalParser(BaseParser):
 
         Returns:
             SiteParserConfig for the specified site type
+
+        Raises:
+            ValueError: If the site type doesn't exist or configuration is invalid
         """
         # Load default or custom configs
         config_registry = self._load_config_registry(config_path)
@@ -75,7 +78,22 @@ class UniversalParser(BaseParser):
         if site_type not in config_registry.sites:
             raise ValueError(f"No configuration found for site type: {site_type}")
 
-        return config_registry.sites[site_type]
+        config = config_registry.sites[site_type]
+
+        # Validate required fields
+        if not config.base_url or not config.base_url.startswith(("http://", "https://")):
+            raise ValueError(
+                f"Invalid base_url '{config.base_url}' for site type '{site_type}'. "
+                "Must be a valid absolute URL starting with http:// or https://",
+            )
+
+        if not config.base_dir:
+            raise ValueError(
+                f"Missing base_dir for site type '{site_type}'. "
+                "This field is required for domain-specific URL handling",
+            )
+
+        return config
 
     @staticmethod
     def _load_config_registry(config_path: str | None = None) -> ParserConfigRegistry:
@@ -261,35 +279,38 @@ class UniversalParser(BaseParser):
             html_file: Path to the HTML file
 
         Returns:
-            Dictionary containing information about the parsed file
+            Dictionary containing information about the parsed file or None if the
+            file doesn't belong to the configured site
         """
-        # Get the original URL of this file to use as base URL for relative links
+        # Verify the file belongs to the specified site before parsing
+        file_domain = self._extract_domain_from_path(html_file)
+
+        if not file_domain or file_domain != self.config.base_dir:
+            self.logger.info(
+                f"Skipping {html_file}: Does not belong to {self.site_type} site "
+                f"(expected domain: {self.config.base_dir}, found: {file_domain})",
+            )
+            return None
+
+        # Get the original URL of this file from URL mappings if available
         self.current_base_url = self._get_original_url(html_file)
 
-        # If no URL mapping found, try to construct a base URL using domain information
+        # If no URL mapping found, construct the URL from configuration and file path
         if not self.current_base_url:
-            domain = self._extract_domain_from_path(html_file)
+            file_path_str = str(html_file)
+            # Extract path after base_dir
+            path_parts = file_path_str.split(self.config.base_dir)
+            if len(path_parts) > 1:
+                relative_path = path_parts[1].lstrip("/")
+                # Construct URL from base_url and the relative path
+                self.current_base_url = f"{self.config.base_url}/{relative_path}"
+                self.logger.info(f"Constructed base URL from config: {self.current_base_url}")
+            else:
+                # If we can't extract a path, use the base_url as fallback
+                self.current_base_url = self.config.base_url
+                self.logger.info(f"Using config base URL as fallback: {self.current_base_url}")
 
-            if domain and domain == self.config.base_dir:
-                file_path_str = str(html_file)
-                # Extract path after base_dir
-                path_parts = file_path_str.split(self.config.base_dir)
-                if len(path_parts) > 1:
-                    relative_path = path_parts[1].lstrip("/")
-                    # Construct URL from base_url and the relative path
-                    self.current_base_url = f"{self.config.base_url}/{relative_path}"
-                    self.logger.info(f"Constructed base URL from config: {self.current_base_url}")
-                else:
-                    # If we can't extract a path, use the base_url as fallback
-                    self.current_base_url = self.config.base_url
-                    self.logger.info(f"Using config base URL as fallback: {self.current_base_url}")
-
-        if self.current_base_url:
-            self.logger.info(f"Using base URL: {self.current_base_url}")
-        else:
-            self.logger.warning(
-                f"No base URL found for {html_file}, relative links won't be converted",
-            )
+        self.logger.info(f"Using base URL: {self.current_base_url}")
 
         # Call the parent method to continue with parsing
         return super().parse_file(html_file)
@@ -304,8 +325,11 @@ class UniversalParser(BaseParser):
         Returns:
             True if the file belongs to the configured domain, False otherwise
         """
-        file_path_str = str(file_path)
-        return self.config.base_dir in file_path_str
+        # Get the domain from the file path
+        domain = self._extract_domain_from_path(file_path)
+
+        # Check if the domain matches the configured domain
+        return domain == self.config.base_dir
 
     def _extract_domain_from_path(self, file_path: str | Path) -> str | None:
         """
@@ -325,11 +349,33 @@ class UniversalParser(BaseParser):
             if len(relative_to_input.parts) > 0:
                 return relative_to_input.parts[0]
         except (ValueError, IndexError):
-            pass
-
-        # Fallback: try to match any known domain in the path
-        file_path_str = str(file_path)
-        if self.config.base_dir in file_path_str:
-            return self.config.base_dir
+            # If the file is not relative to input_dir, check if it contains the domain directly
+            file_path_str = str(file_path)
+            if self.config.base_dir in file_path_str:
+                return self.config.base_dir
 
         return None
+
+    def parse_all(self, domain: str | None = None) -> list[dict[str, Any]]:
+        """
+        Parse all HTML files in the input directory for the configured site.
+
+        This override ensures we only parse files for the specific site
+        we've been configured to handle.
+
+        Args:
+            domain: If provided, this will override the configured domain
+                   (maintained for backward compatibility)
+
+        Returns:
+            List of dictionaries containing information about the parsed files
+        """
+        # If no domain is explicitly provided, use the one from the configuration
+        domain_to_use = domain if domain is not None else self.config.base_dir
+
+        self.logger.info(
+            f"Parsing all HTML files for site '{self.site_type}' with domain '{domain_to_use}'",
+        )
+
+        # Use the specified domain or the configured one
+        return super().parse_all(domain=domain_to_use)

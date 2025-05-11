@@ -65,6 +65,8 @@ class TestRelativeLinks(unittest.TestCase):
             "sites": {
                 "test_site": {
                     "site_name": "test_site",
+                    "base_url": f"https://{self.domain}",
+                    "base_dir": self.domain,
                     "title_selector": "//title",
                     "content_selectors": ['//div[@id="content"]'],
                     "fallback_to_body": True,
