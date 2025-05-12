@@ -8,6 +8,8 @@ from typing import Any
 
 import yaml
 
+from migri_assistant.config.settings import DEFAULT_DIRS
+
 
 class BaseParser(ABC):
     """
@@ -19,8 +21,8 @@ class BaseParser(ABC):
 
     def __init__(
         self,
-        input_dir: str = "crawled_content",
-        output_dir: str = "parsed_content",
+        input_dir: str = DEFAULT_DIRS["CRAWLED_DIR"],
+        output_dir: str = DEFAULT_DIRS["PARSED_DIR"],
         site_name: str | None = None,
     ) -> None:
         """

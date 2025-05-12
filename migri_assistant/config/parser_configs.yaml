@@ -38,7 +38,7 @@ sites:
   kela:
     site_name: "kela"
     base_url: "https://www.kela.fi"
-    base_dir: "www.kela.fi"
+    base_dir: "kela"
     title_selector: "//h1 | //title"
     content_selectors:
       - '//div[@id="content-root"]'

@@ -7,6 +7,7 @@ from scrapy.crawler import CrawlerRunner
 from scrapy.settings import Settings
 from twisted.internet import defer, reactor  # type: ignore
 
+from migri_assistant.config.settings import DEFAULT_DIRS
 from migri_assistant.crawler import settings as crawler_settings
 from migri_assistant.crawler.crawler import BaseCrawler
 
@@ -39,7 +40,7 @@ class ScrapyRunner:
         start_urls: list[str],
         depth: int = 1,
         allowed_domains: list[str] | None = None,
-        output_dir: str = "crawled_content",
+        output_dir: str = DEFAULT_DIRS["CRAWLED_DIR"],
         custom_settings: dict | None = None,
     ) -> list[dict]:
         """

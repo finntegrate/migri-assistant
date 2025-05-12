@@ -183,3 +183,5 @@ chroma_db/
 results.json
 crawled_content/
 parsed_content/
+content/crawled/
+content/parsed/
