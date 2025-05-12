@@ -3,7 +3,7 @@
 import logging
 import os
 
-import frontmatter  # type: ignore[import-not-found]
+import frontmatter  # type: ignore[import-untyped]
 
 from migri_assistant.config.settings import DEFAULT_DIRS
 
