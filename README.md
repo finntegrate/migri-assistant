@@ -63,6 +63,12 @@ uv sync
 ollama pull llama3.2
 ```
 
+5. Set up the directory structure for content:
+```bash
+python setup_dirs.py
+```
+This will create the necessary directories (`content/crawled` and `content/parsed`) for storing crawled and parsed content.
+
 ## Usage
 
 ### Running the Crawler, Parser, and Vectorizer
@@ -72,18 +78,18 @@ The tool follows a three-step process to crawl, parse, and vectorize content:
 1. **Crawl** a website to retrieve and save HTML content:
 Migri example:
 ```bash
-uv run -m migri_assistant.cli crawl https://migri.fi/en/home --depth 2 --output-dir crawled_content
+uv run -m migri_assistant.cli crawl https://migri.fi/en/home --depth 2 --output-dir content/crawled
 ```
 
 Kela example:
 ```bash
-uv run -m migri_assistant.cli crawl https://www.kela.fi/main-page --depth 2 --output-dir crawled_content
+uv run -m migri_assistant.cli crawl https://www.kela.fi/main-page --depth 2 --output-dir content/crawled
 ```
 
 1. **Parse** the HTML content into structured Markdown:
 
 ```bash
-uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site migri
+uv run -m migri_assistant.cli parse --input-dir content/crawled --output-dir content/parsed --site migri
 ```
 
 The `--site` parameter specifies which site configuration to use. The parser will:
@@ -104,13 +110,13 @@ For example, to parse content from different sites:
 
 ```bash
 # Parse the Finnish Immigration Service (Migri) site
-uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site migri
+uv run -m migri_assistant.cli parse --input-dir content/crawled --output-dir content/parsed --site migri
 
 # Parse the TE Services site
-uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site te_palvelut
+uv run -m migri_assistant.cli parse --input-dir content/crawled --output-dir content/parsed --site te_palvelut
 
 # Parse the Kela site
-uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site kela
+uv run -m migri_assistant.cli parse --input-dir content/crawled --output-dir content/parsed --site kela
 ```
 
 Available sites include any defined in the parser configurations (`parser_configs.yaml`). To see all available site configurations:
@@ -121,7 +127,7 @@ uv run -m migri_assistant.cli info --list-site-configs
 
 3. **Vectorize** the parsed Markdown content into ChromaDB for semantic search:
 ```bash
-uv run -m migri_assistant.cli vectorize --input-dir parsed_content --db-dir chroma_db --collection migri_docs
+uv run -m migri_assistant.cli vectorize --input-dir content/parsed --db-dir chroma_db --collection migri_docs
 ```
 
 4. **Launch the RAG Chatbot** to interactively query the content:
@@ -182,15 +188,15 @@ Here's a complete workflow for crawling, parsing, and querying the Finnish Immig
 ### 1. Crawl the Migri Website
 
 ```bash
-uv run -m migri_assistant.cli crawl https://migri.fi/en/home --depth 2 --output-dir crawled_content
+uv run -m migri_assistant.cli crawl https://migri.fi/en/home --depth 2 --output-dir content/crawled
 ```
 
-This will save HTML files in `crawled_content/migri.fi/` and create a URL mappings file.
+This will save HTML files in `content/crawled/migri.fi/` and create a URL mappings file.
 
 ### 2. Parse the Migri Content
 
 ```bash
-uv run -m migri_assistant.cli parse --input-dir crawled_content --output-dir parsed_content --site migri
+uv run -m migri_assistant.cli parse --input-dir content/crawled --output-dir content/parsed --site migri
 ```
 
 This will process only files in the `migri.fi` directory using Migri's content selectors.
@@ -199,7 +205,7 @@ This will process only files in the `migri.fi` directory using Migri's content s
 
 ```bash
 # Vectorize the content
-uv run -m migri_assistant.cli vectorize --input-dir parsed_content --collection migri_docs
+uv run -m migri_assistant.cli vectorize --input-dir content/parsed --collection migri_docs
 
 # Launch the chatbot
 uv run -m migri_assistant.cli gradio-app --collection-name migri_docs
@@ -218,7 +224,7 @@ sites:
   migri:                                    # Site key used with --site
     site_name: "migri"                      # Name for output directories and logs
     base_url: "https://migri.fi"            # Base URL for converting relative links
-    base_dir: "migri.fi"                    # Directory name in crawled_content
+    base_dir: "migri.fi"                    # Directory name in content/crawled
     title_selector: "//title"               # XPath selector for page title
     content_selectors:                      # Prioritized list of content selectors
       - '//div[@id="main-content"]'
@@ -275,6 +281,21 @@ uv run -m migri_assistant.cli crawl https://example.com --depth 2
 # Parse using the new configuration
 uv run -m migri_assistant.cli parse --site example
 ```
+
+## Global Configuration Settings
+
+The application uses a central configuration module (`migri_assistant/config/settings.py`) that defines common settings used across different components:
+
+```python
+# Default directory paths
+DEFAULT_DIRS = {
+    "CRAWLED_DIR": "content/crawled",  # Directory for storing crawled HTML content
+    "PARSED_DIR": "content/parsed",    # Directory for storing parsed Markdown content
+    "CHROMA_DIR": "chroma_db",         # Directory for storing ChromaDB vector database
+}
+```
+
+To modify these settings, edit the `settings.py` file. This ensures consistent path usage across the codebase.
 
 ## Contributing
 

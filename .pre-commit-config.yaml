@@ -52,6 +52,7 @@ repos:
           - html2text
           - gradio
           - typer
+          - python-frontmatter
         # Using project's mypy.ini for configuration
         args: [--config-file=mypy.ini]
         exclude: ^tests/

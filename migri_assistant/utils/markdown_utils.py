@@ -5,6 +5,8 @@ import os
 
 import frontmatter  # type: ignore[import-untyped]
 
+from migri_assistant.config.settings import DEFAULT_DIRS
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,7 +34,7 @@ def read_markdown_file(file_path: str) -> tuple[dict, str]:
                 # Fallback to legacy handling
                 source_file = metadata["source_file"]
                 if isinstance(source_file, str):
-                    metadata["url"] = source_file.replace("crawled_content/", "")
+                    metadata["url"] = source_file.replace(f"{DEFAULT_DIRS['CRAWLED_DIR']}/", "")
 
             return metadata, content
     except Exception as e:

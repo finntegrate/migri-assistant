@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 
 import typer
 
+from migri_assistant.config.settings import DEFAULT_DIRS
 from migri_assistant.crawler.runner import ScrapyRunner
 from migri_assistant.parsers.universal_parser import UniversalParser
 from migri_assistant.vectorstore.vectorizer import MarkdownVectorizer
@@ -40,7 +41,7 @@ def crawl(
         help="Domains to restrict crawling to (defaults to URL's domain)",
     ),
     output_dir: str = typer.Option(
-        "crawled_content",
+        DEFAULT_DIRS["CRAWLED_DIR"],
         "--output-dir",
         "-o",
         help="Directory to save crawled HTML files",
@@ -102,13 +103,13 @@ def crawl(
 @app.command()
 def parse(
     input_dir: str = typer.Option(
-        "crawled_content",
+        DEFAULT_DIRS["CRAWLED_DIR"],
         "--input-dir",
         "-i",
         help="Directory containing HTML files to parse",
     ),
     output_dir: str = typer.Option(
-        "parsed_content",
+        DEFAULT_DIRS["PARSED_DIR"],
         "--output-dir",
         "-o",
         help="Directory to save parsed content as Markdown files",
@@ -194,13 +195,13 @@ def parse(
 @app.command()
 def vectorize(
     input_dir: str = typer.Option(
-        "parsed_content",
+        DEFAULT_DIRS["PARSED_DIR"],
         "--input-dir",
         "-i",
         help="Directory containing parsed Markdown files to vectorize",
     ),
     db_dir: str = typer.Option(
-        "chroma_db",
+        DEFAULT_DIRS["CHROMA_DIR"],
         "--db-dir",
         "-d",
         help="Directory to store the ChromaDB database",

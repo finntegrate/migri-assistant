@@ -166,9 +166,24 @@ The project has been designed with a clear separation of concerns:
 - `crawler/`: Module responsible for crawling websites and saving HTML content
 - `parsers/`: Module responsible for parsing HTML content into structured formats
 - `vectorstore/`: Module responsible for vectorizing content and storing in ChromaDB
+- `config/`: Configuration settings for the project
 - `gradio_app.py`: Gradio interface for the RAG chatbot
 - `utils/`: Utility modules for embedding generation, markdown processing, etc.
 - `tests/`: Test suite for all modules
+
+## Configuration System
+
+The application uses a centralized configuration system:
+
+- `config/settings.py`: Contains global configuration settings used across different components
+- `config/parser_configs.yaml`: Site-specific parser configurations
+
+When adding new features that require configuration values:
+
+1. Use existing settings from `DEFAULT_DIRS` when possible
+2. For new configuration needs, add them to the appropriate config file
+3. Avoid hardcoding values that might need to change in the future
+4. Use descriptive keys for configuration values
 
 ## Ollama for LLM Inference
 

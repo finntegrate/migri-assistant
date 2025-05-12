@@ -6,6 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from migri_assistant.cli import app
+from migri_assistant.config.settings import DEFAULT_DIRS
 
 
 @pytest.fixture
@@ -253,8 +254,8 @@ class TestCli:
         # Check that the parser was initialized correctly with the custom config
         mock_universal_parser.assert_called_once_with(
             site="custom_site",
-            input_dir="crawled_content",  # Default value
-            output_dir="parsed_content",  # Default value
+            input_dir=DEFAULT_DIRS["CRAWLED_DIR"],
+            output_dir=DEFAULT_DIRS["PARSED_DIR"],
             config_path="custom_configs.yaml",
         )
 
@@ -325,7 +326,7 @@ class TestCli:
 
         # Check that process_directory was called with the domain filter
         mock_vectorizer_instance.process_directory.assert_called_once_with(
-            input_dir="parsed_content",
+            input_dir=DEFAULT_DIRS["PARSED_DIR"],
             domain_filter="example.com",
             batch_size=20,
         )

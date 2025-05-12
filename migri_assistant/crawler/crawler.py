@@ -12,6 +12,8 @@ from scrapy.crawler import Crawler
 from scrapy.http import Request, Response
 from twisted.python.failure import Failure
 
+from migri_assistant.config.settings import DEFAULT_DIRS
+
 
 class BaseCrawler(Spider):
     name = "base_crawler"  # Changed from web_spider
@@ -41,7 +43,7 @@ class BaseCrawler(Spider):
         start_urls: str | list[str] | None = None,
         allowed_domains: list[str] | None = None,
         depth: int = 1,
-        output_dir: str = "crawled_content",
+        output_dir: str = DEFAULT_DIRS["CRAWLED_DIR"],
         *args: Any,
         **kwargs: Any,
     ) -> None:

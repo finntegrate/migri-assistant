@@ -4,6 +4,7 @@ import os
 import tempfile
 from unittest.mock import mock_open, patch
 
+from migri_assistant.config.settings import DEFAULT_DIRS
 from migri_assistant.utils.markdown_utils import find_markdown_files, read_markdown_file
 
 
@@ -30,9 +31,9 @@ This is test content.
 
     def test_read_markdown_file_with_source_file(self):
         """Test reading a markdown file with source_file in metadata."""
-        mock_file_content = """---
+        mock_file_content = f"""---
 title: Test Document
-source_file: crawled_content/example.com/page.html
+source_file: {DEFAULT_DIRS["CRAWLED_DIR"]}/example.com/page.html
 ---
 # Test Content
 
@@ -42,7 +43,7 @@ This is test content.
             metadata, content = read_markdown_file("test_file.md")
 
         assert metadata["title"] == "Test Document"
-        assert metadata["source_file"] == "crawled_content/example.com/page.html"
+        assert metadata["source_file"] == f"{DEFAULT_DIRS['CRAWLED_DIR']}/example.com/page.html"
         assert metadata["url"] == "example.com/page.html"
         assert content == "# Test Content\n\nThis is test content."  # No trailing newline
 

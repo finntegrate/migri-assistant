@@ -14,6 +14,7 @@ import html2text
 import yaml
 from lxml import html
 
+from migri_assistant.config.settings import DEFAULT_DIRS
 from migri_assistant.parsers.base_parser import BaseParser
 from migri_assistant.parsers.config_models import (
     ParserConfigRegistry,
@@ -32,8 +33,8 @@ class UniversalParser(BaseParser):
     def __init__(
         self,
         site: str,
-        input_dir: str = "crawled_content",
-        output_dir: str = "parsed_content",
+        input_dir: str = DEFAULT_DIRS["CRAWLED_DIR"],
+        output_dir: str = DEFAULT_DIRS["PARSED_DIR"],
         config_path: str | None = None,
     ):
         """
