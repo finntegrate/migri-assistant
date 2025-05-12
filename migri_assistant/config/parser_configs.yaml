@@ -3,7 +3,7 @@ sites:
   migri:
     site_name: "migri"
     base_url: "https://migri.fi"
-    base_dir: "migri.fi"
+    base_dir: "migri"
     title_selector: "//title"
     content_selectors:
       - '//div[@id="main-content"]'
@@ -24,7 +24,7 @@ sites:
   te_palvelut:
     site_name: "te_services"
     base_url: "https://toimistot.te-palvelut.fi"
-    base_dir: "toimistot.te-palvelut.fi"
+    base_dir: "te_services"
     title_selector: "//title"
     content_selectors:
       - '//div[@class="content-main"]'
