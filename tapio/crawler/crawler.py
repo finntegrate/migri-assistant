@@ -4,28 +4,71 @@ import os
 import signal
 from collections.abc import Generator
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 from scrapy import Spider, signals
 from scrapy.crawler import Crawler
-from scrapy.http import Request, Response
+from scrapy.http.request import Request
+from scrapy.http.response import Response
 from twisted.python.failure import Failure
 
 from tapio.config.settings import DEFAULT_DIRS
 
 
+class UrlMappingData(TypedDict):
+    """Type definition for URL mapping data."""
+
+    url: str
+    timestamp: str
+    content_type: str
+
+
+class CrawlResult(TypedDict):
+    """Type definition for crawl result data."""
+
+    url: str
+    html: str
+    depth: int
+    crawl_timestamp: str
+    content_type: str
+
+
 class BaseCrawler(Spider):
+    """
+    Base crawler spider implementation for web scraping.
+
+    This crawler is responsible for fetching web pages, storing their content,
+    and following links up to a specified depth.
+    """
+
     name = "base_crawler"  # Changed from web_spider
 
     @classmethod
     def from_crawler(cls, crawler: Crawler, *args: Any, **kwargs: Any) -> "BaseCrawler":
-        """Connect the spider_closed signal before initializing the spider"""
+        """
+        Connect signals and initialize the spider.
+
+        Args:
+            crawler: The Scrapy crawler instance.
+            *args: Additional positional arguments for the spider.
+            **kwargs: Additional keyword arguments for the spider.
+
+        Returns:
+            An initialized BaseCrawler instance.
+        """
         spider = super().from_crawler(crawler, *args, **kwargs)
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
 
         # Add a better SIGINT handling without directly using crawler.engine
         def sigint_handler(signum: int, frame: Any) -> None:
+            """
+            Handle SIGINT (Ctrl+C) gracefully.
+
+            Args:
+                signum: Signal number.
+                frame: Current stack frame.
+            """
             logging.info("Interrupted by Ctrl+C. Shutting down gracefully...")
             # Use reactor to stop instead of trying to close the spider directly
             from twisted.internet import reactor
@@ -47,6 +90,18 @@ class BaseCrawler(Spider):
         *args: Any,
         **kwargs: Any,
     ) -> None:
+        """
+        Initialize the crawler with configuration parameters.
+
+        Args:
+            start_urls: URL or list of URLs to start crawling from.
+            allowed_domains: List of domains to restrict crawling to.
+                If None, domains are extracted from start_urls.
+            depth: How many links deep to follow from the starting URLs.
+            output_dir: Directory to save crawled HTML files.
+            *args: Additional positional arguments for the Spider class.
+            **kwargs: Additional keyword arguments for the Spider class.
+        """
         super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         # Convert single URL to list if needed
         if isinstance(start_urls, str):
@@ -74,7 +129,7 @@ class BaseCrawler(Spider):
         self.visited_urls: set[str] = set()
 
         # URL mapping dictionary to store file path -> original URL mappings
-        self.url_mappings: dict[str, dict[str, str]] = {}
+        self.url_mappings: dict[str, UrlMappingData] = {}
 
         # Path for the URL mapping file
         self.mapping_file = os.path.join(self.output_dir, "url_mappings.json")
@@ -97,6 +152,9 @@ class BaseCrawler(Spider):
     def start_requests(self) -> Generator[Request, None, None]:
         """
         Start the crawling process with the provided URLs.
+
+        Yields:
+            Scrapy Request objects for each starting URL.
         """
         for url in self.start_urls:
             yield Request(url=url, callback=self.parse, cb_kwargs={"current_depth": 0})
@@ -105,9 +163,16 @@ class BaseCrawler(Spider):
         self,
         response: Response,
         current_depth: int = 0,
-    ) -> Generator[dict[str, Any] | Request, None, None]:
+    ) -> Generator[CrawlResult | Request, None, None]:
         """
         Parse a web page, yield its content, and follow links up to the specified depth.
+
+        Args:
+            response: The HTTP response from Scrapy.
+            current_depth: Current crawling depth (distance from start URLs).
+
+        Yields:
+            Either a CrawlResult dict with page data or a Request object for the next URLs to crawl.
         """
         url = response.url
         if url in self.visited_urls:
@@ -165,7 +230,16 @@ class BaseCrawler(Spider):
             logging.error(f"Error processing {url}: {str(e)}")
 
     def _save_html_content(self, url: str, html_content: str) -> str:
-        """Save the HTML content to a file"""
+        """
+        Save the HTML content to a file.
+
+        Args:
+            url: The URL of the page.
+            html_content: The HTML content to save.
+
+        Returns:
+            The absolute path to the saved file.
+        """
         # Convert the URL to a file path
         file_path = self._get_file_path_from_url(url)
 
@@ -181,7 +255,15 @@ class BaseCrawler(Spider):
         return file_path
 
     def _get_file_path_from_url(self, url: str) -> str:
-        """Convert a URL to a file path"""
+        """
+        Convert a URL to a file path.
+
+        Args:
+            url: The URL to convert.
+
+        Returns:
+            The absolute path for saving the URL content.
+        """
         parsed_url = urlparse(url)
         domain = parsed_url.netloc
         path = parsed_url.path
@@ -195,7 +277,7 @@ class BaseCrawler(Spider):
 
         # Handle query parameters
         if parsed_url.query:
-            # Santize query string for filename
+            # Sanitize query string for filename
             safe_query = parsed_url.query.replace("=", "_").replace("&", "_")
             # Add query to filename (before extension)
             if path.endswith(".html"):
@@ -209,7 +291,11 @@ class BaseCrawler(Spider):
         return full_path
 
     def _save_url_mappings(self) -> None:
-        """Save the URL mappings to a JSON file"""
+        """
+        Save the URL mappings to a JSON file.
+
+        This allows future reference of which file corresponds to which URL.
+        """
         try:
             with open(self.mapping_file, "w", encoding="utf-8") as f:
                 json.dump(self.url_mappings, f, indent=2, ensure_ascii=False)
@@ -220,7 +306,12 @@ class BaseCrawler(Spider):
             logging.error(f"Error saving URL mappings: {str(e)}")
 
     def spider_closed(self, spider: Spider) -> None:
-        """Called when the spider is closed"""
+        """
+        Called when the spider is closed.
+
+        Args:
+            spider: The spider instance that was closed.
+        """
         logging.info(f"Crawler closed. Visited {len(self.visited_urls)} pages")
 
         # Save the URL mappings one final time when spider closes
@@ -228,12 +319,25 @@ class BaseCrawler(Spider):
         logging.info(f"Saved final URL mappings with {len(self.url_mappings)} entries")
 
     def errback_handler(self, failure: Failure) -> None:
-        """Handle request failures gracefully"""
+        """
+        Handle request failures gracefully.
+
+        Args:
+            failure: The Twisted Failure object containing error details.
+        """
         request = failure.request  # type: ignore[attr-defined]
         logging.warning(f"Error on {request.url}: {failure.value}")
 
     def _extract_links(self, response: Response) -> list[str]:
-        """Extract valid links to follow"""
+        """
+        Extract valid links to follow from a response.
+
+        Args:
+            response: The HTTP response from Scrapy.
+
+        Returns:
+            A list of URLs to follow.
+        """
         # Using a simple approach for now, extracting all links
         links = response.css("a::attr(href)").getall()
         return links
