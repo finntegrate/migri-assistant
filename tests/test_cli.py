@@ -33,7 +33,7 @@ class TestCli:
         assert "vectorize" in result.stdout
         assert "info" in result.stdout
 
-    @patch("migri_assistant.cli.ScrapyRunner")
+    @patch("tapio.cli.ScrapyRunner")
     def test_crawl_command(self, mock_scrapy_runner, runner):
         """Test the crawl command."""
         # Set up mock
@@ -73,7 +73,7 @@ class TestCli:
         assert "Crawling completed" in result.stdout
         assert "Processed 3 pages" in result.stdout
 
-    @patch("migri_assistant.cli.ScrapyRunner")
+    @patch("tapio.cli.ScrapyRunner")
     def test_crawl_command_keyboard_interrupt(self, mock_scrapy_runner, runner):
         """Test handling of keyboard interrupt in crawl command."""
         # Set up mock to raise KeyboardInterrupt
@@ -92,7 +92,7 @@ class TestCli:
         assert "Crawling interrupted by user" in result.stdout
         assert "Partial results have been saved" in result.stdout
 
-    @patch("migri_assistant.cli.ScrapyRunner")
+    @patch("tapio.cli.ScrapyRunner")
     def test_crawl_command_exception(self, mock_scrapy_runner, runner):
         """Test handling of exceptions in crawl command."""
         # Set up mock to raise an exception
@@ -110,7 +110,7 @@ class TestCli:
         assert "Starting web crawler" in result.stdout
         assert "Error during crawling: Test error" in result.stdout
 
-    @patch("migri_assistant.cli.UniversalParser")
+    @patch("tapio.cli.UniversalParser")
     def test_parse_command(self, mock_universal_parser, runner):
         """Test the parse command."""
         # Set up mock
@@ -157,7 +157,7 @@ class TestCli:
         assert "Parsing completed" in result.stdout
         assert "Processed 3 files" in result.stdout
 
-    @patch("migri_assistant.cli.UniversalParser")
+    @patch("tapio.cli.UniversalParser")
     def test_parse_command_with_domain(self, mock_universal_parser, runner):
         """Test the parse command with a domain filter."""
         # Set up mock
@@ -182,7 +182,7 @@ class TestCli:
         assert "Starting HTML parsing" in result.stdout
         assert "Processed 2 files" in result.stdout
 
-    @patch("migri_assistant.cli.UniversalParser")
+    @patch("tapio.cli.UniversalParser")
     def test_parse_command_unsupported_site(self, mock_universal_parser, runner):
         """Test the parse command with an unsupported site."""
         # Mock the list_available_site_configs method to return only valid sites
@@ -199,7 +199,7 @@ class TestCli:
         # Check that list_available_site_configs was called with the correct parameter
         mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
 
-    @patch("migri_assistant.cli.UniversalParser")
+    @patch("tapio.cli.UniversalParser")
     def test_parse_command_exception(self, mock_universal_parser, runner):
         """Test handling of exceptions in parse command."""
         # Set up mock to raise an exception
@@ -221,7 +221,7 @@ class TestCli:
         # Check that list_available_site_configs was called with the correct parameter
         mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
 
-    @patch("migri_assistant.cli.UniversalParser")
+    @patch("tapio.cli.UniversalParser")
     def test_parse_command_custom_config(self, mock_universal_parser, runner):
         """Test the parse command with a custom config path."""
         # Set up mock
@@ -262,7 +262,7 @@ class TestCli:
         # Check that parse_all was called correctly (without domain parameter)
         mock_parser_instance.parse_all.assert_called_once_with()
 
-    @patch("migri_assistant.cli.MarkdownVectorizer")
+    @patch("tapio.cli.MarkdownVectorizer")
     def test_vectorize_command(self, mock_vectorizer, runner):
         """Test the vectorize command."""
         # Set up mock
@@ -310,7 +310,7 @@ class TestCli:
         assert "Vectorization completed" in result.stdout
         assert "Processed 5 files" in result.stdout
 
-    @patch("migri_assistant.cli.MarkdownVectorizer")
+    @patch("tapio.cli.MarkdownVectorizer")
     def test_vectorize_command_with_domain(self, mock_vectorizer, runner):
         """Test the vectorize command with domain filter."""
         # Set up mock
@@ -336,7 +336,7 @@ class TestCli:
         assert "Vectorization completed" in result.stdout
         assert "Processed 3 files" in result.stdout
 
-    @patch("migri_assistant.cli.MarkdownVectorizer")
+    @patch("tapio.cli.MarkdownVectorizer")
     def test_vectorize_command_exception(self, mock_vectorizer, runner):
         """Test handling of exceptions in vectorize command."""
         # Set up mock to raise an exception

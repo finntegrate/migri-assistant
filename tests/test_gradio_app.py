@@ -29,7 +29,7 @@ def mock_rag_service():
 class TestGradioApp(unittest.TestCase):
     """Tests for the Gradio app module."""
 
-    @patch("migri_assistant.gradio_app.RAGService")
+    @patch("tapio.gradio_app.RAGService")
     def test_init_rag_service(self, mock_rag_service_class):
         """Test that the RAG service is initialized correctly."""
         # Setup
@@ -71,7 +71,7 @@ class TestGradioApp(unittest.TestCase):
         assert response == "Test response"
         assert formatted_docs == "Formatted docs"
 
-    @patch("migri_assistant.gradio_app.RAGService")
+    @patch("tapio.gradio_app.RAGService")
     def test_generate_rag_response_with_error(self, mock_rag_service_class):
         """Test error handling in generate_rag_response."""
         # Setup
@@ -86,7 +86,7 @@ class TestGradioApp(unittest.TestCase):
         assert "error" in response.lower()
         assert "Error retrieving" in formatted_docs
 
-    @patch("migri_assistant.gradio_app.MigriAssistantApp")
+    @patch("tapio.gradio_app.MigriAssistantApp")
     def test_main_function(self, mock_app_class):
         """Test the main function that launches the Gradio app."""
         # Setup
@@ -108,7 +108,7 @@ class TestGradioApp(unittest.TestCase):
         mock_app_instance.check_model_availability.assert_called_once()
         mock_app_instance.launch.assert_called_once_with(share=True)
 
-    @patch("migri_assistant.gradio_app.MigriAssistantApp")
+    @patch("tapio.gradio_app.MigriAssistantApp")
     def test_main_function_model_unavailable(self, mock_app_class):
         """Test the main function when the model is unavailable."""
         # Setup

@@ -142,19 +142,19 @@ We aim for high test coverage. When submitting code:
 1. Check your coverage with:
 
 ```bash
-uv run pytest --cov=migri_assistant
+uv run pytest --cov=tapio
 ```
 
 2. Generate HTML coverage reports for visual inspection:
 
 ```bash
-uv run pytest --cov=migri_assistant --cov-report=html
+uv run pytest --cov=tapio --cov-report=html
 ```
 
 3. For specific module coverage:
 
 ```bash
-uv run pytest --cov=migri_assistant.utils tests/utils/
+uv run pytest --cov=tapio.utils tests/utils/
 ```
 
 Aim for at least 80% coverage for new code. The HTML coverage report can be found in the `htmlcov` directory. Open `htmlcov/index.html` in your browser to view it.

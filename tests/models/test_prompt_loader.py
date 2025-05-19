@@ -40,7 +40,7 @@ def test_load_prompt_with_variables():
 
         try:
             with mock.patch(
-                "migri_assistant.prompts.prompt_loader.get_prompt_path",
+                "tapio.prompts.prompt_loader.get_prompt_path",
                 return_value=prompt_path,
             ):
                 result = load_prompt(prompt_name, name="John", score=42)
@@ -60,7 +60,7 @@ def test_load_prompt_without_variables():
 
         try:
             with mock.patch(
-                "migri_assistant.prompts.prompt_loader.get_prompt_path",
+                "tapio.prompts.prompt_loader.get_prompt_path",
                 return_value=prompt_path,
             ):
                 result = load_prompt(prompt_name)

@@ -1,1 +1,1 @@
-"""This file initializes the migri_assistant package."""
+"""This file initializes the tapio package."""

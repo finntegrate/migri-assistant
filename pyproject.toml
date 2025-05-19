@@ -37,7 +37,7 @@ dev = [
 ]
 
 [project.scripts]
-migri-scrape = "migri_assistant.cli:app"
+migri-scrape = "tapio.cli:app"
 
 [tool.pytest]
 testpaths = ["tests"]

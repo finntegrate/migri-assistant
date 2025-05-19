@@ -11,9 +11,9 @@ class TestScrapyRunner(unittest.TestCase):
         self.runner = ScrapyRunner()
         self.runner.logger = MagicMock()  # Mock the logger
 
-    @patch("migri_assistant.crawler.runner.CrawlerRunner")
-    @patch("migri_assistant.crawler.runner.reactor")
-    @patch("migri_assistant.crawler.runner.Settings")
+    @patch("tapio.crawler.runner.CrawlerRunner")
+    @patch("tapio.crawler.runner.reactor")
+    @patch("tapio.crawler.runner.Settings")
     def test_run_basic(self, mock_settings_class, mock_reactor, mock_crawler_runner):
         """Test the basic functionality of the run method."""
         # Mock Settings class
@@ -65,9 +65,9 @@ class TestScrapyRunner(unittest.TestCase):
         # Verify reactor.run was called
         mock_reactor.run.assert_called_once()
 
-    @patch("migri_assistant.crawler.runner.CrawlerRunner")
-    @patch("migri_assistant.crawler.runner.reactor")
-    @patch("migri_assistant.crawler.runner.Settings")
+    @patch("tapio.crawler.runner.CrawlerRunner")
+    @patch("tapio.crawler.runner.reactor")
+    @patch("tapio.crawler.runner.Settings")
     def test_run_with_error(self, mock_settings_class, mock_reactor, mock_crawler_runner):
         """Test error handling in the run method."""
         # Mock Settings class

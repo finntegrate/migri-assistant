@@ -10,8 +10,8 @@ from tapio.vectorstore.chroma_store import ChromaStore
 class TestChromaStore:
     """Tests for the ChromaStore class."""
 
-    @patch("migri_assistant.vectorstore.chroma_store.Chroma")
-    @patch("migri_assistant.vectorstore.chroma_store.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.chroma_store.Chroma")
+    @patch("tapio.vectorstore.chroma_store.HuggingFaceEmbeddings")
     def test_init(self, mock_embeddings, mock_chroma):
         """Test initialization of the ChromaStore."""
         # Set up mocks
@@ -32,8 +32,8 @@ class TestChromaStore:
             persist_directory="test_dir",
         )
 
-    @patch("migri_assistant.vectorstore.chroma_store.Chroma")
-    @patch("migri_assistant.vectorstore.chroma_store.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.chroma_store.Chroma")
+    @patch("tapio.vectorstore.chroma_store.HuggingFaceEmbeddings")
     def test_add_document_with_content(self, mock_embeddings, mock_chroma):
         """Test adding a document with content in metadata."""
         # Set up mocks
@@ -54,8 +54,8 @@ class TestChromaStore:
             ids=["test_doc_1"],
         )
 
-    @patch("migri_assistant.vectorstore.chroma_store.Chroma")
-    @patch("migri_assistant.vectorstore.chroma_store.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.chroma_store.Chroma")
+    @patch("tapio.vectorstore.chroma_store.HuggingFaceEmbeddings")
     def test_add_document_alternate_content_fields(self, mock_embeddings, mock_chroma):
         """Test adding a document with content in alternate metadata fields."""
         # Set up mocks
@@ -78,8 +78,8 @@ class TestChromaStore:
                 ids=[f"test_doc_{field}"],
             )
 
-    @patch("migri_assistant.vectorstore.chroma_store.Chroma")
-    @patch("migri_assistant.vectorstore.chroma_store.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.chroma_store.Chroma")
+    @patch("tapio.vectorstore.chroma_store.HuggingFaceEmbeddings")
     def test_add_document_no_content(self, mock_embeddings, mock_chroma):
         """Test adding a document with no content in metadata."""
         # Set up mocks
@@ -100,8 +100,8 @@ class TestChromaStore:
             ids=["test_doc_empty"],
         )
 
-    @patch("migri_assistant.vectorstore.chroma_store.Chroma")
-    @patch("migri_assistant.vectorstore.chroma_store.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.chroma_store.Chroma")
+    @patch("tapio.vectorstore.chroma_store.HuggingFaceEmbeddings")
     def test_add_document_exception(self, mock_embeddings, mock_chroma):
         """Test handling exceptions when adding a document."""
         # Set up mocks
@@ -117,8 +117,8 @@ class TestChromaStore:
         with pytest.raises(Exception, match="Test error"):
             store.add_document(document_id="test_doc", metadata=metadata)
 
-    @patch("migri_assistant.vectorstore.chroma_store.Chroma")
-    @patch("migri_assistant.vectorstore.chroma_store.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.chroma_store.Chroma")
+    @patch("tapio.vectorstore.chroma_store.HuggingFaceEmbeddings")
     def test_query(self, mock_embeddings, mock_chroma):
         """Test querying the vector store by text."""
         # Set up mocks
@@ -147,8 +147,8 @@ class TestChromaStore:
         assert "citation_url" in mock_doc2.metadata
         assert mock_doc2.metadata["citation_url"] == "https://example.com/doc2"
 
-    @patch("migri_assistant.vectorstore.chroma_store.Chroma")
-    @patch("migri_assistant.vectorstore.chroma_store.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.chroma_store.Chroma")
+    @patch("tapio.vectorstore.chroma_store.HuggingFaceEmbeddings")
     def test_query_exception(self, mock_embeddings, mock_chroma):
         """Test handling exceptions when querying the vector store."""
         # Set up mocks
@@ -165,8 +165,8 @@ class TestChromaStore:
         # Check if empty list was returned
         assert results == []
 
-    @patch("migri_assistant.vectorstore.chroma_store.Chroma")
-    @patch("migri_assistant.vectorstore.chroma_store.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.chroma_store.Chroma")
+    @patch("tapio.vectorstore.chroma_store.HuggingFaceEmbeddings")
     def test_query_with_embedding(self, mock_embeddings, mock_chroma):
         """Test querying the vector store with embedding."""
         # Set up mocks
@@ -198,8 +198,8 @@ class TestChromaStore:
         assert "citation_url" in results["metadatas"][0][0]
         assert results["metadatas"][0][0]["citation_url"] == "https://example.com/doc"
 
-    @patch("migri_assistant.vectorstore.chroma_store.Chroma")
-    @patch("migri_assistant.vectorstore.chroma_store.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.chroma_store.Chroma")
+    @patch("tapio.vectorstore.chroma_store.HuggingFaceEmbeddings")
     def test_get_document(self, mock_embeddings, mock_chroma):
         """Test getting a document by ID."""
         # Set up mocks
@@ -228,8 +228,8 @@ class TestChromaStore:
         assert "citation_url" in result["metadatas"][0]
         assert result["metadatas"][0]["citation_url"] == "https://example.com/doc"
 
-    @patch("migri_assistant.vectorstore.chroma_store.Chroma")
-    @patch("migri_assistant.vectorstore.chroma_store.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.chroma_store.Chroma")
+    @patch("tapio.vectorstore.chroma_store.HuggingFaceEmbeddings")
     def test_enhance_document_with_citation(self, mock_embeddings, mock_chroma):
         """Test enhancing a document with citation information."""
         # Initialize ChromaStore

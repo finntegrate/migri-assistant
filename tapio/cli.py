@@ -59,7 +59,7 @@ def crawl(
     The crawler is interruptible - press Ctrl+C to stop and save current progress.
 
     Example:
-        $ python -m migri_assistant.cli crawl https://migri.fi -d 2 -o migri_content
+        $ python -m tapio.cli crawl https://migri.fi -d 2 -o migri_content
     """
     # Set log level based on verbose flag
     if verbose:
@@ -149,9 +149,9 @@ def parse(
     HTML to Markdown for different website types.
 
     Examples:
-        $ python -m migri_assistant.cli parse -s migri
-        $ python -m migri_assistant.cli parse -s te_palvelut -d te-palvelut.fi
-        $ python -m migri_assistant.cli parse -s kela -c custom_configs.yaml
+        $ python -m tapio.cli parse -s migri
+        $ python -m tapio.cli parse -s te_palvelut -d te-palvelut.fi
+        $ python -m tapio.cli parse -s kela -c custom_configs.yaml
     """
     # Set log level based on verbose flag
     if verbose:
@@ -244,7 +244,7 @@ def vectorize(
     and stores them in ChromaDB with associated metadata from the original source.
 
     Example:
-        $ python -m migri_assistant.cli vectorize -i parsed_content -d chroma_db -c migri_docs
+        $ python -m tapio.cli vectorize -i parsed_content -d chroma_db -c migri_docs
     """
     # Set log level based on verbose flag
     if verbose:
@@ -456,7 +456,7 @@ def list_sites(
                 typer.echo(f"  • {site_name}{description}")
 
         typer.echo("\nUse these sites with the parse command, e.g.:")
-        typer.echo(f"  $ python -m migri_assistant.cli parse -s {available_sites[0]}")
+        typer.echo(f"  $ python -m tapio.cli parse -s {available_sites[0]}")
 
     except Exception as e:
         typer.echo(f"❌ Error listing site configurations: {str(e)}", err=True)

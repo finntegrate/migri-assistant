@@ -90,8 +90,8 @@ class TestTextUtils:
         assert all("metadata" in chunk for chunk in chunks)
         assert all(len(chunk["content"]) <= 500 for chunk in chunks)
 
-    @patch("migri_assistant.utils.text_utils.HTMLHeaderTextSplitter")
-    @patch("migri_assistant.utils.text_utils.re.sub")
+    @patch("tapio.utils.text_utils.HTMLHeaderTextSplitter")
+    @patch("tapio.utils.text_utils.re.sub")
     def test_chunk_html_content_header_splitter(self, mock_re_sub, mock_splitter_class):
         """Test chunking HTML content with header splitter."""
         # Make the plain text extraction return something large enough to trigger chunking
@@ -113,8 +113,8 @@ class TestTextUtils:
         assert chunks[0]["content"] == "Content 1"
         assert chunks[1]["content"] == "Content 2"
 
-    @patch("migri_assistant.utils.text_utils.HTMLSectionSplitter")
-    @patch("migri_assistant.utils.text_utils.re.sub")
+    @patch("tapio.utils.text_utils.HTMLSectionSplitter")
+    @patch("tapio.utils.text_utils.re.sub")
     def test_chunk_html_content_section_splitter(
         self,
         mock_re_sub,
@@ -140,9 +140,9 @@ class TestTextUtils:
         assert chunks[0]["content"] == "Section 1"
         assert chunks[1]["content"] == "Section 2"
 
-    @patch("migri_assistant.utils.text_utils.RecursiveCharacterTextSplitter")
-    @patch("migri_assistant.utils.text_utils.re.sub")
-    @patch("migri_assistant.utils.text_utils._basic_clean_html")
+    @patch("tapio.utils.text_utils.RecursiveCharacterTextSplitter")
+    @patch("tapio.utils.text_utils.re.sub")
+    @patch("tapio.utils.text_utils._basic_clean_html")
     def test_chunk_html_content_semantic_splitter(
         self,
         mock_clean_html,
@@ -174,7 +174,7 @@ class TestTextUtils:
     def test_chunk_html_content_error_handling(self):
         """Test error handling in chunk_html_content."""
         with patch(
-            "migri_assistant.utils.text_utils.RecursiveCharacterTextSplitter",
+            "tapio.utils.text_utils.RecursiveCharacterTextSplitter",
         ) as mock_splitter_class:
             mock_splitter = Mock()
             mock_splitter_class.return_value = mock_splitter
@@ -203,7 +203,7 @@ class TestTextUtils:
     def test_chunk_text_safely_error(self):
         """Test error handling in _chunk_text_safely."""
         with patch(
-            "migri_assistant.utils.text_utils.RecursiveCharacterTextSplitter",
+            "tapio.utils.text_utils.RecursiveCharacterTextSplitter",
         ) as mock_splitter_class:
             mock_splitter = Mock()
             mock_splitter_class.return_value = mock_splitter
@@ -211,7 +211,7 @@ class TestTextUtils:
 
             # Mock the manual chunking as well to ensure we get results
             with patch(
-                "migri_assistant.utils.text_utils.logging.error",
+                "tapio.utils.text_utils.logging.error",
             ) as mock_logging:
                 # Create long enough text to trigger chunking
                 text = "Test content " * 100
