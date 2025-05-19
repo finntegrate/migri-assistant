@@ -1,4 +1,4 @@
-"""RAG (Retrieval Augmented Generation) service for the Migri Assistant."""
+"""RAG (Retrieval Augmented Generation) service for the Tapio Assistant."""
 
 import logging
 from typing import Any

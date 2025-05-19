@@ -22,7 +22,7 @@ logging.getLogger("transformers").setLevel(
 )  # Suppress potential transformers warnings
 logging.getLogger("chromadb").setLevel(logging.WARNING)  # Reduce ChromaDB debug noise
 
-app = typer.Typer(help="Migri Assistant CLI - Web crawling and parsing tool")
+app = typer.Typer(help="Tapio Assistant CLI - Web crawling and parsing tool")
 
 
 @app.command()
@@ -296,7 +296,7 @@ def info(
         help="Show detailed configuration for a specific site",
     ),
 ) -> None:
-    """Show information about the Migri Assistant and available commands."""
+    """Show information about the Tapio Assistant and available commands."""
     if list_site_configs:
         # List all available site configurations
         site_configs = UniversalParser.list_available_site_configs()
@@ -323,14 +323,14 @@ def info(
         return
 
     # Show general information
-    typer.echo("Migri Assistant - Web crawling and parsing tool")
+    typer.echo("Tapio Assistant - Web crawling and parsing tool")
     typer.echo("\nAvailable commands:")
     typer.echo("  crawl      - Crawl websites and save HTML content")
     typer.echo("  parse      - Parse HTML files and convert to structured Markdown")
     typer.echo("  vectorize  - Vectorize parsed Markdown files and store in ChromaDB")
     typer.echo("  gradio_app - Launch the Gradio web interface for querying with the RAG chatbot")
     typer.echo("  info       - Show this information")
-    typer.echo("  dev        - Launch the development server for the Migri Assistant chatbot")
+    typer.echo("  dev        - Launch the development server for the Tapio Assistant chatbot")
     typer.echo("\nRun a command with --help for more information")
 
 
@@ -397,8 +397,8 @@ def gradio_app(
 
 @app.command()
 def dev() -> None:
-    """Launch the development server for the Migri Assistant chatbot."""
-    typer.echo("🚀 Launching Migri Assistant chatbot development server...")
+    """Launch the development server for the Tapio Assistant chatbot."""
+    typer.echo("🚀 Launching Tapio Assistant chatbot development server...")
     # Call the gradio_app function with default settings
     gradio_app(
         collection_name="migri_docs",

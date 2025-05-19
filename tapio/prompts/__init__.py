@@ -1,4 +1,4 @@
-"""Prompt management module for Migri Assistant."""
+"""Prompt management module for Tapio Assistant."""
 
 from tapio.prompts.prompt_loader import get_prompt_path, load_prompt
 

@@ -1,4 +1,4 @@
-"""Gradio interface for the Migri Assistant RAG chatbot."""
+"""Gradio interface for the Tapio Assistant RAG chatbot."""
 
 import logging
 from typing import Any
@@ -19,8 +19,8 @@ DEFAULT_MAX_TOKENS = 1024
 DEFAULT_NUM_RESULTS = 5
 
 
-class MigriAssistantApp:
-    """Class representing the Migri Assistant Gradio application."""
+class TapioAssistantApp:
+    """Class representing the Tapio Assistant Gradio application."""
 
     def __init__(
         self,
@@ -30,7 +30,7 @@ class MigriAssistantApp:
         max_tokens: int = DEFAULT_MAX_TOKENS,
         num_results: int = DEFAULT_NUM_RESULTS,
     ) -> None:
-        """Initialize the Migri Assistant application.
+        """Initialize the Tapio Assistant application.
 
         Args:
             collection_name: Name of the ChromaDB collection
@@ -130,8 +130,8 @@ class MigriAssistantApp:
         Returns:
             Configured Gradio Blocks interface
         """
-        with gr.Blocks(title="Migri Assistant") as demo:
-            gr.Markdown("# Migri Assistant")
+        with gr.Blocks(title="Tapio Assistant") as demo:
+            gr.Markdown("# Tapio Assistant")
             gr.Markdown(
                 "Ask questions about Finnish immigration processes. "
                 "The assistant uses RAG to find and use relevant information.",
@@ -220,7 +220,7 @@ def main(
     num_results: int = DEFAULT_NUM_RESULTS,
     share: bool = False,
 ) -> None:
-    """Run the Migri Assistant app with the specified parameters.
+    """Run the Tapio Assistant app with the specified parameters.
 
     Args:
         collection_name: Name of the ChromaDB collection
@@ -231,7 +231,7 @@ def main(
         share: Whether to create a shareable link for the app
     """
     # Create the app
-    app = MigriAssistantApp(
+    app = TapioAssistantApp(
         collection_name=collection_name,
         persist_directory=persist_directory,
         model_name=model_name,

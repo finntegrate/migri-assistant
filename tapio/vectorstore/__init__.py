@@ -1,1 +1,1 @@
-"""Vector storage utilities for Migri Assistant."""
+"""Vector storage utilities for Tapio Assistant."""

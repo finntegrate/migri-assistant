@@ -1,4 +1,4 @@
-"""Utility modules for Migri Assistant."""
+"""Utility modules for Tapio Assistant."""
 
 # Import and expose functions from embedding_utils
 from tapio.utils.embedding_utils import EmbeddingGenerator

@@ -26,7 +26,7 @@ class TestCli:
         assert result.exit_code == 0
 
         # Check that expected text is in the output
-        assert "Migri Assistant" in result.stdout
+        assert "Tapio Assistant" in result.stdout
         assert "Available commands:" in result.stdout
         assert "crawl" in result.stdout
         assert "parse" in result.stdout

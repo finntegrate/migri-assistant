@@ -1,6 +1,6 @@
-# Contributing to Migri Assistant
+# Contributing to Tapio Assistant
 
-Thank you for considering contributing to Migri Assistant! This document provides guidelines and instructions for contributing to this project.
+Thank you for considering contributing to Tapio Assistant! This document provides guidelines and instructions for contributing to this project.
 
 ## Table of Contents
 - [Technical Architecture](#technical-architecture)
@@ -14,7 +14,7 @@ Thank you for considering contributing to Migri Assistant! This document provide
 
 ## Technical Architecture
 
-The following diagram illustrates the high-level architecture and data flow of the Migri Assistant:
+The following diagram illustrates the high-level architecture and data flow of the Tapio Assistant:
 
 ```mermaid
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#f0f0f0', 'primaryTextColor': '#323232', 'primaryBorderColor': '#606060', 'lineColor': '#404040', 'secondaryColor': '#c0c0c0', 'tertiaryColor': '#e0e0e0' }}}%%
