@@ -1,7 +1,7 @@
 [project]
-name = "migri-assistant"
+name = "tapio"
 version = "0.1.0"
-description = "An assistant for processing Migri website content"
+description = "An assistant for Finnish immigrants"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -37,7 +37,7 @@ dev = [
 ]
 
 [project.scripts]
-migri-scrape = "tapio.cli:app"
+tapio = "tapio.cli:app"
 
 [tool.pytest]
 testpaths = ["tests"]
