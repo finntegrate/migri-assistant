@@ -11,6 +11,7 @@ from tapio.gradio_app import (
     DEFAULT_MAX_TOKENS,
     DEFAULT_MODEL_NAME,
     DEFAULT_NUM_RESULTS,
+    TapioAssistantApp,
     main,
 )
 
