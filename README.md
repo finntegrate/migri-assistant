@@ -1,7 +1,7 @@
-# Migri Assistant
+# Tapio
 
 ## Overview
-Migri Assistant is a tool designed to extract, process, and query information from multiple websites, including Migri.fi (Finnish Immigration Service). It provides end-to-end RAG (Retrieval Augmented Generation) capabilities including web crawling, content parsing, vectorization, and an interactive chatbot interface.
+Tapio is a tool designed to extract, process, and query information from multiple websites, including Migri.fi (Finnish Immigration Service). It provides end-to-end RAG (Retrieval Augmented Generation) capabilities including web crawling, content parsing, vectorization, and an interactive chatbot interface.
 
 ##  Key Demographics
 
