@@ -12,7 +12,7 @@ from scrapy.crawler import Crawler
 from scrapy.http import Request, Response
 from twisted.python.failure import Failure
 
-from migri_assistant.config.settings import DEFAULT_DIRS
+from tapio.config.settings import DEFAULT_DIRS
 
 
 class BaseCrawler(Spider):

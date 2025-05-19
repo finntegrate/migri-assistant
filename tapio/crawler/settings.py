@@ -2,7 +2,7 @@
 Scrapy settings for migri-assistant project.
 """
 
-BOT_NAME = "migri_assistant"
+BOT_NAME = "tapio"
 
 # Crawl responsibly by identifying yourself to websites
 USER_AGENT = "migri-assistant (+http://migri.fi)"

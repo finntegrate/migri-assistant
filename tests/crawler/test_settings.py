@@ -1,11 +1,11 @@
 """Tests for the Scrapy settings module."""
 
-from migri_assistant.crawler import settings
+from tapio.crawler import settings
 
 
 def test_bot_name():
     """Test that BOT_NAME has expected value."""
-    assert settings.BOT_NAME == "migri_assistant"
+    assert settings.BOT_NAME == "tapio"
 
 
 def test_user_agent():

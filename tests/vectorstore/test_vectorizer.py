@@ -2,15 +2,15 @@
 
 from unittest.mock import Mock, call, patch
 
-from migri_assistant.vectorstore.vectorizer import MarkdownVectorizer
+from tapio.vectorstore.vectorizer import MarkdownVectorizer
 
 
 class TestMarkdownVectorizer:
     """Tests for the MarkdownVectorizer class."""
 
-    @patch("migri_assistant.vectorstore.vectorizer.Chroma")
-    @patch("migri_assistant.vectorstore.vectorizer.HuggingFaceEmbeddings")
-    @patch("migri_assistant.vectorstore.vectorizer.MarkdownTextSplitter")
+    @patch("tapio.vectorstore.vectorizer.Chroma")
+    @patch("tapio.vectorstore.vectorizer.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.vectorizer.MarkdownTextSplitter")
     def test_init(self, mock_splitter_class, mock_embeddings_class, mock_chroma):
         """Test initialization of the vectorizer."""
         # Set up mocks
@@ -44,10 +44,10 @@ class TestMarkdownVectorizer:
         assert vectorizer.chunk_size == 500
         assert vectorizer.chunk_overlap == 100
 
-    @patch("migri_assistant.vectorstore.vectorizer.find_markdown_files")
-    @patch("migri_assistant.vectorstore.vectorizer.Chroma")
-    @patch("migri_assistant.vectorstore.vectorizer.HuggingFaceEmbeddings")
-    @patch("migri_assistant.vectorstore.vectorizer.MarkdownTextSplitter")
+    @patch("tapio.vectorstore.vectorizer.find_markdown_files")
+    @patch("tapio.vectorstore.vectorizer.Chroma")
+    @patch("tapio.vectorstore.vectorizer.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.vectorizer.MarkdownTextSplitter")
     def test_process_directory(
         self,
         mock_splitter_class,
@@ -94,11 +94,11 @@ class TestMarkdownVectorizer:
         # Verify correct number of files was returned
         assert processed_count == 3
 
-    @patch("migri_assistant.vectorstore.vectorizer.read_markdown_file")
-    @patch("migri_assistant.vectorstore.vectorizer.Document")
-    @patch("migri_assistant.vectorstore.vectorizer.Chroma")
-    @patch("migri_assistant.vectorstore.vectorizer.HuggingFaceEmbeddings")
-    @patch("migri_assistant.vectorstore.vectorizer.MarkdownTextSplitter")
+    @patch("tapio.vectorstore.vectorizer.read_markdown_file")
+    @patch("tapio.vectorstore.vectorizer.Document")
+    @patch("tapio.vectorstore.vectorizer.Chroma")
+    @patch("tapio.vectorstore.vectorizer.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.vectorizer.MarkdownTextSplitter")
     def test_process_batch(
         self,
         mock_splitter_class,
@@ -203,11 +203,11 @@ class TestMarkdownVectorizer:
         # Verify correct number of chunks was returned
         assert chunk_count == 3
 
-    @patch("migri_assistant.vectorstore.vectorizer.read_markdown_file")
-    @patch("migri_assistant.vectorstore.vectorizer.Document")
-    @patch("migri_assistant.vectorstore.vectorizer.Chroma")
-    @patch("migri_assistant.vectorstore.vectorizer.HuggingFaceEmbeddings")
-    @patch("migri_assistant.vectorstore.vectorizer.MarkdownTextSplitter")
+    @patch("tapio.vectorstore.vectorizer.read_markdown_file")
+    @patch("tapio.vectorstore.vectorizer.Document")
+    @patch("tapio.vectorstore.vectorizer.Chroma")
+    @patch("tapio.vectorstore.vectorizer.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.vectorizer.MarkdownTextSplitter")
     def test_process_file(
         self,
         mock_splitter_class,
@@ -272,8 +272,8 @@ class TestMarkdownVectorizer:
         # Verify correct number of chunks was returned
         assert chunk_count == 2
 
-    @patch("migri_assistant.vectorstore.vectorizer.os.path.basename")
-    @patch("migri_assistant.vectorstore.vectorizer.os.path.splitext")
+    @patch("tapio.vectorstore.vectorizer.os.path.basename")
+    @patch("tapio.vectorstore.vectorizer.os.path.splitext")
     def test_prepare_metadata(self, mock_splitext, mock_basename):
         """Test preparing metadata for a document."""
         # Set up mocks
@@ -314,10 +314,10 @@ class TestMarkdownVectorizer:
         assert enriched["source_url"] == "https://example.com/doc"
         assert enriched["citation_url"] == "https://example.com/doc"
 
-    @patch("migri_assistant.vectorstore.vectorizer.read_markdown_file")
-    @patch("migri_assistant.vectorstore.vectorizer.Chroma")
-    @patch("migri_assistant.vectorstore.vectorizer.HuggingFaceEmbeddings")
-    @patch("migri_assistant.vectorstore.vectorizer.MarkdownTextSplitter")
+    @patch("tapio.vectorstore.vectorizer.read_markdown_file")
+    @patch("tapio.vectorstore.vectorizer.Chroma")
+    @patch("tapio.vectorstore.vectorizer.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.vectorizer.MarkdownTextSplitter")
     def test_process_batch_error_handling(
         self,
         mock_splitter_class,
@@ -348,10 +348,10 @@ class TestMarkdownVectorizer:
         # Verify add_documents was not called
         mock_vector_db.add_documents.assert_not_called()
 
-    @patch("migri_assistant.vectorstore.vectorizer.read_markdown_file")
-    @patch("migri_assistant.vectorstore.vectorizer.Chroma")
-    @patch("migri_assistant.vectorstore.vectorizer.HuggingFaceEmbeddings")
-    @patch("migri_assistant.vectorstore.vectorizer.MarkdownTextSplitter")
+    @patch("tapio.vectorstore.vectorizer.read_markdown_file")
+    @patch("tapio.vectorstore.vectorizer.Chroma")
+    @patch("tapio.vectorstore.vectorizer.HuggingFaceEmbeddings")
+    @patch("tapio.vectorstore.vectorizer.MarkdownTextSplitter")
     def test_process_file_empty_content(
         self,
         mock_splitter_class,

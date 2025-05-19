@@ -1,16 +1,16 @@
-"""Utility modules for Migri Assistant."""
+"""Utility modules for Tapio Assistant."""
 
 # Import and expose functions from embedding_utils
-from migri_assistant.utils.embedding_utils import EmbeddingGenerator
+from tapio.utils.embedding_utils import EmbeddingGenerator
 
 # Import and expose functions from markdown_utils
-from migri_assistant.utils.markdown_utils import (
+from tapio.utils.markdown_utils import (
     find_markdown_files,
     read_markdown_file,
 )
 
 # Import and expose functions from text_utils
-from migri_assistant.utils.text_utils import (
+from tapio.utils.text_utils import (
     chunk_html_content,
     is_pdf_url,
     remove_javascript,

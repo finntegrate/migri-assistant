@@ -43,10 +43,10 @@ jobs:
         run: uv run ruff format .
 
       - name: Run type checking with Mypy
-        run: uv run mypy migri_assistant
+        run: uv run mypy tapio
 
       - name: Test with pytest and coverage
-        run: uv run pytest --cov=migri_assistant --cov-report=xml --cov-report=term
+        run: uv run pytest --cov=tapio --cov-report=xml --cov-report=term
 
       - name: Check coverage threshold
         run: |

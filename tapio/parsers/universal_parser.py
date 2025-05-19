@@ -14,9 +14,9 @@ import html2text
 import yaml
 from lxml import html
 
-from migri_assistant.config.settings import DEFAULT_DIRS
-from migri_assistant.parsers.base_parser import BaseParser
-from migri_assistant.parsers.config_models import (
+from tapio.config.settings import DEFAULT_DIRS
+from tapio.parsers.base_parser import BaseParser
+from tapio.parsers.config_models import (
     ParserConfigRegistry,
     SiteParserConfig,
 )

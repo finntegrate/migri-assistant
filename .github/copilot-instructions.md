@@ -46,19 +46,19 @@ We aim for >= 80% test coverage before merging any pull requests.
 1. Check your coverage with:
 
 ```
-uv run pytest --cov=migri_assistant
+uv run pytest --cov=tapio
 ```
 
 2. Generate HTML coverage reports for visual inspection:
 
 ```
-uv run pytest --cov=migri_assistant --cov-report=html
+uv run pytest --cov=tapio --cov-report=html
 ```
 
 3. For specific module coverage:
 
 ```
-uv run pytest --cov=migri_assistant.utils tests/utils/
+uv run pytest --cov=tapio.utils tests/utils/
 ```
 
 Aim for at least 80% coverage for new code. The HTML coverage report can be found in the `htmlcov` directory.

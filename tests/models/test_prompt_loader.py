@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
-from migri_assistant.prompts.prompt_loader import get_prompt_path, load_prompt
+from tapio.prompts.prompt_loader import get_prompt_path, load_prompt
 
 
 def test_get_prompt_path_existing_md():
@@ -40,7 +40,7 @@ def test_load_prompt_with_variables():
 
         try:
             with mock.patch(
-                "migri_assistant.prompts.prompt_loader.get_prompt_path",
+                "tapio.prompts.prompt_loader.get_prompt_path",
                 return_value=prompt_path,
             ):
                 result = load_prompt(prompt_name, name="John", score=42)
@@ -60,7 +60,7 @@ def test_load_prompt_without_variables():
 
         try:
             with mock.patch(
-                "migri_assistant.prompts.prompt_loader.get_prompt_path",
+                "tapio.prompts.prompt_loader.get_prompt_path",
                 return_value=prompt_path,
             ):
                 result = load_prompt(prompt_name)

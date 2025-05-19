@@ -4,15 +4,15 @@ from unittest import mock
 
 import pytest
 
-from migri_assistant.models.rag_service import RAGService
+from tapio.models.rag_service import RAGService
 
 
 @pytest.fixture
 def rag_service():
     """Create a RAG service with mocked dependencies for testing."""
     # Mock the ChromaStore and LLMService
-    with mock.patch("migri_assistant.models.rag_service.ChromaStore") as mock_chroma:
-        with mock.patch("migri_assistant.models.rag_service.LLMService") as mock_llm:
+    with mock.patch("tapio.models.rag_service.ChromaStore") as mock_chroma:
+        with mock.patch("tapio.models.rag_service.LLMService") as mock_llm:
             # Configure mock instance behavior
             mock_chroma_instance = mock_chroma.return_value
             mock_llm_instance = mock_llm.return_value
@@ -34,7 +34,7 @@ def rag_service():
 def test_rag_service_loads_prompts(rag_service):
     """Test that RAG service correctly loads prompt templates."""
     # Mock the prompt loading functions
-    with mock.patch("migri_assistant.models.rag_service.load_prompt") as mock_load_prompt:
+    with mock.patch("tapio.models.rag_service.load_prompt") as mock_load_prompt:
         # Configure mock return values
         mock_load_prompt.side_effect = [
             "Mocked system prompt",  # For system_prompt

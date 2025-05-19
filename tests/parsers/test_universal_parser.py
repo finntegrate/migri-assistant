@@ -9,12 +9,12 @@ from unittest.mock import MagicMock
 import pytest
 import yaml
 
-from migri_assistant.parsers.config_models import (
+from tapio.parsers.config_models import (
     HtmlToMarkdownConfig,
     ParserConfigRegistry,
     SiteParserConfig,
 )
-from migri_assistant.parsers.universal_parser import UniversalParser
+from tapio.parsers.universal_parser import UniversalParser
 
 
 class TestUniversalParser(unittest.TestCase):

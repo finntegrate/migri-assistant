@@ -3,10 +3,10 @@ from urllib.parse import urlparse
 
 import typer
 
-from migri_assistant.config.settings import DEFAULT_DIRS
-from migri_assistant.crawler.runner import ScrapyRunner
-from migri_assistant.parsers.universal_parser import UniversalParser
-from migri_assistant.vectorstore.vectorizer import MarkdownVectorizer
+from tapio.config.settings import DEFAULT_DIRS
+from tapio.crawler.runner import ScrapyRunner
+from tapio.parsers.universal_parser import UniversalParser
+from tapio.vectorstore.vectorizer import MarkdownVectorizer
 
 # Configure logging
 logging.basicConfig(
@@ -22,7 +22,7 @@ logging.getLogger("transformers").setLevel(
 )  # Suppress potential transformers warnings
 logging.getLogger("chromadb").setLevel(logging.WARNING)  # Reduce ChromaDB debug noise
 
-app = typer.Typer(help="Migri Assistant CLI - Web crawling and parsing tool")
+app = typer.Typer(help="Tapio Assistant CLI - Web crawling and parsing tool")
 
 
 @app.command()
@@ -59,7 +59,7 @@ def crawl(
     The crawler is interruptible - press Ctrl+C to stop and save current progress.
 
     Example:
-        $ python -m migri_assistant.cli crawl https://migri.fi -d 2 -o migri_content
+        $ python -m tapio.cli crawl https://migri.fi -d 2 -o migri_content
     """
     # Set log level based on verbose flag
     if verbose:
@@ -149,9 +149,9 @@ def parse(
     HTML to Markdown for different website types.
 
     Examples:
-        $ python -m migri_assistant.cli parse -s migri
-        $ python -m migri_assistant.cli parse -s te_palvelut -d te-palvelut.fi
-        $ python -m migri_assistant.cli parse -s kela -c custom_configs.yaml
+        $ python -m tapio.cli parse -s migri
+        $ python -m tapio.cli parse -s te_palvelut -d te-palvelut.fi
+        $ python -m tapio.cli parse -s kela -c custom_configs.yaml
     """
     # Set log level based on verbose flag
     if verbose:
@@ -244,7 +244,7 @@ def vectorize(
     and stores them in ChromaDB with associated metadata from the original source.
 
     Example:
-        $ python -m migri_assistant.cli vectorize -i parsed_content -d chroma_db -c migri_docs
+        $ python -m tapio.cli vectorize -i parsed_content -d chroma_db -c migri_docs
     """
     # Set log level based on verbose flag
     if verbose:
@@ -296,7 +296,7 @@ def info(
         help="Show detailed configuration for a specific site",
     ),
 ) -> None:
-    """Show information about the Migri Assistant and available commands."""
+    """Show information about the Tapio Assistant and available commands."""
     if list_site_configs:
         # List all available site configurations
         site_configs = UniversalParser.list_available_site_configs()
@@ -323,14 +323,14 @@ def info(
         return
 
     # Show general information
-    typer.echo("Migri Assistant - Web crawling and parsing tool")
+    typer.echo("Tapio Assistant - Web crawling and parsing tool")
     typer.echo("\nAvailable commands:")
     typer.echo("  crawl      - Crawl websites and save HTML content")
     typer.echo("  parse      - Parse HTML files and convert to structured Markdown")
     typer.echo("  vectorize  - Vectorize parsed Markdown files and store in ChromaDB")
     typer.echo("  gradio_app - Launch the Gradio web interface for querying with the RAG chatbot")
     typer.echo("  info       - Show this information")
-    typer.echo("  dev        - Launch the development server for the Migri Assistant chatbot")
+    typer.echo("  dev        - Launch the development server for the Tapio Assistant chatbot")
     typer.echo("\nRun a command with --help for more information")
 
 
@@ -369,7 +369,7 @@ def gradio_app(
     """Launch the Gradio web interface for RAG-powered chatbot."""
     try:
         # Import the main function from the gradio_app module
-        from migri_assistant.gradio_app import main as launch_gradio
+        from tapio.gradio_app import main as launch_gradio
 
         typer.echo(f"🚀 Starting Gradio app with {model_name} model")
         typer.echo(f"📚 Using ChromaDB collection '{collection_name}' from '{db_dir}'")
@@ -397,8 +397,8 @@ def gradio_app(
 
 @app.command()
 def dev() -> None:
-    """Launch the development server for the Migri Assistant chatbot."""
-    typer.echo("🚀 Launching Migri Assistant chatbot development server...")
+    """Launch the development server for the Tapio Assistant chatbot."""
+    typer.echo("🚀 Launching Tapio Assistant chatbot development server...")
     # Call the gradio_app function with default settings
     gradio_app(
         collection_name="migri_docs",
@@ -456,7 +456,7 @@ def list_sites(
                 typer.echo(f"  • {site_name}{description}")
 
         typer.echo("\nUse these sites with the parse command, e.g.:")
-        typer.echo(f"  $ python -m migri_assistant.cli parse -s {available_sites[0]}")
+        typer.echo(f"  $ python -m tapio.cli parse -s {available_sites[0]}")
 
     except Exception as e:
         typer.echo(f"❌ Error listing site configurations: {str(e)}", err=True)

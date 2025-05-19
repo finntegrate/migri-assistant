@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-from migri_assistant.config.settings import DEFAULT_DIRS
+from tapio.config.settings import DEFAULT_DIRS
 
 
 class BaseParser(ABC):
