@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock, patch
 
-from migri_assistant.utils.embedding_utils import EmbeddingGenerator
+from tapio.utils.embedding_utils import EmbeddingGenerator
 
 
 class TestEmbeddingGenerator:

@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from migri_assistant.gradio_app import (
+from tapio.gradio_app import (
     DEFAULT_CHROMA_DB_PATH,
     DEFAULT_COLLECTION_NAME,
     DEFAULT_MAX_TOKENS,

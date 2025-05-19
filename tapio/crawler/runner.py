@@ -7,9 +7,9 @@ from scrapy.crawler import CrawlerRunner
 from scrapy.settings import Settings
 from twisted.internet import defer, reactor  # type: ignore
 
-from migri_assistant.config.settings import DEFAULT_DIRS
-from migri_assistant.crawler import settings as crawler_settings
-from migri_assistant.crawler.crawler import BaseCrawler
+from tapio.config.settings import DEFAULT_DIRS
+from tapio.crawler import settings as crawler_settings
+from tapio.crawler.crawler import BaseCrawler
 
 
 class ScrapyRunner:

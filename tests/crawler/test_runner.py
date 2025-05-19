@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from migri_assistant.crawler.runner import ScrapyRunner
+from tapio.crawler.runner import ScrapyRunner
 
 
 class TestScrapyRunner(unittest.TestCase):

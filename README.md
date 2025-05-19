@@ -41,29 +41,24 @@ Migri Assistant is a tool designed to extract, process, and query information fr
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/Finntegrate/migri-assistant.git
-cd migri-assistant
+git clone https://github.com/Finntegrate/tapio.git
+cd tapio
 ```
 
 2. Create and activate a virtual environment with uv:
 ```bash
-uv venv
+uv sync
 source .venv/bin/activate  # On Unix/macOS
 # OR
 .\.venv\Scripts\activate   # On Windows
 ```
 
-3. Install dependencies:
-```bash
-uv sync
-```
-
-4. Ensure you have the required Ollama models:
+3. Ensure you have the required Ollama models:
 ```bash
 ollama pull llama3.2
 ```
 
-5. Set up the directory structure for content:
+4. Set up the directory structure for content:
 ```bash
 python setup_dirs.py
 ```
@@ -78,18 +73,18 @@ The tool follows a three-step process to crawl, parse, and vectorize content:
 1. **Crawl** a website to retrieve and save HTML content:
 Migri example:
 ```bash
-uv run -m migri_assistant.cli crawl https://migri.fi/en/home --depth 2 --output-dir content/crawled
+uv run -m tapio.cli crawl https://migri.fi/en/home --depth 2 --output-dir content/crawled
 ```
 
 Kela example:
 ```bash
-uv run -m migri_assistant.cli crawl https://www.kela.fi/main-page --depth 2 --output-dir content/crawled
+uv run -m tapio.cli crawl https://www.kela.fi/main-page --depth 2 --output-dir content/crawled
 ```
 
 1. **Parse** the HTML content into structured Markdown:
 
 ```bash
-uv run -m migri_assistant.cli parse --input-dir content/crawled --output-dir content/parsed --site migri
+uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parsed --site migri
 ```
 
 The `--site` parameter specifies which site configuration to use. The parser will:
@@ -110,29 +105,29 @@ For example, to parse content from different sites:
 
 ```bash
 # Parse the Finnish Immigration Service (Migri) site
-uv run -m migri_assistant.cli parse --input-dir content/crawled --output-dir content/parsed --site migri
+uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parsed --site migri
 
 # Parse the TE Services site
-uv run -m migri_assistant.cli parse --input-dir content/crawled --output-dir content/parsed --site te_palvelut
+uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parsed --site te_palvelut
 
 # Parse the Kela site
-uv run -m migri_assistant.cli parse --input-dir content/crawled --output-dir content/parsed --site kela
+uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parsed --site kela
 ```
 
 Available sites include any defined in the parser configurations (`parser_configs.yaml`). To see all available site configurations:
 
 ```bash
-uv run -m migri_assistant.cli info --list-site-configs
+uv run -m tapio.cli info --list-site-configs
 ```
 
 3. **Vectorize** the parsed Markdown content into ChromaDB for semantic search:
 ```bash
-uv run -m migri_assistant.cli vectorize --input-dir content/parsed --db-dir chroma_db --collection migri_docs
+uv run -m tapio.cli vectorize --input-dir content/parsed --db-dir chroma_db --collection migri_docs
 ```
 
 4. **Launch the RAG Chatbot** to interactively query the content:
 ```bash
-uv run -m migri_assistant.cli gradio-app
+uv run -m tapio.cli gradio-app
 ```
 
 ### RAG Chatbot Options
@@ -141,19 +136,19 @@ The RAG chatbot allows you to query information from your vectorized content usi
 
 ```bash
 # Quick start - launch with development server
-uv run -m migri_assistant.cli dev
+uv run -m tapio.cli dev
 
 # Long form - launch with default settings
-uv run -m migri_assistant.cli gradio-app
+uv run -m tapio.cli gradio-app
 
 # Use a specific Ollama model
-uv run -m migri_assistant.cli gradio-app --model-name llama3.2:latest
+uv run -m tapio.cli gradio-app --model-name llama3.2:latest
 
 # Specify a different ChromaDB collection
-uv run -m migri_assistant.cli gradio-app --collection-name my_collection
+uv run -m tapio.cli gradio-app --collection-name my_collection
 
 # Create a shareable link for the app
-uv run -m migri_assistant.cli gradio-app --share
+uv run -m tapio.cli gradio-app --share
 ```
 
 ### Parameters and Options
@@ -161,7 +156,7 @@ uv run -m migri_assistant.cli gradio-app --share
 For detailed information about available parameters and options for any command:
 
 ```bash
-uv run -m migri_assistant.cli <command> --help
+uv run -m tapio.cli <command> --help
 ```
 
 Available commands:
@@ -175,10 +170,10 @@ To view available site configurations for parsing:
 
 ```bash
 # List all available sites
-uv run -m migri_assistant.cli info --list-site-configs
+uv run -m tapio.cli info --list-site-configs
 
 # Show detailed configuration for a specific site
-uv run -m migri_assistant.cli info --show-site-config migri
+uv run -m tapio.cli info --show-site-config migri
 ```
 
 ## End-to-End Workflow Example: Migri Site
@@ -188,7 +183,7 @@ Here's a complete workflow for crawling, parsing, and querying the Finnish Immig
 ### 1. Crawl the Migri Website
 
 ```bash
-uv run -m migri_assistant.cli crawl https://migri.fi/en/home --depth 2 --output-dir content/crawled
+uv run -m tapio.cli crawl https://migri.fi/en/home --depth 2 --output-dir content/crawled
 ```
 
 This will save HTML files in `content/crawled/migri.fi/` and create a URL mappings file.
@@ -196,7 +191,7 @@ This will save HTML files in `content/crawled/migri.fi/` and create a URL mappin
 ### 2. Parse the Migri Content
 
 ```bash
-uv run -m migri_assistant.cli parse --input-dir content/crawled --output-dir content/parsed --site migri
+uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parsed --site migri
 ```
 
 This will process only files in the `migri.fi` directory using Migri's content selectors.
@@ -205,15 +200,15 @@ This will process only files in the `migri.fi` directory using Migri's content s
 
 ```bash
 # Vectorize the content
-uv run -m migri_assistant.cli vectorize --input-dir content/parsed --collection migri_docs
+uv run -m tapio.cli vectorize --input-dir content/parsed --collection migri_docs
 
 # Launch the chatbot
-uv run -m migri_assistant.cli gradio-app --collection-name migri_docs
+uv run -m tapio.cli gradio-app --collection-name migri_docs
 ```
 
 ## Site Configurations
 
-The parser uses site-specific configurations to extract content correctly from different websites. These configurations are defined in `migri_assistant/config/parser_configs.yaml`.
+The parser uses site-specific configurations to extract content correctly from different websites. These configurations are defined in `tapio/config/parser_configs.yaml`.
 
 ### Configuration Structure
 
@@ -276,15 +271,15 @@ Then use it with:
 
 ```bash
 # Crawl the site
-uv run -m migri_assistant.cli crawl https://example.com --depth 2
+uv run -m tapio.cli crawl https://example.com --depth 2
 
 # Parse using the new configuration
-uv run -m migri_assistant.cli parse --site example
+uv run -m tapio.cli parse --site example
 ```
 
 ## Global Configuration Settings
 
-The application uses a central configuration module (`migri_assistant/config/settings.py`) that defines common settings used across different components:
+The application uses a central configuration module (`tapio/config/settings.py`) that defines common settings used across different components:
 
 ```python
 # Default directory paths

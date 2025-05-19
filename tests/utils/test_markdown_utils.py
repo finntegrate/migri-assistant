@@ -4,8 +4,8 @@ import os
 import tempfile
 from unittest.mock import mock_open, patch
 
-from migri_assistant.config.settings import DEFAULT_DIRS
-from migri_assistant.utils.markdown_utils import find_markdown_files, read_markdown_file
+from tapio.config.settings import DEFAULT_DIRS
+from tapio.utils.markdown_utils import find_markdown_files, read_markdown_file
 
 
 class TestMarkdownUtils:

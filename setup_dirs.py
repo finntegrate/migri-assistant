@@ -9,7 +9,7 @@ import logging
 import os
 from pathlib import Path
 
-from migri_assistant.config.settings import DEFAULT_DIRS
+from tapio.config.settings import DEFAULT_DIRS
 
 # Configure logging
 logging.basicConfig(

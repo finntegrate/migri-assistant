@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock, call, patch
 
-from migri_assistant.vectorstore.vectorizer import MarkdownVectorizer
+from tapio.vectorstore.vectorizer import MarkdownVectorizer
 
 
 class TestMarkdownVectorizer:

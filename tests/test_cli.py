@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from typer.testing import CliRunner
 
-from migri_assistant.cli import app
-from migri_assistant.config.settings import DEFAULT_DIRS
+from tapio.cli import app
+from tapio.config.settings import DEFAULT_DIRS
 
 
 @pytest.fixture

@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from migri_assistant.vectorstore.chroma_store import ChromaStore
+from tapio.vectorstore.chroma_store import ChromaStore
 
 
 class TestChromaStore:

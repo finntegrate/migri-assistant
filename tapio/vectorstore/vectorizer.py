@@ -9,7 +9,7 @@ from langchain_chroma import Chroma  # type: ignore[import-not-found]
 from langchain_huggingface import HuggingFaceEmbeddings  # type: ignore[import-not-found]
 from langchain_text_splitters import MarkdownTextSplitter  # type: ignore[import-not-found]
 
-from migri_assistant.utils.markdown_utils import find_markdown_files, read_markdown_file
+from tapio.utils.markdown_utils import find_markdown_files, read_markdown_file
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
-from migri_assistant.prompts.prompt_loader import get_prompt_path, load_prompt
+from tapio.prompts.prompt_loader import get_prompt_path, load_prompt
 
 
 def test_get_prompt_path_existing_md():

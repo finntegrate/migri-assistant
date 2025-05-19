@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from migri_assistant.parsers.base_parser import BaseParser
+from tapio.parsers.base_parser import BaseParser
 
 
 class MockParser(BaseParser):

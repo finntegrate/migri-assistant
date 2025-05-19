@@ -3,10 +3,10 @@ from urllib.parse import urlparse
 
 import typer
 
-from migri_assistant.config.settings import DEFAULT_DIRS
-from migri_assistant.crawler.runner import ScrapyRunner
-from migri_assistant.parsers.universal_parser import UniversalParser
-from migri_assistant.vectorstore.vectorizer import MarkdownVectorizer
+from tapio.config.settings import DEFAULT_DIRS
+from tapio.crawler.runner import ScrapyRunner
+from tapio.parsers.universal_parser import UniversalParser
+from tapio.vectorstore.vectorizer import MarkdownVectorizer
 
 # Configure logging
 logging.basicConfig(
@@ -369,7 +369,7 @@ def gradio_app(
     """Launch the Gradio web interface for RAG-powered chatbot."""
     try:
         # Import the main function from the gradio_app module
-        from migri_assistant.gradio_app import main as launch_gradio
+        from tapio.gradio_app import main as launch_gradio
 
         typer.echo(f"🚀 Starting Gradio app with {model_name} model")
         typer.echo(f"📚 Using ChromaDB collection '{collection_name}' from '{db_dir}'")

@@ -2,7 +2,7 @@
 
 from unittest.mock import Mock, patch
 
-from migri_assistant.utils.text_utils import (
+from tapio.utils.text_utils import (
     _basic_clean_html,
     _chunk_text_safely,
     chunk_html_content,

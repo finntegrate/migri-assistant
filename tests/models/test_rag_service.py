@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from migri_assistant.models.rag_service import RAGService
+from tapio.models.rag_service import RAGService
 
 
 @pytest.fixture

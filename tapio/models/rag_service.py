@@ -3,9 +3,9 @@
 import logging
 from typing import Any
 
-from migri_assistant.models.llm_service import LLMService
-from migri_assistant.prompts import load_prompt
-from migri_assistant.vectorstore.chroma_store import ChromaStore
+from tapio.models.llm_service import LLMService
+from tapio.prompts import load_prompt
+from tapio.vectorstore.chroma_store import ChromaStore
 
 # Configure logging
 logger = logging.getLogger(__name__)

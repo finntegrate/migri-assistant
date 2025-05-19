@@ -8,7 +8,7 @@ import unittest
 
 import yaml
 
-from migri_assistant.parsers.universal_parser import UniversalParser
+from tapio.parsers.universal_parser import UniversalParser
 
 
 class TestRelativeLinks(unittest.TestCase):

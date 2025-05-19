@@ -1,6 +1,6 @@
 """Tests for the Document model."""
 
-from migri_assistant.models.document import Document
+from tapio.models.document import Document
 
 
 class TestDocument:

@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import MagicMock, mock_open, patch
 
-from migri_assistant.crawler.crawler import BaseCrawler
+from tapio.crawler.crawler import BaseCrawler
 
 
 class TestBaseCrawler(unittest.TestCase):

@@ -5,7 +5,7 @@ import os
 
 import frontmatter  # type: ignore[import-untyped]
 
-from migri_assistant.config.settings import DEFAULT_DIRS
+from tapio.config.settings import DEFAULT_DIRS
 
 logger = logging.getLogger(__name__)
 
