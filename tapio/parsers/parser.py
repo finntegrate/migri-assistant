@@ -348,6 +348,36 @@ class Parser:
 
         return markdown_text
 
+    def _construct_base_url_from_path(self, file_path: str) -> str:
+        """
+        Construct base URL from file path when no URL mapping exists.
+
+        Args:
+            file_path: Path to the HTML file
+
+        Returns:
+            Constructed base URL
+        """
+        try:
+            # Get the path relative to the input_dir/base_dir
+            domain_dir = os.path.join(self.input_dir, self.config.base_dir)
+            rel_path = os.path.relpath(file_path, domain_dir)
+            
+            # Only use relative path if it doesn't start with '..' (outside domain dir)
+            if not rel_path.startswith(".."):
+                rel_path = rel_path.replace("\\", "/")  # Normalize path separators
+                constructed_url = urljoin(self.config.base_url, rel_path)
+                self.logger.info(f"Constructed base URL: {constructed_url}")
+                return constructed_url
+            else:
+                # Fallback to base_url if file is not in domain dir
+                self.logger.info(f"Using base URL fallback: {self.config.base_url}")
+                return self.config.base_url
+        except ValueError:
+            # Fallback to base_url if there's an error
+            self.logger.info(f"Using base URL fallback: {self.config.base_url}")
+            return self.config.base_url
+
     def parse_file(self, html_file: str | Path) -> dict[str, Any] | None:
         """
         Parse a single HTML file from the configured domain.
@@ -364,28 +394,7 @@ class Parser:
         # If no URL mapping found, construct URL from configuration and file path
         if not self.current_base_url:
             file_path_str = str(html_file)
-
-            # Create a relative path from the file path
-            try:
-                # Get the path relative to the input_dir/base_dir
-                domain_dir = os.path.join(self.input_dir, self.config.base_dir)
-                rel_path = os.path.relpath(file_path_str, domain_dir)
-
-                # Only use relative path if it doesn't start with '..' (outside domain dir)
-                if not rel_path.startswith(".."):
-                    rel_path = rel_path.replace("\\", "/")  # Normalize path separators
-                    self.current_base_url = urljoin(self.config.base_url, rel_path)
-                    self.logger.info(
-                        f"Constructed base URL: {self.current_base_url}",
-                    )
-                else:
-                    # Fallback to base_url if file is not in domain dir
-                    self.current_base_url = self.config.base_url
-                    self.logger.info(f"Using base URL fallback: {self.current_base_url}")
-            except ValueError:
-                # Fallback to base_url if there's an error
-                self.current_base_url = self.config.base_url
-                self.logger.info(f"Using base URL fallback: {self.current_base_url}")
+            self.current_base_url = self._construct_base_url_from_path(file_path_str)
 
         # Parse the file
         html_file_path = Path(html_file)
@@ -406,12 +415,9 @@ class Parser:
                     domain = domain_parts[0]
                 else:
                     domain = "unknown"
-                # Store as string for other parts of the code that expect a string
-                rel_path = str(rel_path_obj)
             except ValueError:
                 # If file is not inside input_dir, use the filename
                 rel_path_obj = Path(html_file_path.name)
-                rel_path = str(rel_path_obj)
                 domain = "unknown"
 
             # Generate a filename for the output markdown
