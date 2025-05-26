@@ -91,24 +91,6 @@ class TestSiteParserConfigBaseDir:
         with pytest.raises(ValueError, match=r"Invalid base_url: ''"):
             _ = config.base_dir
 
-    def test_none_base_url(self):
-        """Test base_dir with None-like base_url.
-
-        Since SiteParserConfig.base_url is typed as str and has a default value,
-        we can't directly set it to None. But our implementation handles None
-        values that might occur at runtime, so we test that code path using an empty string.
-        """
-        # We're testing the code path that handles `self.base_url or ""`,
-        # but in a properly-typed way
-        config = SiteParserConfig(
-            site_name="test",
-            base_url="",  # Empty string to simulate None
-            content_selectors=['//div[@id="main"]'],
-        )
-        # Should raise ValueError when accessing base_dir
-        with pytest.raises(ValueError, match=r"Invalid base_url: ''"):
-            _ = config.base_dir
-
     def test_invalid_url_scheme(self):
         """Test base_dir with invalid URL scheme."""
         config = SiteParserConfig(
