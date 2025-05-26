@@ -378,6 +378,28 @@ class Parser:
             self.logger.info(f"Using base URL fallback: {self.config.base_url}")
             return self.config.base_url
 
+    def _extract_domain_from_path(self, file_path: str | Path) -> str:
+        """
+        Extract domain name from a file path.
+
+        Args:
+            file_path: Path to the HTML file
+
+        Returns:
+            Domain name extracted from the file path or "unknown" if not found
+        """
+        try:
+            # Get the path relative to the input directory
+            rel_path = Path(file_path).relative_to(self.input_dir)
+            domain_parts = rel_path.parts
+            if len(domain_parts) > 0:
+                domain = domain_parts[0]
+            else:
+                domain = "unknown"
+            return domain
+        except ValueError:
+            return "unknown"
+
     def parse_file(self, html_file: str | Path) -> dict[str, Any] | None:
         """
         Parse a single HTML file from the configured domain.
@@ -409,16 +431,14 @@ class Parser:
             try:
                 # Convert rel_path from Path to str after getting the relative path
                 rel_path_obj = html_file_path.relative_to(Path(self.input_dir))
-                # Extract the domain from the relative path (first directory)
-                domain_parts = rel_path_obj.parts
-                if len(domain_parts) > 0:
-                    domain = domain_parts[0]
-                else:
-                    domain = "unknown"
+                    # Get the relative path for generating output file path
+                rel_path_obj = rel_path_obj
             except ValueError:
                 # If file is not inside input_dir, use the filename
                 rel_path_obj = Path(html_file_path.name)
-                domain = "unknown"
+            
+            # Extract the domain from the file path
+            domain = self._extract_domain_from_path(html_file_path)
 
             # Generate a filename for the output markdown
             output_filename = self._get_output_filename(html_file_path)
@@ -454,16 +474,8 @@ class Parser:
         Returns:
             Dictionary with metadata
         """
-        # Try to get the domain from the path
-        try:
-            rel_path = Path(file_path).relative_to(self.input_dir)
-            domain_parts = rel_path.parts
-            if len(domain_parts) > 0:
-                domain = domain_parts[0]
-            else:
-                domain = "unknown"
-        except ValueError:
-            domain = "unknown"
+        # Extract domain using the helper method
+        domain = self._extract_domain_from_path(file_path)
 
         # Basic metadata
         metadata = {
