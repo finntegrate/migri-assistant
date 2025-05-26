@@ -110,15 +110,15 @@ class TestCli:
         assert "Starting web crawler" in result.stdout
         assert "Error during crawling: Test error" in result.stdout
 
-    @patch("tapio.cli.UniversalParser")
-    def test_parse_command(self, mock_universal_parser, runner):
+    @patch("tapio.cli.Parser")
+    def test_parse_command(self, mock_parser, runner):
         """Test the parse command."""
         # Set up mock
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.return_value = ["file1", "file2", "file3"]
-        mock_universal_parser.return_value = mock_parser_instance
+        mock_parser.return_value = mock_parser_instance
         # Mock the list_available_site_configs method
-        mock_universal_parser.list_available_site_configs.return_value = ["migri"]
+        mock_parser.list_available_site_configs.return_value = ["migri"]
 
         # Run the command
         result = runner.invoke(
@@ -138,7 +138,7 @@ class TestCli:
         assert result.exit_code == 0
 
         # Check that the parser was initialized correctly
-        mock_universal_parser.assert_called_once_with(
+        mock_parser.assert_called_once_with(
             site="migri",
             input_dir="test_input",
             output_dir="test_output",
@@ -146,7 +146,7 @@ class TestCli:
         )
 
         # Check that list_available_site_configs was called with the correct parameter
-        mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
+        mock_parser.list_available_site_configs.assert_called_once_with(None)
 
         # Check that parse_all was called correctly (without domain parameter)
         mock_parser_instance.parse_all.assert_called_once_with()
@@ -157,14 +157,14 @@ class TestCli:
         assert "Parsing completed" in result.stdout
         assert "Processed 3 files" in result.stdout
 
-    @patch("tapio.cli.UniversalParser")
-    def test_parse_command_with_domain(self, mock_universal_parser, runner):
+    @patch("tapio.cli.Parser")
+    def test_parse_command_with_domain(self, mock_parser, runner):
         """Test the parse command with a domain filter."""
         # Set up mock
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.return_value = ["file1", "file2"]
-        mock_universal_parser.return_value = mock_parser_instance
-        mock_universal_parser.list_available_site_configs.return_value = ["migri"]
+        mock_parser.return_value = mock_parser_instance
+        mock_parser.list_available_site_configs.return_value = ["migri"]
 
         # Run the command with domain filter
         result = runner.invoke(app, ["parse", "--domain", "example.com", "--site", "migri"])
@@ -176,17 +176,17 @@ class TestCli:
         mock_parser_instance.parse_all.assert_called_once_with()
 
         # Check that list_available_site_configs was called with the correct parameter
-        mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
+        mock_parser.list_available_site_configs.assert_called_once_with(None)
 
         # Check expected output in stdout
         assert "Starting HTML parsing" in result.stdout
         assert "Processed 2 files" in result.stdout
 
-    @patch("tapio.cli.UniversalParser")
-    def test_parse_command_unsupported_site(self, mock_universal_parser, runner):
+    @patch("tapio.cli.Parser")
+    def test_parse_command_unsupported_site(self, mock_parser, runner):
         """Test the parse command with an unsupported site."""
         # Mock the list_available_site_configs method to return only valid sites
-        mock_universal_parser.list_available_site_configs.return_value = ["migri", "kela"]
+        mock_parser.list_available_site_configs.return_value = ["migri", "kela"]
         # Run the command with an unsupported site
         result = runner.invoke(app, ["parse", "--site", "unsupported"])
 
@@ -197,16 +197,16 @@ class TestCli:
         assert "Unsupported site: unsupported" in result.stdout
 
         # Check that list_available_site_configs was called with the correct parameter
-        mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
+        mock_parser.list_available_site_configs.assert_called_once_with(None)
 
-    @patch("tapio.cli.UniversalParser")
-    def test_parse_command_exception(self, mock_universal_parser, runner):
+    @patch("tapio.cli.Parser")
+    def test_parse_command_exception(self, mock_parser, runner):
         """Test handling of exceptions in parse command."""
         # Set up mock to raise an exception
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.side_effect = Exception("Test error")
-        mock_universal_parser.return_value = mock_parser_instance
-        mock_universal_parser.list_available_site_configs.return_value = ["migri"]
+        mock_parser.return_value = mock_parser_instance
+        mock_parser.list_available_site_configs.return_value = ["migri"]
 
         # Run the command
         result = runner.invoke(app, ["parse", "--site", "migri"])
@@ -219,17 +219,17 @@ class TestCli:
         assert "Error during parsing: Test error" in result.stdout
 
         # Check that list_available_site_configs was called with the correct parameter
-        mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
+        mock_parser.list_available_site_configs.assert_called_once_with(None)
 
-    @patch("tapio.cli.UniversalParser")
-    def test_parse_command_custom_config(self, mock_universal_parser, runner):
+    @patch("tapio.cli.Parser")
+    def test_parse_command_custom_config(self, mock_parser, runner):
         """Test the parse command with a custom config path."""
         # Set up mock
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.return_value = ["file1", "file2"]
-        mock_universal_parser.return_value = mock_parser_instance
+        mock_parser.return_value = mock_parser_instance
         # Mock the list_available_site_configs method
-        mock_universal_parser.list_available_site_configs.return_value = ["custom_site"]
+        mock_parser.list_available_site_configs.return_value = ["custom_site"]
 
         # Run the command with a custom config
         result = runner.invoke(
@@ -247,12 +247,12 @@ class TestCli:
         assert result.exit_code == 0
 
         # Check that list_available_site_configs was called with the custom config path
-        mock_universal_parser.list_available_site_configs.assert_called_once_with(
+        mock_parser.list_available_site_configs.assert_called_once_with(
             "custom_configs.yaml",
         )
 
         # Check that the parser was initialized correctly with the custom config
-        mock_universal_parser.assert_called_once_with(
+        mock_parser.assert_called_once_with(
             site="custom_site",
             input_dir=DEFAULT_DIRS["CRAWLED_DIR"],
             output_dir=DEFAULT_DIRS["PARSED_DIR"],

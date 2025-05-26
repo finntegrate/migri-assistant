@@ -3,7 +3,7 @@ sites:
   migri:
     site_name: "migri"
     base_url: "https://migri.fi"
-    base_dir: "migri"
+    base_dir: "migri.fi"
     title_selector: "//title"
     content_selectors:
       - '//div[@id="main-content"]'

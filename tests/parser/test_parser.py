@@ -1,4 +1,4 @@
-"""Tests for the UniversalParser class."""
+"""Tests for the Parser class."""
 
 import os
 import shutil
@@ -9,16 +9,16 @@ from unittest.mock import MagicMock
 import pytest
 import yaml
 
-from tapio.parsers.config_models import (
+from tapio.parser import Parser
+from tapio.parser.config_models import (
     HtmlToMarkdownConfig,
     ParserConfigRegistry,
     SiteParserConfig,
 )
-from tapio.parsers.universal_parser import UniversalParser
 
 
-class TestUniversalParser(unittest.TestCase):
-    """Test the Universal Parser functionality."""
+class TestParser(unittest.TestCase):
+    """Test the Parser functionality."""
 
     def setUp(self):
         """Set up test environment."""
@@ -117,7 +117,7 @@ class TestUniversalParser(unittest.TestCase):
             yaml.dump(self.test_config, f)
 
         # Create default parser
-        self.parser = UniversalParser(
+        self.parser = Parser(
             site="example",
             input_dir=self.input_dir,
             output_dir=self.output_dir,
@@ -148,7 +148,7 @@ class TestUniversalParser(unittest.TestCase):
     def test_init_with_invalid_site(self):
         """Test initialization with invalid site."""
         with self.assertRaises(ValueError):
-            UniversalParser(
+            Parser(
                 site="nonexistent",
                 input_dir=self.input_dir,
                 output_dir=self.output_dir,
@@ -193,7 +193,7 @@ class TestUniversalParser(unittest.TestCase):
     def test_parse_html_without_fallback(self):
         """Test behavior when no selectors match and fallback is disabled."""
         # Create parser with no fallback config
-        no_fallback_parser = UniversalParser(
+        no_fallback_parser = Parser(
             site="no_fallback",
             input_dir=self.input_dir,
             output_dir=self.output_dir,
@@ -259,19 +259,21 @@ class TestUniversalParser(unittest.TestCase):
 
     def test_list_available_site_configs(self):
         """Test listing available site configurations."""
-        available_sites = UniversalParser.list_available_site_configs(self.config_path)
+        available_sites = Parser.list_available_site_configs(self.config_path)
         self.assertEqual(len(available_sites), 2)
         self.assertIn("example", available_sites)
         self.assertIn("no_fallback", available_sites)
 
     def test_get_site_config(self):
         """Test getting site configuration."""
-        config = UniversalParser.get_site_config("example", self.config_path)
-        self.assertEqual(config.site_name, "example")
-        self.assertEqual(config.description, "Example Website for Testing")
+        config = Parser.get_site_config("example", self.config_path)
+        self.assertIsNotNone(config)
+        if config:  # Check if config is not None before accessing attributes
+            self.assertEqual(config.site_name, "example")
+            self.assertEqual(config.description, "Example Website for Testing")
 
         # Test getting non-existent site config
-        config = UniversalParser.get_site_config("nonexistent", self.config_path)
+        config = Parser.get_site_config("nonexistent", self.config_path)
         self.assertIsNone(config)
 
     def test_convert_element_link_to_absolute(self):
@@ -284,7 +286,7 @@ class TestUniversalParser(unittest.TestCase):
 
         # Case 1: Relative link that should be converted
         element1 = lxml_html.fromstring('<a href="page.html">Link</a>')
-        result1 = UniversalParser._convert_element_link_to_absolute(
+        result1 = Parser._convert_element_link_to_absolute(
             element1,
             "href",
             base_url,
@@ -295,7 +297,7 @@ class TestUniversalParser(unittest.TestCase):
 
         # Case 2: Relative link with leading slash
         element2 = lxml_html.fromstring('<a href="/another-page.html">Link</a>')
-        result2 = UniversalParser._convert_element_link_to_absolute(
+        result2 = Parser._convert_element_link_to_absolute(
             element2,
             "href",
             base_url,
@@ -306,7 +308,7 @@ class TestUniversalParser(unittest.TestCase):
 
         # Case 3: Absolute link that should not be converted (http://)
         element3 = lxml_html.fromstring('<a href="http://other-domain.com/page">Link</a>')
-        result3 = UniversalParser._convert_element_link_to_absolute(
+        result3 = Parser._convert_element_link_to_absolute(
             element3,
             "href",
             base_url,
@@ -317,7 +319,7 @@ class TestUniversalParser(unittest.TestCase):
 
         # Case 4: Protocol-relative URL that should not be converted (//)
         element4 = lxml_html.fromstring('<a href="//cdn.example.com/script.js">Link</a>')
-        result4 = UniversalParser._convert_element_link_to_absolute(
+        result4 = Parser._convert_element_link_to_absolute(
             element4,
             "href",
             base_url,
@@ -328,7 +330,7 @@ class TestUniversalParser(unittest.TestCase):
 
         # Case 5: Empty link
         element5 = lxml_html.fromstring('<a href="">Link</a>')
-        result5 = UniversalParser._convert_element_link_to_absolute(
+        result5 = Parser._convert_element_link_to_absolute(
             element5,
             "href",
             base_url,
@@ -339,7 +341,7 @@ class TestUniversalParser(unittest.TestCase):
 
         # Case 6: Missing attribute
         element6 = lxml_html.fromstring("<a>Link</a>")
-        result6 = UniversalParser._convert_element_link_to_absolute(
+        result6 = Parser._convert_element_link_to_absolute(
             element6,
             "href",
             base_url,
@@ -410,6 +412,8 @@ class TestSiteParserConfig:
         # Create a test config
         config = SiteParserConfig(
             site_name="test",
+            base_url="https://example.com",
+            base_dir="example",
             content_selectors=['//div[@id="main"]', '//div[@class="content"]', "//article"],
         )
 

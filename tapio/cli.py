@@ -5,7 +5,7 @@ import typer
 
 from tapio.config.settings import DEFAULT_DIRS
 from tapio.crawler.runner import ScrapyRunner
-from tapio.parsers.universal_parser import UniversalParser
+from tapio.parser import Parser
 from tapio.vectorstore.vectorizer import MarkdownVectorizer
 
 # Configure logging
@@ -162,11 +162,11 @@ def parse(
 
     try:
         # Check if the site is supported by listing available configurations
-        available_sites = UniversalParser.list_available_site_configs(config_path)
+        available_sites = Parser.list_available_site_configs(config_path)
 
         if site in available_sites:
             typer.echo(f"🔧 Using configuration for site: {site}")
-            parser = UniversalParser(
+            parser = Parser(
                 site=site,
                 input_dir=input_dir,
                 output_dir=output_dir,
@@ -299,7 +299,7 @@ def info(
     """Show information about the Tapio Assistant and available commands."""
     if list_site_configs:
         # List all available site configurations
-        site_configs = UniversalParser.list_available_site_configs()
+        site_configs = Parser.list_available_site_configs()
         typer.echo("Available site configurations for parsing:")
         for site_name in site_configs:
             typer.echo(f"  - {site_name}")
@@ -307,7 +307,7 @@ def info(
 
     if show_site_config:
         # Show details for a specific site configuration
-        config = UniversalParser.get_site_config(show_site_config)
+        config = Parser.get_site_config(show_site_config)
         if config:
             typer.echo(f"Configuration for site: {show_site_config}")
             typer.echo(f"  Site name: {config.site_name}")
@@ -431,14 +431,14 @@ def list_sites(
     """
     try:
         # Get available site configurations
-        available_sites = UniversalParser.list_available_site_configs(config_path)
+        available_sites = Parser.list_available_site_configs(config_path)
 
         typer.echo("📋 Available Site Configurations:")
 
         for site_name in available_sites:
             if verbose:
                 # Get detailed configuration for the site
-                site_config = UniversalParser.get_site_config(site_name, config_path)
+                site_config = Parser.get_site_config(site_name, config_path)
                 if site_config:
                     typer.echo(f"\n📄 {site_name}:")
                     typer.echo(f"  Site name: {site_config.site_name}")
@@ -449,7 +449,7 @@ def list_sites(
                         typer.echo(f"    - {selector}")
                     typer.echo(f"  Fallback to body: {site_config.fallback_to_body}")
             else:
-                site_config = UniversalParser.get_site_config(site_name, config_path)
+                site_config = Parser.get_site_config(site_name, config_path)
                 description = ""
                 if site_config and site_config.description:
                     description = f" - {site_config.description}"

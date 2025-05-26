@@ -1,22 +1,20 @@
 """
 Parser module for migri-assistant.
 
-This module contains parser classes for extracting structured content
+This module contains the Parser class for extracting structured content
 from HTML files saved by the crawler module.
 """
 
-from tapio.parsers.base_parser import BaseParser
-from tapio.parsers.config_models import (
+from tapio.parser.config_models import (
     HtmlToMarkdownConfig,
     ParserConfigRegistry,
     SiteParserConfig,
 )
-from tapio.parsers.universal_parser import UniversalParser
+from tapio.parser.parser import Parser
 
 __all__ = [
-    "BaseParser",
     "HtmlToMarkdownConfig",
+    "Parser",
     "ParserConfigRegistry",
     "SiteParserConfig",
-    "UniversalParser",
 ]
