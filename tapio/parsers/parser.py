@@ -398,16 +398,20 @@ class Parser:
 
             # Get relative path from input directory for generating output file path
             try:
-                rel_path = html_file_path.relative_to(self.input_dir)
+                # Convert rel_path from Path to str after getting the relative path
+                rel_path_obj = html_file_path.relative_to(Path(self.input_dir))
                 # Extract the domain from the relative path (first directory)
-                domain_parts = rel_path.parts
+                domain_parts = rel_path_obj.parts
                 if len(domain_parts) > 0:
                     domain = domain_parts[0]
                 else:
                     domain = "unknown"
+                # Store as string for other parts of the code that expect a string
+                rel_path = str(rel_path_obj)
             except ValueError:
                 # If file is not inside input_dir, use the filename
-                rel_path = Path(html_file_path.name)
+                rel_path_obj = Path(html_file_path.name)
+                rel_path = str(rel_path_obj)
                 domain = "unknown"
 
             # Generate a filename for the output markdown
