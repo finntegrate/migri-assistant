@@ -50,7 +50,7 @@ class Parser:
         self.site = site
         self.config = self._load_site_config(site, config_path)
         self.current_base_url: str | None = None  # Will store the base URL of the current document
-        
+
         self.input_dir = input_dir
         self.output_dir = os.path.join(output_dir, self.config.site_name or "default")
         self.site_name = self.config.site_name
@@ -99,12 +99,14 @@ class Parser:
             Original URL or None if not found
         """
         file_path_str = str(file_path)
-        
+
         # Try different lookup strategies
-        url = (self._try_exact_match(file_path_str) or 
-               self._try_relative_path_match(file_path_str) or
-               self._try_filename_match(file_path_str))
-               
+        url = (
+            self._try_exact_match(file_path_str)
+            or self._try_relative_path_match(file_path_str)
+            or self._try_filename_match(file_path_str)
+        )
+
         if not url:
             self.logger.debug(f"No URL mapping found for {file_path}")
         return url
@@ -392,20 +394,22 @@ class Parser:
         try:
             domain_dir = os.path.join(self.input_dir, self.config.base_dir)
             rel_path = os.path.relpath(file_path, domain_dir)
-            
+
             if rel_path.startswith(".."):
                 # File is outside domain directory
                 self.logger.info(f"File outside domain dir, using base URL: {self.config.base_url}")
                 return self.config.base_url
-                
+
             # Normalize path and construct URL
             normalized_path = rel_path.replace("\\", "/")
             constructed_url = urljoin(self.config.base_url, normalized_path)
             self.logger.info(f"Constructed base URL: {constructed_url}")
             return constructed_url
-            
+
         except ValueError:
-            self.logger.warning(f"Error constructing URL from path, using base URL: {self.config.base_url}")
+            self.logger.warning(
+                f"Error constructing URL from path, using base URL: {self.config.base_url}",
+            )  # noqa: E501
             return self.config.base_url
 
     def _extract_domain_from_path(self, file_path: str | Path) -> str:
@@ -461,12 +465,12 @@ class Parser:
             try:
                 # Convert rel_path from Path to str after getting the relative path
                 rel_path_obj = html_file_path.relative_to(Path(self.input_dir))
-                    # Get the relative path for generating output file path
+                # Get the relative path for generating output file path
                 rel_path_obj = rel_path_obj
             except ValueError:
                 # If file is not inside input_dir, use the filename
                 rel_path_obj = Path(html_file_path.name)
-            
+
             # Extract the domain from the file path
             domain = self._extract_domain_from_path(html_file_path)
 
