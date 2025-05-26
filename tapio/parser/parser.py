@@ -359,23 +359,22 @@ class Parser:
             Constructed base URL
         """
         try:
-            # Get the path relative to the input_dir/base_dir
             domain_dir = os.path.join(self.input_dir, self.config.base_dir)
             rel_path = os.path.relpath(file_path, domain_dir)
             
-            # Only use relative path if it doesn't start with '..' (outside domain dir)
-            if not rel_path.startswith(".."):
-                rel_path = rel_path.replace("\\", "/")  # Normalize path separators
-                constructed_url = urljoin(self.config.base_url, rel_path)
-                self.logger.info(f"Constructed base URL: {constructed_url}")
-                return constructed_url
-            else:
-                # Fallback to base_url if file is not in domain dir
-                self.logger.info(f"Using base URL fallback: {self.config.base_url}")
+            if rel_path.startswith(".."):
+                # File is outside domain directory
+                self.logger.info(f"File outside domain dir, using base URL: {self.config.base_url}")
                 return self.config.base_url
+                
+            # Normalize path and construct URL
+            normalized_path = rel_path.replace("\\", "/")
+            constructed_url = urljoin(self.config.base_url, normalized_path)
+            self.logger.info(f"Constructed base URL: {constructed_url}")
+            return constructed_url
+            
         except ValueError:
-            # Fallback to base_url if there's an error
-            self.logger.info(f"Using base URL fallback: {self.config.base_url}")
+            self.logger.warning(f"Error constructing URL from path, using base URL: {self.config.base_url}")
             return self.config.base_url
 
     def _extract_domain_from_path(self, file_path: str | Path) -> str:
