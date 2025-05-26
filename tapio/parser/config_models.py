@@ -37,10 +37,6 @@ class SiteParserConfig(BaseModel):
         "https://example.com",
         description="Base URL of the website (e.g., 'https://migri.fi')",
     )
-    base_dir: str = Field(
-        "example.com",
-        description="Base directory name in the crawled content (e.g., 'migri.fi')",
-    )
     title_selector: str = "//title"
     content_selectors: list[str] = Field(
         ...,
@@ -49,6 +45,20 @@ class SiteParserConfig(BaseModel):
     fallback_to_body: bool = True
     description: str | None = None
     markdown_config: HtmlToMarkdownConfig = Field(default_factory=HtmlToMarkdownConfig)
+
+    @property
+    def base_dir(self) -> str:
+        """Derive base directory from base_url.
+
+        Extracts the domain from the base URL to use as the directory name.
+
+        Returns:
+            Domain name without protocol prefix (e.g., 'migri.fi')
+        """
+        from urllib.parse import urlparse
+
+        parsed_url = urlparse(self.base_url)
+        return parsed_url.netloc
 
     def get_content_selector(self, tree: Any) -> Any | None:
         """Find the first matching content element using the configured selectors.
