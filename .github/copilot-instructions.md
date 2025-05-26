@@ -16,13 +16,13 @@ We use Ruff for linting and formatting. Please ensure your code passes all check
 You can run the linter with the following command:
 
 ```
-uv run ruff .
+uv run ruff check .
 ```
 
 You can also run the linter with the `--fix` option to automatically fix some issues:
 
 ```
-uv run ruff . --fix
+uv run ruff check . --fix
 ```
 
 You can also run the linter with the `--check` option to check for issues without fixing them:
