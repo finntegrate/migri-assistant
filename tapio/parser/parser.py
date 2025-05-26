@@ -98,38 +98,69 @@ class Parser:
         Returns:
             Original URL or None if not found
         """
-        # Handle Path objects by converting to string
         file_path_str = str(file_path)
+        
+        # Try different lookup strategies
+        url = (self._try_exact_match(file_path_str) or 
+               self._try_relative_path_match(file_path_str) or
+               self._try_filename_match(file_path_str))
+               
+        if not url:
+            self.logger.debug(f"No URL mapping found for {file_path}")
+        return url
 
-        # Try to find the file in our mappings
+    def _try_exact_match(self, file_path_str: str) -> str | None:
+        """
+        Try exact match in URL mappings.
+
+        Args:
+            file_path_str: String representation of the file path
+
+        Returns:
+            Original URL or None if not found
+        """
         for key, value in self.url_mappings.items():
-            # Check if the path ends with our key
             if file_path_str.endswith(key):
                 return value.get("url")
+        return None
 
-        # Try to infer the key from the file path
+    def _try_relative_path_match(self, file_path_str: str) -> str | None:
+        """
+        Try relative path matching with OS compatibility.
+
+        Args:
+            file_path_str: String representation of the file path
+
+        Returns:
+            Original URL or None if not found
+        """
         try:
-            # Extract relative path from input_dir
-            rel_path = os.path.relpath(file_path, self.input_dir)
+            rel_path = os.path.relpath(file_path_str, self.input_dir)
+            # Check both slash directions
+            for path_variant in [rel_path, rel_path.replace("\\", "/")]:
+                if path_variant in self.url_mappings:
+                    return self.url_mappings[path_variant].get("url")
+        except Exception as e:
+            self.logger.debug(f"Error in relative path matching: {e}")
+        return None
 
-            # Check for both slash directions (OS compatibility)
-            if rel_path in self.url_mappings:
-                return self.url_mappings[rel_path].get("url")
+    def _try_filename_match(self, file_path_str: str) -> str | None:
+        """
+        Try matching by filename only.
 
-            # Try with forward slashes (URL style)
-            rel_path_fwd = rel_path.replace("\\", "/")
-            if rel_path_fwd in self.url_mappings:
-                return self.url_mappings[rel_path_fwd].get("url")
+        Args:
+            file_path_str: String representation of the file path
 
-            # Try with the filename only
-            filename = os.path.basename(file_path)
+        Returns:
+            Original URL or None if not found
+        """
+        try:
+            filename = os.path.basename(file_path_str)
             for key, value in self.url_mappings.items():
                 if key.endswith(filename):
                     return value.get("url")
         except Exception as e:
-            self.logger.debug(f"Error finding URL mapping for {file_path}: {e}")
-
-        self.logger.debug(f"No URL mapping found for {file_path}")
+            self.logger.debug(f"Error in filename matching: {e}")
         return None
 
     def _load_site_config(self, site: str, config_path: str | None = None) -> SiteParserConfig:
