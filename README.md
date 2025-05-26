@@ -219,7 +219,7 @@ sites:
   migri:                                    # Site key used with --site
     site_name: "migri"                      # Name for output directories and logs
     base_url: "https://migri.fi"            # Base URL for converting relative links (optional, default: "https://example.com")
-    base_dir: "migri.fi"                    # Directory name in content/crawled (optional, default: "example.com")
+                                            # The base directory is automatically derived from this URL (e.g., "migri.fi")
     title_selector: "//title"               # XPath selector for page title
     content_selectors:                      # Prioritized list of content selectors
       - '//div[@id="main-content"]'
@@ -245,8 +245,8 @@ The `SiteParserConfig` has the following fields:
   - `content_selectors`: At least one XPath selector to extract content
 
 - Optional fields with defaults:
-  - `base_url`: URL used for converting relative links to absolute URLs (default: "https://example.com")
-  - `base_dir`: Directory name in the crawled content folder (default: "example.com")
+  - `base_url`: URL used for converting relative links to absolute URLs (default: "https://example.com").
+    The base directory is automatically derived from this URL (e.g., "migri.fi" for "https://migri.fi").
   - `title_selector`: XPath selector for page title (default: "//title")
   - `fallback_to_body`: Whether to use the entire body if no content selectors match (default: true)
   - `description`: Description of the site (default: None)
@@ -268,8 +268,7 @@ sites:
   # ... existing site configurations ...
   example:
     site_name: "example"
-    base_url: "https://example.com"
-    base_dir: "example.com"
+    base_url: "https://example.com"  # Base directory will automatically be "example.com"
     title_selector: "//h1"
     content_selectors:
       - '//div[@class="content"]'

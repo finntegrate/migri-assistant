@@ -235,12 +235,6 @@ class Parser:
                 "Must be a valid absolute URL starting with http:// or https://",
             )
 
-        if not config.base_dir:
-            raise ValueError(
-                f"Missing base_dir for site '{site}'. "
-                "This field is required for domain-specific URL handling",
-            )
-
         return config
 
     @staticmethod
