@@ -17,7 +17,7 @@ import yaml
 from lxml import html
 
 from tapio.config.settings import DEFAULT_DIRS
-from tapio.parsers.config_models import (
+from tapio.parser.config_models import (
     ParserConfigRegistry,
     SiteParserConfig,
 )

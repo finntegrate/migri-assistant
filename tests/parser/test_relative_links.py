@@ -8,7 +8,7 @@ import unittest
 
 import yaml
 
-from tapio.parsers import Parser
+from tapio.parser import Parser
 
 
 class TestRelativeLinks(unittest.TestCase):

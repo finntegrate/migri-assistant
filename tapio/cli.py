@@ -5,7 +5,7 @@ import typer
 
 from tapio.config.settings import DEFAULT_DIRS
 from tapio.crawler.runner import ScrapyRunner
-from tapio.parsers import Parser
+from tapio.parser import Parser
 from tapio.vectorstore.vectorizer import MarkdownVectorizer
 
 # Configure logging
