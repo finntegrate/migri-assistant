@@ -1,4 +1,4 @@
-"""Tests for handling relative links in UniversalParser."""
+"""Tests for handling relative links in Parser."""
 
 import json
 import os
@@ -8,7 +8,7 @@ import unittest
 
 import yaml
 
-from tapio.parsers.universal_parser import UniversalParser
+from tapio.parsers import Parser
 
 
 class TestRelativeLinks(unittest.TestCase):
@@ -81,7 +81,7 @@ class TestRelativeLinks(unittest.TestCase):
             yaml.dump(self.test_config, f)
 
         # Create parser
-        self.parser = UniversalParser(
+        self.parser = Parser(
             site="test_site",
             input_dir=self.input_dir,
             output_dir=self.output_dir,
@@ -182,7 +182,7 @@ class TestRelativeLinks(unittest.TestCase):
             yaml.dump(self.test_config, f)
 
         # Create a new parser with the updated config
-        parser = UniversalParser(
+        parser = Parser(
             site="test_site",
             input_dir=self.input_dir,
             output_dir=self.output_dir,

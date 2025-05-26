@@ -110,7 +110,7 @@ class TestCli:
         assert "Starting web crawler" in result.stdout
         assert "Error during crawling: Test error" in result.stdout
 
-    @patch("tapio.cli.UniversalParser")
+    @patch("tapio.cli.Parser")
     def test_parse_command(self, mock_universal_parser, runner):
         """Test the parse command."""
         # Set up mock
@@ -157,7 +157,7 @@ class TestCli:
         assert "Parsing completed" in result.stdout
         assert "Processed 3 files" in result.stdout
 
-    @patch("tapio.cli.UniversalParser")
+    @patch("tapio.cli.Parser")
     def test_parse_command_with_domain(self, mock_universal_parser, runner):
         """Test the parse command with a domain filter."""
         # Set up mock
@@ -182,7 +182,7 @@ class TestCli:
         assert "Starting HTML parsing" in result.stdout
         assert "Processed 2 files" in result.stdout
 
-    @patch("tapio.cli.UniversalParser")
+    @patch("tapio.cli.Parser")
     def test_parse_command_unsupported_site(self, mock_universal_parser, runner):
         """Test the parse command with an unsupported site."""
         # Mock the list_available_site_configs method to return only valid sites
@@ -199,7 +199,7 @@ class TestCli:
         # Check that list_available_site_configs was called with the correct parameter
         mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
 
-    @patch("tapio.cli.UniversalParser")
+    @patch("tapio.cli.Parser")
     def test_parse_command_exception(self, mock_universal_parser, runner):
         """Test handling of exceptions in parse command."""
         # Set up mock to raise an exception
@@ -221,7 +221,7 @@ class TestCli:
         # Check that list_available_site_configs was called with the correct parameter
         mock_universal_parser.list_available_site_configs.assert_called_once_with(None)
 
-    @patch("tapio.cli.UniversalParser")
+    @patch("tapio.cli.Parser")
     def test_parse_command_custom_config(self, mock_universal_parser, runner):
         """Test the parse command with a custom config path."""
         # Set up mock
