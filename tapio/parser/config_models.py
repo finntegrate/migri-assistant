@@ -6,6 +6,7 @@ conversion settings.
 """
 
 from typing import Any
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field
 
@@ -55,10 +56,12 @@ class SiteParserConfig(BaseModel):
         Returns:
             Domain name without protocol prefix (e.g., 'migri.fi')
         """
-        from urllib.parse import urlparse
-
-        parsed_url = urlparse(self.base_url)
-        return parsed_url.netloc
+        parsed = urlparse(self.base_url or "")
+        # Use hostname to strip any port, and ensure a non-empty result
+        host = parsed.hostname
+        if not host:
+            raise ValueError(f"Invalid base_url: {self.base_url!r}")
+        return host
 
     def get_content_selector(self, tree: Any) -> Any | None:
         """Find the first matching content element using the configured selectors.
