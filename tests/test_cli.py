@@ -94,7 +94,9 @@ class TestCli:
 
     @patch("tapio.cli.ScrapyRunner")
     def test_crawl_command_exception(self, mock_scrapy_runner, runner):
-        """Test handling of exceptions in crawl command."""
+        """
+        Tests that the crawl command handles exceptions by exiting with an error code and displaying an error message.
+        """
         # Set up mock to raise an exception
         mock_runner_instance = MagicMock()
         mock_runner_instance.run.side_effect = Exception("Test error")
@@ -112,7 +114,11 @@ class TestCli:
 
     @patch("tapio.cli.Parser")
     def test_parse_command(self, mock_parser, runner):
-        """Test the parse command."""
+        """
+        Tests the 'parse' CLI command for successful execution and correct behavior.
+        
+        Simulates invoking the 'parse' command with specified input and output directories and a site parameter. Verifies that the parser is initialized with the correct arguments, available site configurations are checked, and all files are parsed. Asserts that the command completes successfully and that the output contains expected status messages.
+        """
         # Set up mock
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.return_value = ["file1", "file2", "file3"]
@@ -159,7 +165,11 @@ class TestCli:
 
     @patch("tapio.cli.Parser")
     def test_parse_command_with_domain(self, mock_parser, runner):
-        """Test the parse command with a domain filter."""
+        """
+        Tests the parse CLI command with a domain filter applied.
+        
+        Verifies that the command executes successfully, the parser is called with the correct parameters, and the output reflects the use of a domain filter and the number of processed files.
+        """
         # Set up mock
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.return_value = ["file1", "file2"]
@@ -184,7 +194,11 @@ class TestCli:
 
     @patch("tapio.cli.Parser")
     def test_parse_command_unsupported_site(self, mock_parser, runner):
-        """Test the parse command with an unsupported site."""
+        """
+        Tests that the parse command exits with an error when given an unsupported site.
+        
+        Verifies that the command reports the unsupported site, exits with an error code, and checks that available site configurations are queried.
+        """
         # Mock the list_available_site_configs method to return only valid sites
         mock_parser.list_available_site_configs.return_value = ["migri", "kela"]
         # Run the command with an unsupported site
@@ -201,7 +215,9 @@ class TestCli:
 
     @patch("tapio.cli.Parser")
     def test_parse_command_exception(self, mock_parser, runner):
-        """Test handling of exceptions in parse command."""
+        """
+        Tests that the parse command handles exceptions by exiting with an error code and displaying an appropriate error message.
+        """
         # Set up mock to raise an exception
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.side_effect = Exception("Test error")
@@ -223,7 +239,11 @@ class TestCli:
 
     @patch("tapio.cli.Parser")
     def test_parse_command_custom_config(self, mock_parser, runner):
-        """Test the parse command with a custom config path."""
+        """
+        Tests the parse command using a custom configuration file.
+        
+        Verifies that the command initializes the parser with the specified custom config path, calls the appropriate methods, and completes successfully when parsing with a user-provided site and config.
+        """
         # Set up mock
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.return_value = ["file1", "file2"]

@@ -15,7 +15,9 @@ class TestRelativeLinks(unittest.TestCase):
     """Test the relative link conversion functionality."""
 
     def setUp(self):
-        """Set up test environment."""
+        """
+        Initializes the test environment by creating temporary directories, a sample HTML file with relative and absolute links, a URL mappings file, and a configuration file, then instantiates a Parser for use in test cases.
+        """
         # Create temporary directories for testing
         self.temp_dir = tempfile.mkdtemp()
         self.input_dir = os.path.join(self.temp_dir, "input")
@@ -154,7 +156,11 @@ class TestRelativeLinks(unittest.TestCase):
         self.assertIn(f"https://{self.domain}/page2.html", markdown_content)
 
     def test_domain_specific_url_handling(self):
-        """Test handling of domain-specific URLs."""
+        """
+        Tests that the parser correctly converts relative links to absolute URLs using domain-specific configurations.
+        
+        Creates an HTML file within a domain-specific subdirectory, updates the parser configuration to use a domain-based base URL and directory, and verifies that relative links in the parsed output are converted to absolute URLs based on the specified domain.
+        """
         # Create a file in a domain-specific directory
         domain_file_path = os.path.join(self.domain_dir, "subdir", "domain-specific.html")
         os.makedirs(os.path.dirname(domain_file_path), exist_ok=True)

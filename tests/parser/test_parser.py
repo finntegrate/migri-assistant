@@ -21,7 +21,11 @@ class TestParser(unittest.TestCase):
     """Test the Parser functionality."""
 
     def setUp(self):
-        """Set up test environment."""
+        """
+        Sets up a temporary test environment with sample HTML files and configuration.
+        
+        Creates temporary input, output, and configuration directories, populates them with domain-specific HTML files and a YAML configuration, and initializes a Parser instance for use in tests.
+        """
         # Create temporary directories for testing
         self.temp_dir = tempfile.mkdtemp()
         self.input_dir = os.path.join(self.temp_dir, "input")
@@ -146,7 +150,9 @@ class TestParser(unittest.TestCase):
         self.assertEqual(self.parser.config.description, "Example Website for Testing")
 
     def test_init_with_invalid_site(self):
-        """Test initialization with invalid site."""
+        """
+        Tests that initializing the Parser with a nonexistent site raises a ValueError.
+        """
         with self.assertRaises(ValueError):
             Parser(
                 site="nonexistent",
@@ -191,7 +197,9 @@ class TestParser(unittest.TestCase):
         self.assertIn("This page doesn't have a main-content div", content)
 
     def test_parse_html_without_fallback(self):
-        """Test behavior when no selectors match and fallback is disabled."""
+        """
+        Tests that parsing HTML without a fallback selector returns an empty content string and logs a warning when no selectors match.
+        """
         # Create parser with no fallback config
         no_fallback_parser = Parser(
             site="no_fallback",
@@ -258,14 +266,20 @@ class TestParser(unittest.TestCase):
         self.assertIn("No Main Content", titles)
 
     def test_list_available_site_configs(self):
-        """Test listing available site configurations."""
+        """
+        Tests that the list of available site configurations is correctly retrieved from the configuration directory.
+        """
         available_sites = Parser.list_available_site_configs(self.config_path)
         self.assertEqual(len(available_sites), 2)
         self.assertIn("example", available_sites)
         self.assertIn("no_fallback", available_sites)
 
     def test_get_site_config(self):
-        """Test getting site configuration."""
+        """
+        Tests retrieval of a site-specific parser configuration.
+        
+        Verifies that an existing site configuration is correctly loaded and its attributes match expected values, and that requesting a nonexistent site returns None.
+        """
         config = Parser.get_site_config("example", self.config_path)
         self.assertIsNotNone(config)
         if config:  # Check if config is not None before accessing attributes
@@ -277,7 +291,10 @@ class TestParser(unittest.TestCase):
         self.assertIsNone(config)
 
     def test_convert_element_link_to_absolute(self):
-        """Test converting a single element's link attribute to absolute URL."""
+        """
+        Tests that the _convert_element_link_to_absolute method correctly converts relative links
+        in an element's attribute to absolute URLs, and leaves absolute or protocol-relative links unchanged.
+        """
         from lxml import html as lxml_html
 
         # Setup test cases

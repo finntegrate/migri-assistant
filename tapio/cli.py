@@ -140,18 +140,20 @@ def parse(
     ),
 ) -> None:
     """
-    Parse HTML files previously crawled and convert to structured Markdown.
-
-    This command reads HTML files from the specified input directory, extracts meaningful content
-    based on site-specific configurations, and saves it as Markdown files with YAML frontmatter.
-
-    Configurations define which XPath selectors to use for extracting content and how to convert
-    HTML to Markdown for different website types.
-
-    Examples:
-        $ python -m tapio.cli parse -s migri
-        $ python -m tapio.cli parse -s te_palvelut -d te-palvelut.fi
-        $ python -m tapio.cli parse -s kela -c custom_configs.yaml
+    Parses HTML files from a directory and extracts structured content as Markdown.
+    
+    Reads HTML files from the input directory, applies site-specific parsing configurations to extract relevant content, and saves the results as Markdown files with YAML frontmatter in the output directory. Supports custom parser configurations and optional domain filtering.
+    
+    Args:
+        input_dir: Directory containing HTML files to parse.
+        output_dir: Directory to save parsed Markdown files.
+        domain: Domain to filter files for parsing; parses all domains if not specified.
+        site: Site identifier to select the appropriate parsing configuration.
+        config_path: Optional path to a custom parser configuration file.
+        verbose: Enables verbose output if True.
+    
+    Raises:
+        typer.Exit: If the specified site is not supported or an error occurs during parsing.
     """
     # Set log level based on verbose flag
     if verbose:
@@ -296,7 +298,11 @@ def info(
         help="Show detailed configuration for a specific site",
     ),
 ) -> None:
-    """Show information about the Tapio Assistant and available commands."""
+    """
+    Displays information about the Tapio Assistant CLI and site configurations.
+    
+    Depending on the provided options, this command lists all available site configurations, shows detailed configuration for a specific site, or displays general information about available commands.
+    """
     if list_site_configs:
         # List all available site configurations
         site_configs = Parser.list_available_site_configs()
@@ -424,10 +430,9 @@ def list_sites(
     ),
 ) -> None:
     """
-    List available site configurations for the parser.
-
-    This command lists all the available sites that can be used with the parse command.
-    Use the --verbose flag to see detailed information about each site's configuration.
+    Lists available site configurations for the parser.
+    
+    Displays all site configurations that can be used with the parse command. Use the --verbose flag to show detailed information about each site's configuration.
     """
     try:
         # Get available site configurations
