@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 
 import typer
 
+from tapio.config import ConfigManager
 from tapio.config.settings import DEFAULT_DIRS
 from tapio.crawler.runner import ScrapyRunner
 from tapio.parser import Parser
@@ -27,18 +28,24 @@ app = typer.Typer(help="Tapio Assistant CLI - Web crawling and parsing tool")
 
 @app.command()
 def crawl(
-    url: str = typer.Argument(..., help="The URL to crawl content from"),
+    site: str = typer.Argument(..., help="Site configuration to use for crawling (e.g., 'migri')"),
     depth: int = typer.Option(
         1,
         "--depth",
         "-d",
         help="Maximum link-following depth (1 is just the provided URL)",
     ),
+    config_path: str | None = typer.Option(
+        None,
+        "--config",
+        "-c",
+        help="Path to custom parser configurations file",
+    ),
     allowed_domains: list[str] | None = typer.Option(
         None,
         "--domain",
         "-D",
-        help="Domains to restrict crawling to (defaults to URL's domain)",
+        help="Domains to restrict crawling to (defaults to site's domain)",
     ),
     output_dir: str = typer.Option(
         DEFAULT_DIRS["CRAWLED_DIR"],
@@ -56,21 +63,45 @@ def crawl(
     """
     Crawl a website to a configurable depth and save raw HTML content.
 
+    This command takes a site identifier and uses the corresponding configuration
+    from the site_configs.yaml file to determine the base URL for crawling.
+
     The crawler is interruptible - press Ctrl+C to stop and save current progress.
 
     Example:
-        $ python -m tapio.cli crawl https://migri.fi -d 2 -o migri_content
+        $ python -m tapio.cli crawl migri -d 2 -o migri_content
     """
     # Set log level based on verbose flag
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    # Use ConfigManager for site configuration management
+    try:
+        config_manager = ConfigManager(config_path)
+        available_sites = config_manager.list_available_sites()
+
+        if site not in available_sites:
+            typer.echo(f"❌ Unsupported site: {site}")
+            typer.echo(f"Available sites: {', '.join(available_sites)}")
+            raise typer.Exit(code=1)
+
+        # Get the site configuration
+        site_config = config_manager.get_site_config(site)
+    except ValueError as e:
+        typer.echo(f"❌ Error loading site configuration: {str(e)}")
+        raise typer.Exit(code=1)
+
+    # Get the base URL from the site configuration
+    url = site_config.base_url
+
     # Extract domain from URL if allowed_domains is not provided
     if allowed_domains is None:
-        parsed_url = urlparse(url)
+        # Convert HttpUrl to string for urlparse
+        url_str = str(url)
+        parsed_url = urlparse(url_str)
         allowed_domains = [parsed_url.netloc]
 
-    typer.echo(f"🕸️ Starting web crawler on {url} with depth {depth}")
+    typer.echo(f"🕸️ Starting web crawler for {site} ({url}) with depth {depth}")
     typer.echo(f"💾 Saving HTML content to: {output_dir}")
 
     try:
@@ -81,7 +112,7 @@ def crawl(
 
         # Start crawling
         results = runner.run(
-            start_urls=[url],
+            start_urls=[str(url)],  # Convert HttpUrl to string
             depth=depth,
             allowed_domains=allowed_domains,
             output_dir=output_dir,
@@ -161,8 +192,9 @@ def parse(
     typer.echo(f"📄 Saving parsed content to: {output_dir}")
 
     try:
-        # Check if the site is supported by listing available configurations
-        available_sites = Parser.list_available_site_configs(config_path)
+        # Use ConfigManager for site configuration management
+        config_manager = ConfigManager(config_path)
+        available_sites = config_manager.list_available_sites()
 
         if site in available_sites:
             typer.echo(f"🔧 Using configuration for site: {site}")
@@ -297,9 +329,12 @@ def info(
     ),
 ) -> None:
     """Show information about the Tapio Assistant and available commands."""
+    # Use ConfigManager directly instead of going through Parser
+    config_manager = ConfigManager()
+
     if list_site_configs:
         # List all available site configurations
-        site_configs = Parser.list_available_site_configs()
+        site_configs = config_manager.list_available_sites()
         typer.echo("Available site configurations for parsing:")
         for site_name in site_configs:
             typer.echo(f"  - {site_name}")
@@ -307,8 +342,8 @@ def info(
 
     if show_site_config:
         # Show details for a specific site configuration
-        config = Parser.get_site_config(show_site_config)
-        if config:
+        try:
+            config = config_manager.get_site_config(show_site_config)
             typer.echo(f"Configuration for site: {show_site_config}")
             typer.echo(f"  Site name: {config.site_name}")
             typer.echo(f"  Base URL: {config.base_url}")
@@ -318,7 +353,7 @@ def info(
             for selector in config.content_selectors:
                 typer.echo(f"    - {selector}")
             typer.echo(f"  Fallback to body: {config.fallback_to_body}")
-        else:
+        except ValueError:
             typer.echo(f"Error: Site configuration '{show_site_config}' not found")
         return
 
@@ -430,16 +465,17 @@ def list_sites(
     Use the --verbose flag to see detailed information about each site's configuration.
     """
     try:
-        # Get available site configurations
-        available_sites = Parser.list_available_site_configs(config_path)
+        # Use ConfigManager directly for better configuration handling
+        config_manager = ConfigManager(config_path)
+        available_sites = config_manager.list_available_sites()
 
         typer.echo("📋 Available Site Configurations:")
 
         for site_name in available_sites:
             if verbose:
-                # Get detailed configuration for the site
-                site_config = Parser.get_site_config(site_name, config_path)
-                if site_config:
+                try:
+                    # Get detailed configuration for the site
+                    site_config = config_manager.get_site_config(site_name)
                     typer.echo(f"\n📄 {site_name}:")
                     typer.echo(f"  Site name: {site_config.site_name}")
                     typer.echo(f"  Description: {site_config.description or 'No description'}")
@@ -448,11 +484,13 @@ def list_sites(
                     for selector in site_config.content_selectors:
                         typer.echo(f"    - {selector}")
                     typer.echo(f"  Fallback to body: {site_config.fallback_to_body}")
+                except ValueError:
+                    # Skip sites with invalid configurations
+                    typer.echo(f"\n❌ {site_name}: Invalid configuration")
             else:
-                site_config = Parser.get_site_config(site_name, config_path)
-                description = ""
-                if site_config and site_config.description:
-                    description = f" - {site_config.description}"
+                # Simpler output for non-verbose mode
+                site_descriptions = config_manager.get_site_descriptions()
+                description = f" - {site_descriptions[site_name]}" if site_name in site_descriptions else ""
                 typer.echo(f"  • {site_name}{description}")
 
         typer.echo("\nUse these sites with the parse command, e.g.:")

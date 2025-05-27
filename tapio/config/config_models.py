@@ -8,7 +8,7 @@ conversion settings.
 from typing import Any
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 
 class HtmlToMarkdownConfig(BaseModel):
@@ -34,10 +34,9 @@ class SiteParserConfig(BaseModel):
     """
 
     site_name: str
-    base_url: str = Field(
-        "https://example.com",
-        description="Base URL of the website (e.g., 'https://migri.fi')",
-    )
+    base_url: HttpUrl
+    # Note: In Pydantic v2, default HttpUrl values need to be provided using model_config
+    # or Field validators; using literal default values can cause type errors
     title_selector: str = "//title"
     content_selectors: list[str] = Field(
         ...,
@@ -56,11 +55,12 @@ class SiteParserConfig(BaseModel):
         Returns:
             Domain name without protocol prefix (e.g., 'migri.fi')
         """
-        parsed = urlparse(self.base_url or "")
+        url_str = str(self.base_url)
+        parsed = urlparse(url_str)
         # Use hostname to strip any port, and ensure a non-empty result
         host = parsed.hostname
         if not host:
-            raise ValueError(f"Invalid base_url: {self.base_url!r}")
+            raise ValueError(f"Invalid base_url: {url_str!r}")
         return host
 
     def get_content_selector(self, tree: Any) -> Any | None:

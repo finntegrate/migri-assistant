@@ -16,11 +16,9 @@ import html2text
 import yaml
 from lxml import html
 
+from tapio.config import ConfigManager
+from tapio.config.config_models import SiteParserConfig
 from tapio.config.settings import DEFAULT_DIRS
-from tapio.parser.config_models import (
-    ParserConfigRegistry,
-    SiteParserConfig,
-)
 
 
 class DirectoryScope:
@@ -88,7 +86,11 @@ class Parser:
             config_path: Optional path to custom config file
         """
         self.site = site
-        self.config = self._load_site_config(site, config_path)
+
+        # Use ConfigManager to load site configuration
+        config_manager = ConfigManager(config_path)
+        self.config = config_manager.get_site_config(site)
+
         self.current_base_url: str | None = None  # Will store the base URL of the current document
 
         self.input_dir = input_dir
@@ -205,60 +207,8 @@ class Parser:
             self.logger.debug(f"Error in filename matching: {e}")
         return None
 
-    def _load_site_config(self, site: str, config_path: str | None = None) -> SiteParserConfig:
-        """
-        Load site-specific configuration and validate required fields.
-
-        Args:
-            site: Site to load config for
-            config_path: Optional path to custom config file
-
-        Returns:
-            SiteParserConfig for the specified site
-
-        Raises:
-            ValueError: If the site doesn't exist or configuration is invalid
-        """
-        # Load default or custom configs
-        config_registry = self._load_config_registry(config_path)
-
-        # Check if the site exists in our registry
-        if site not in config_registry.sites:
-            raise ValueError(f"No configuration found for site: {site}")
-
-        config = config_registry.sites[site]
-
-        # Validate required fields
-        if not config.base_url or not config.base_url.startswith(("http://", "https://")):
-            raise ValueError(
-                f"Invalid base_url '{config.base_url}' for site '{site}'. "
-                "Must be a valid absolute URL starting with http:// or https://",
-            )
-
-        return config
-
-    @staticmethod
-    def _load_config_registry(config_path: str | None = None) -> ParserConfigRegistry:
-        """
-        Load the configuration registry from file.
-
-        Args:
-            config_path: Optional path to custom config file
-
-        Returns:
-            ParserConfigRegistry containing all site configurations
-        """
-        # Default config path in the package
-        if not config_path:
-            config_path = os.path.join(os.path.dirname(__file__), "../config/parser_configs.yaml")
-
-        try:
-            with open(config_path) as f:
-                config_data = yaml.safe_load(f)
-                return ParserConfigRegistry.model_validate(config_data)
-        except Exception as e:
-            logging.error(f"Error loading parser config: {str(e)}")
-            raise
+    # The _load_site_config and _load_config_registry methods have been replaced
+    # by using the ConfigManager from tapio.config
 
     def _parse_html(self, html_content: str) -> tuple[str, str]:
         """
@@ -293,11 +243,7 @@ class Parser:
             elif self.config.fallback_to_body:
                 # If no content section found and fallback is enabled, use the body
                 body = tree.xpath("//body")
-                content_html = (
-                    html.tostring(body[0], encoding="unicode", pretty_print=True)
-                    if body
-                    else html_content
-                )
+                content_html = html.tostring(body[0], encoding="unicode", pretty_print=True) if body else html_content
                 self.logger.warning(
                     "Could not find specific content section, using body content",
                 )
@@ -438,11 +384,13 @@ class Parser:
             if rel_path.startswith(".."):
                 # File is outside domain directory
                 self.logger.info(f"File outside domain dir, using base URL: {self.config.base_url}")
-                return self.config.base_url
+                return str(self.config.base_url)
 
             # Normalize path and construct URL
             normalized_path = rel_path.replace("\\", "/")
-            constructed_url = urljoin(self.config.base_url, normalized_path)
+            # Convert HttpUrl to string for urljoin
+            base_url_str = str(self.config.base_url)
+            constructed_url = urljoin(base_url_str, normalized_path)
             self.logger.info(f"Constructed base URL: {constructed_url}")
             return constructed_url
 
@@ -450,7 +398,7 @@ class Parser:
             self.logger.warning(
                 f"Error constructing URL from path, using base URL: {self.config.base_url}",
             )  # noqa: E501
-            return self.config.base_url
+            return str(self.config.base_url)
 
     def _extract_domain_from_path(self, file_path: str | Path, input_dir: str | None = None) -> str:
         """
@@ -814,8 +762,8 @@ class Parser:
         Returns:
             List of available site configuration keys
         """
-        config_registry = cls._load_config_registry(config_path)
-        return list(config_registry.sites.keys())
+        config_manager = ConfigManager(config_path)
+        return config_manager.list_available_sites()
 
     @classmethod
     def get_site_config(
@@ -833,5 +781,9 @@ class Parser:
         Returns:
             SiteParserConfig for the specified site, or None if not found
         """
-        config_registry = cls._load_config_registry(config_path)
-        return config_registry.sites.get(site)
+        try:
+            config_manager = ConfigManager(config_path)
+            return config_manager.get_site_config(site)
+        except ValueError:
+            # Return None if site doesn't exist, to maintain backward compatibility
+            return None

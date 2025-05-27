@@ -1,11 +1,11 @@
 """
-Parser module for migri-assistant.
+Parser module for tapio.
 
 This module contains the Parser class for extracting structured content
 from HTML files saved by the crawler module.
 """
 
-from tapio.parser.config_models import (
+from tapio.config.config_models import (
     HtmlToMarkdownConfig,
     ParserConfigRegistry,
     SiteParserConfig,
