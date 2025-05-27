@@ -1,8 +1,7 @@
 """Configuration manager for the Tapio application.
 
-This module handles loading, validating, and accessing configurations
-from YAML files, providing a centralized interface for configuration
-data throughout the application.
+This module handles loading and accessing configurations
+from YAML files, providing a centralized interface for configuration data throughout the application.
 """
 
 import logging
