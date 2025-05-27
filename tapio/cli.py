@@ -210,18 +210,6 @@ def parse(
 
 @app.command()
 def vectorize(
-    input_dir: str = typer.Option(
-        DEFAULT_DIRS["PARSED_DIR"],
-        "--input-dir",
-        "-i",
-        help="Directory containing parsed Markdown files to vectorize",
-    ),
-    db_dir: str = typer.Option(
-        DEFAULT_DIRS["CHROMA_DIR"],
-        "--db-dir",
-        "-d",
-        help="Directory to store the ChromaDB database",
-    ),
     collection_name: str = typer.Option(
         "migri_docs",
         "--collection",
@@ -260,11 +248,14 @@ def vectorize(
     and stores them in ChromaDB with associated metadata from the original source.
 
     Example:
-        $ python -m tapio.cli vectorize -i parsed_content -d chroma_db -c migri_docs
+        $ python -m tapio.cli vectorize --collection migri_docs
     """
     # Set log level based on verbose flag
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+
+    input_dir = DEFAULT_DIRS["PARSED_DIR"]
+    db_dir = DEFAULT_DIRS["CHROMA_DIR"]
 
     typer.echo(f"🧠 Starting vectorization of parsed content from {input_dir}")
     typer.echo(f"💾 Vector database will be stored in: {db_dir}")

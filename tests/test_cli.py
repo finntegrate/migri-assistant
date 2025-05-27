@@ -347,10 +347,6 @@ class TestCli:
             app,
             [
                 "vectorize",
-                "--input-dir",
-                "test_input",
-                "--db-dir",
-                "test_db",
                 "--collection",
                 "test_collection",
             ],
@@ -362,7 +358,7 @@ class TestCli:
         # Check that the vectorizer was initialized correctly
         mock_vectorizer.assert_called_once_with(
             collection_name="test_collection",
-            persist_directory="test_db",
+            persist_directory=DEFAULT_DIRS["CHROMA_DIR"],
             embedding_model_name="all-MiniLM-L6-v2",
             chunk_size=1000,
             chunk_overlap=200,
@@ -370,14 +366,14 @@ class TestCli:
 
         # Check that process_directory was called correctly
         mock_vectorizer_instance.process_directory.assert_called_once_with(
-            input_dir="test_input",
+            input_dir=DEFAULT_DIRS["PARSED_DIR"],
             domain_filter=None,
             batch_size=20,
         )
 
         # Check expected output in stdout
         assert "Starting vectorization" in result.stdout
-        assert "Vector database will be stored in: test_db" in result.stdout
+        assert f"Vector database will be stored in: {DEFAULT_DIRS['CHROMA_DIR']}" in result.stdout
         assert "Using embedding model: all-MiniLM-L6-v2" in result.stdout
         assert "Vectorization completed" in result.stdout
         assert "Processed 5 files" in result.stdout
