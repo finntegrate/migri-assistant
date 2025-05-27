@@ -58,8 +58,6 @@ class TestCli:
                 "migri",
                 "--depth",
                 "2",
-                "--output-dir",
-                "test_output",
             ],
         )
 
@@ -80,7 +78,7 @@ class TestCli:
             start_urls=["https://example.com"],  # URL from site config
             depth=2,
             allowed_domains=["example.com"],  # Domain extracted from URL
-            output_dir="test_output",
+            output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
         )
 
         # Check expected output in stdout

@@ -47,12 +47,6 @@ def crawl(
         "-D",
         help="Domains to restrict crawling to (defaults to site's domain)",
     ),
-    output_dir: str = typer.Option(
-        DEFAULT_DIRS["CRAWLED_DIR"],
-        "--output-dir",
-        "-o",
-        help="Directory to save crawled HTML files",
-    ),
     verbose: bool = typer.Option(
         False,
         "--verbose",
@@ -69,7 +63,7 @@ def crawl(
     The crawler is interruptible - press Ctrl+C to stop and save current progress.
 
     Example:
-        $ python -m tapio.cli crawl migri -d 2 -o migri_content
+        $ python -m tapio.cli crawl migri -d 2
     """
     # Set log level based on verbose flag
     if verbose:
@@ -102,7 +96,7 @@ def crawl(
         allowed_domains = [parsed_url.netloc]
 
     typer.echo(f"🕸️ Starting web crawler for {site} ({url}) with depth {depth}")
-    typer.echo(f"💾 Saving HTML content to: {output_dir}")
+    typer.echo(f"💾 Saving HTML content to: {DEFAULT_DIRS['CRAWLED_DIR']}")
 
     try:
         # Initialize crawler runner
@@ -115,17 +109,17 @@ def crawl(
             start_urls=[str(url)],  # Convert HttpUrl to string
             depth=depth,
             allowed_domains=allowed_domains,
-            output_dir=output_dir,
+            output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
         )
 
         # Output information
         typer.echo(f"✅ Crawling completed! Processed {len(results)} pages.")
-        typer.echo(f"💾 Content saved as HTML files in {output_dir}")
+        typer.echo(f"💾 Content saved as HTML files in {DEFAULT_DIRS['CRAWLED_DIR']}")
 
     except KeyboardInterrupt:
         typer.echo("\n🛑 Crawling interrupted by user")
         typer.echo("✅ Partial results have been saved")
-        typer.echo(f"💾 Crawled content saved to {output_dir}")
+        typer.echo(f"💾 Crawled content saved to {DEFAULT_DIRS['CRAWLED_DIR']}")
     except Exception as e:
         typer.echo(f"❌ Error during crawling: {str(e)}", err=True)
         raise typer.Exit(code=1)
