@@ -3,14 +3,20 @@
 Thank you for considering contributing to Tapio Assistant! This document provides guidelines and instructions for contributing to this project.
 
 ## Table of Contents
-- [Technical Architecture](#technical-architecture)
-- [Development Environment Setup](#development-environment-setup)
-- [Package Management](#package-management)
-- [Code Quality](#code-quality)
-- [Testing Guidelines](#testing-guidelines)
-- [Project Structure](#project-structure)
-- [Ollama for LLM Inference](#ollama-for-llm-inference)
-- [Pull Request Process](#pull-request-process)
+- [Contributing to Tapio Assistant](#contributing-to-tapio-assistant)
+  - [Table of Contents](#table-of-contents)
+  - [Technical Architecture](#technical-architecture)
+  - [Development Environment Setup](#development-environment-setup)
+  - [Package Management](#package-management)
+  - [Code Quality](#code-quality)
+    - [Ruff](#ruff)
+  - [Testing Guidelines](#testing-guidelines)
+    - [Running Tests](#running-tests)
+    - [Code Coverage](#code-coverage)
+  - [Project Structure](#project-structure)
+  - [Configuration System](#configuration-system)
+  - [Ollama for LLM Inference](#ollama-for-llm-inference)
+  - [Pull Request Process](#pull-request-process)
 
 ## Technical Architecture
 
@@ -110,20 +116,15 @@ We use [Ruff](https://docs.astral.sh/ruff/) for linting and formatting. Please e
 You can run the linter with the following command:
 
 ```bash
-uv run ruff .
+uv run ruff check .
 ```
 
 You can also run the linter with the `--fix` option to automatically fix some issues:
 
 ```bash
-uv run ruff . --fix
+uv run ruff check . --fix
 ```
 
-Or check for issues without fixing them:
-
-```bash
-uv run ruff . --check
-```
 
 ## Testing Guidelines
 
