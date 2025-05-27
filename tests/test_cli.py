@@ -419,3 +419,154 @@ class TestCli:
         # Check expected output in stdout
         assert "Starting vectorization" in result.stdout
         assert "Error during vectorization: Test error" in result.stdout
+
+    @patch("tapio.gradio_app.main")
+    def test_gradio_app_command(self, mock_launch_gradio, runner):
+        """Test the gradio-app command."""
+        # Run the command
+        result = runner.invoke(app, ["gradio-app"])
+
+        # Check that the command ran successfully
+        assert result.exit_code == 0
+
+        # Check that launch_gradio was called correctly
+        mock_launch_gradio.assert_called_once_with(
+            collection_name=DEFAULT_CHROMA_COLLECTION,
+            persist_directory=DEFAULT_DIRS["CHROMA_DIR"],
+            model_name="llama3.2",
+            max_tokens=1024,
+            share=False,
+        )
+
+    @patch("tapio.gradio_app.main")
+    def test_gradio_app_command_with_options(self, mock_launch_gradio, runner):
+        """Test the gradio-app command with custom options."""
+        # Run the command with options
+        result = runner.invoke(
+            app,
+            [
+                "gradio-app",
+                "--model-name",
+                "llama3.2:latest",
+                "--max-tokens",
+                "2048",
+                "--share",
+            ],
+        )
+
+        # Check that the command ran successfully
+        assert result.exit_code == 0
+
+        # Check that launch_gradio was called correctly with the custom options
+        mock_launch_gradio.assert_called_once_with(
+            collection_name=DEFAULT_CHROMA_COLLECTION,
+            persist_directory=DEFAULT_DIRS["CHROMA_DIR"],
+            model_name="llama3.2:latest",
+            max_tokens=2048,
+            share=True,
+        )
+
+    @patch("tapio.cli.gradio_app")
+    def test_dev_command(self, mock_gradio_app, runner):
+        """Test the dev command."""
+        # Run the command
+        result = runner.invoke(app, ["dev"])
+
+        # Check that the command ran successfully
+        assert result.exit_code == 0
+
+        # Check that gradio_app was called correctly
+        mock_gradio_app.assert_called_once_with(
+            model_name="llama3.2",
+            share=False,
+        )
+
+        # Check expected output in stdout
+        assert "Launching Tapio Assistant chatbot development server" in result.stdout
+
+    @patch("tapio.cli.ConfigManager")
+    def test_list_sites_command(self, mock_config_manager, runner):
+        """Test the list-sites command."""
+        # Set up mock config manager
+        mock_config_instance = MagicMock()
+        mock_config_instance.list_available_sites.return_value = ["migri", "te_palvelut", "kela"]
+        mock_config_instance.get_site_descriptions.return_value = {
+            "migri": "Finnish Immigration Service",
+            "te_palvelut": "Employment Services",
+            "kela": "Social Insurance Institution",
+        }
+        mock_config_manager.return_value = mock_config_instance
+
+        # Run the command
+        result = runner.invoke(app, ["list-sites"])
+
+        # Check that the command ran successfully
+        assert result.exit_code == 0
+
+        # Check that list_available_sites was called
+        mock_config_instance.list_available_sites.assert_called_once()
+
+        # Check that get_site_descriptions was called (may be called multiple times)
+        assert mock_config_instance.get_site_descriptions.called
+
+        # Check expected output in stdout
+        assert "Available Site Configurations:" in result.stdout
+        assert "migri" in result.stdout
+        assert "te_palvelut" in result.stdout
+        assert "kela" in result.stdout
+        assert "Finnish Immigration Service" in result.stdout
+
+    @patch("tapio.cli.ConfigManager")
+    def test_list_sites_command_verbose(self, mock_config_manager, runner):
+        """Test the list-sites command with verbose flag."""
+        # Set up mock config manager
+        mock_config_instance = MagicMock()
+        mock_config_instance.list_available_sites.return_value = ["migri"]
+
+        # Mock site config
+        mock_site_config = MagicMock()
+        mock_site_config.site_name = "migri"
+        mock_site_config.description = "Finnish Immigration Service"
+        mock_site_config.title_selector = "h1"
+        mock_site_config.content_selectors = ["main", "article"]
+        mock_site_config.fallback_to_body = True
+
+        mock_config_instance.get_site_config.return_value = mock_site_config
+        mock_config_manager.return_value = mock_config_instance
+
+        # Run the command with verbose flag
+        result = runner.invoke(app, ["list-sites", "--verbose"])
+
+        # Check that the command ran successfully
+        assert result.exit_code == 0
+
+        # Check that list_available_sites was called
+        mock_config_instance.list_available_sites.assert_called_once()
+
+        # Check that get_site_config was called with the right site
+        mock_config_instance.get_site_config.assert_called_with("migri")
+
+        # Check expected output in stdout
+        assert "Available Site Configurations:" in result.stdout
+        assert "Site name: migri" in result.stdout
+        assert "Description: Finnish Immigration Service" in result.stdout
+        assert "Title selector: h1" in result.stdout
+        assert "Content selectors:" in result.stdout
+        assert "Fallback to body: True" in result.stdout
+
+    @patch("tapio.cli.ConfigManager")
+    def test_list_sites_command_exception(self, mock_config_manager, runner):
+        """Test handling of exceptions in list-sites command."""
+        # Set up mock to raise an exception
+        mock_config_instance = MagicMock()
+        mock_config_instance.list_available_sites.side_effect = Exception("Test error")
+        mock_config_manager.return_value = mock_config_instance
+
+        # Run the command
+        result = runner.invoke(app, ["list-sites"])
+
+        # Check that the command exited with error code
+        assert result.exit_code == 1
+
+        # Check expected output in stdout
+        assert "Error listing site configurations: Test error" in result.stdout

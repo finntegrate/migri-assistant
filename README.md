@@ -153,8 +153,7 @@ uv run -m tapio.cli gradio-app
 # Use a specific Ollama model
 uv run -m tapio.cli gradio-app --model-name llama3.2:latest
 
-# Specify a different ChromaDB collection
-uv run -m tapio.cli gradio-app --collection-name my_collection
+# (The collection name is now set to the default from settings)
 
 # Create a shareable link for the app
 uv run -m tapio.cli gradio-app --share
@@ -172,7 +171,7 @@ Available commands:
 - `crawl`: Crawl websites using site configurations and save HTML content
 - `parse`: Parse HTML files into structured Markdown (simplified command, requires only `--site` parameter)
 - `vectorize`: Vectorize parsed Markdown into ChromaDB (simplified command, uses defaults for directories and collection name)
-- `gradio-app`: Launch the Gradio RAG chatbot interface
+- `gradio-app`: Launch the Gradio RAG chatbot interface (simplified command, uses defaults for collection name and database directory)
 - `info`: Show information about available commands
 
 To view available site configurations for parsing:
@@ -216,7 +215,7 @@ This will automatically:
 uv run -m tapio.cli vectorize
 
 # Launch the chatbot
-uv run -m tapio.cli gradio-app --collection-name migri_docs
+uv run -m tapio.cli gradio-app
 ```
 
 ## Site Configurations

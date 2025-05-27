@@ -342,18 +342,6 @@ def info(
 
 @app.command()
 def gradio_app(
-    collection_name: str = typer.Option(
-        "migri_docs",
-        "--collection-name",
-        "-c",
-        help="Name of the ChromaDB collection to query",
-    ),
-    db_dir: str = typer.Option(
-        "chroma_db",
-        "--db-dir",
-        "-d",
-        help="Directory containing the ChromaDB database",
-    ),
     model_name: str = typer.Option(
         "llama3.2",
         "--model-name",
@@ -376,6 +364,9 @@ def gradio_app(
     try:
         # Import the main function from the gradio_app module
         from tapio.gradio_app import main as launch_gradio
+
+        collection_name = DEFAULT_CHROMA_COLLECTION
+        db_dir = DEFAULT_DIRS["CHROMA_DIR"]
 
         typer.echo(f"🚀 Starting Gradio app with {model_name} model")
         typer.echo(f"📚 Using ChromaDB collection '{collection_name}' from '{db_dir}'")
@@ -407,8 +398,6 @@ def dev() -> None:
     typer.echo("🚀 Launching Tapio Assistant chatbot development server...")
     # Call the gradio_app function with default settings
     gradio_app(
-        collection_name="migri_docs",
-        db_dir="chroma_db",
         model_name="llama3.2",
         share=False,
     )
@@ -476,8 +465,6 @@ def run_gradio_app() -> None:
     """Entry point for the 'dev' command to launch the Gradio app with default settings."""
     # This function calls the gradio_app command with default settings
     gradio_app(
-        collection_name="migri_docs",
-        db_dir="chroma_db",
         model_name="llama3.2",
         share=False,
     )
