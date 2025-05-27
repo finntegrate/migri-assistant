@@ -73,12 +73,12 @@ The tool follows a three-step process to crawl, parse, and vectorize content:
 1. **Crawl** a website to retrieve and save HTML content:
 Migri example:
 ```bash
-uv run -m tapio.cli crawl https://migri.fi/en/home --depth 2 --output-dir content/crawled
+uv run -m tapio.cli crawl migri --depth 2 --output-dir content/crawled
 ```
 
 Kela example:
 ```bash
-uv run -m tapio.cli crawl https://www.kela.fi/main-page --depth 2 --output-dir content/crawled
+uv run -m tapio.cli crawl kela --depth 2 --output-dir content/crawled
 ```
 
 1. **Parse** the HTML content into structured Markdown:
@@ -114,7 +114,7 @@ uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parse
 uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parsed --site kela
 ```
 
-Available sites include any defined in the parser configurations (`parser_configs.yaml`). To see all available site configurations:
+Available sites include any defined in the parser configurations (`site_configs.yaml`). To see all available site configurations:
 
 ```bash
 uv run -m tapio.cli info --list-site-configs
@@ -160,7 +160,7 @@ uv run -m tapio.cli <command> --help
 ```
 
 Available commands:
-- `crawl`: Crawl websites and save HTML content
+- `crawl`: Crawl websites using site configurations and save HTML content
 - `parse`: Parse HTML files into structured Markdown
 - `vectorize`: Vectorize parsed Markdown into ChromaDB
 - `gradio-app`: Launch the Gradio RAG chatbot interface
@@ -183,10 +183,10 @@ Here's a complete workflow for crawling, parsing, and querying the Finnish Immig
 ### 1. Crawl the Migri Website
 
 ```bash
-uv run -m tapio.cli crawl https://migri.fi/en/home --depth 2 --output-dir content/crawled
+uv run -m tapio.cli crawl migri --depth 2 --output-dir content/crawled
 ```
 
-This will save HTML files in `content/crawled/migri.fi/` and create a URL mappings file.
+This will use the Migri site configuration to determine the base URL, save HTML files in `content/crawled/migri.fi/`, and create a URL mappings file.
 
 ### 2. Parse the Migri Content
 
@@ -208,7 +208,7 @@ uv run -m tapio.cli gradio-app --collection-name migri_docs
 
 ## Site Configurations
 
-The parser uses site-specific configurations to extract content correctly from different websites. These configurations are defined in `tapio/config/parser_configs.yaml`.
+The parser uses site-specific configurations to extract content correctly from different websites. These configurations are defined in `tapio/config/site_configs.yaml`.
 
 ### Configuration Structure
 
@@ -258,7 +258,7 @@ To add support for a new website:
 
 1. Determine the site's structure by examining a few pages
 2. Identify the appropriate XPath selectors for title and main content
-3. Add a new entry to `parser_configs.yaml` with the required fields
+3. Add a new entry to `site_configs.yaml` with the required fields
 4. Use the unique site key with the parse command
 
 For example, to add support for a hypothetical "example.com":

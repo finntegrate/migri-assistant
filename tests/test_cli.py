@@ -34,38 +34,51 @@ class TestCli:
         assert "info" in result.stdout
 
     @patch("tapio.cli.ScrapyRunner")
-    def test_crawl_command(self, mock_scrapy_runner, runner):
+    @patch("tapio.cli.ConfigManager")
+    def test_crawl_command(self, mock_config_manager, mock_scrapy_runner, runner):
         """Test the crawl command."""
-        # Set up mock
+        # Set up mocks
         mock_runner_instance = MagicMock()
         mock_runner_instance.run.return_value = ["page1", "page2", "page3"]
         mock_scrapy_runner.return_value = mock_runner_instance
+
+        # Mock ConfigManager
+        mock_config_instance = MagicMock()
+        mock_site_config = MagicMock()
+        mock_site_config.base_url = "https://example.com"
+        mock_config_instance.get_site_config.return_value = mock_site_config
+        mock_config_instance.list_available_sites.return_value = ["migri"]
+        mock_config_manager.return_value = mock_config_instance
 
         # Run the command
         result = runner.invoke(
             app,
             [
                 "crawl",
-                "https://example.com",
+                "migri",
                 "--depth",
                 "2",
-                "--output-dir",
-                "test_output",
             ],
         )
 
         # Check that the command ran successfully
         assert result.exit_code == 0
 
+        # Check that list_available_sites was called
+        mock_config_instance.list_available_sites.assert_called_once()
+
+        # Check that get_site_config was called with the correct site name
+        mock_config_instance.get_site_config.assert_called_once_with("migri")
+
         # Check that the runner was initialized correctly
         mock_scrapy_runner.assert_called_once()
 
         # Check that run was called with the correct arguments
         mock_runner_instance.run.assert_called_once_with(
-            start_urls=["https://example.com"],
+            start_urls=["https://example.com"],  # URL from site config
             depth=2,
-            allowed_domains=["example.com"],
-            output_dir="test_output",
+            allowed_domains=["example.com"],  # Domain extracted from URL
+            output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
         )
 
         # Check expected output in stdout
@@ -74,51 +87,91 @@ class TestCli:
         assert "Processed 3 pages" in result.stdout
 
     @patch("tapio.cli.ScrapyRunner")
-    def test_crawl_command_keyboard_interrupt(self, mock_scrapy_runner, runner):
+    @patch("tapio.cli.ConfigManager")
+    def test_crawl_command_keyboard_interrupt(self, mock_config_manager, mock_scrapy_runner, runner):
         """Test handling of keyboard interrupt in crawl command."""
+        # Mock ConfigManager
+        mock_config_instance = MagicMock()
+        mock_site_config = MagicMock()
+        mock_site_config.base_url = "https://example.com"
+        mock_config_instance.get_site_config.return_value = mock_site_config
+        mock_config_instance.list_available_sites.return_value = ["migri"]
+        mock_config_manager.return_value = mock_config_instance
+
         # Set up mock to raise KeyboardInterrupt
         mock_runner_instance = MagicMock()
         mock_runner_instance.run.side_effect = KeyboardInterrupt()
         mock_scrapy_runner.return_value = mock_runner_instance
 
         # Run the command
-        result = runner.invoke(app, ["crawl", "https://example.com"])
+        result = runner.invoke(app, ["crawl", "migri"])
 
         # Check that the command exited successfully (handled the interrupt)
         assert result.exit_code == 0
 
         # Check expected output in stdout
-        assert "Starting web crawler" in result.stdout
+        assert "Starting web crawler for migri" in result.stdout
         assert "Crawling interrupted by user" in result.stdout
         assert "Partial results have been saved" in result.stdout
 
     @patch("tapio.cli.ScrapyRunner")
-    def test_crawl_command_exception(self, mock_scrapy_runner, runner):
+    @patch("tapio.cli.ConfigManager")
+    def test_crawl_command_exception(self, mock_config_manager, mock_scrapy_runner, runner):
         """Test handling of exceptions in crawl command."""
+        # Mock ConfigManager
+        mock_config_instance = MagicMock()
+        mock_site_config = MagicMock()
+        mock_site_config.base_url = "https://example.com"
+        mock_config_instance.get_site_config.return_value = mock_site_config
+        mock_config_instance.list_available_sites.return_value = ["migri"]
+        mock_config_manager.return_value = mock_config_instance
+
         # Set up mock to raise an exception
         mock_runner_instance = MagicMock()
         mock_runner_instance.run.side_effect = Exception("Test error")
         mock_scrapy_runner.return_value = mock_runner_instance
 
         # Run the command
-        result = runner.invoke(app, ["crawl", "https://example.com"])
+        result = runner.invoke(app, ["crawl", "migri"])
 
         # Check that the command exited with error code
         assert result.exit_code == 1
 
         # Check expected output in stdout
-        assert "Starting web crawler" in result.stdout
+        assert "Starting web crawler for migri" in result.stdout
         assert "Error during crawling: Test error" in result.stdout
 
+    @patch("tapio.cli.ConfigManager")
+    def test_crawl_command_invalid_site(self, mock_config_manager, runner):
+        """Test the crawl command with an invalid site name."""
+        # Mock the ConfigManager
+        mock_config_instance = MagicMock()
+        mock_config_instance.list_available_sites.return_value = ["migri", "te_palvelut", "kela"]
+        mock_config_manager.return_value = mock_config_instance
+
+        # Run the command with an unsupported site
+        result = runner.invoke(app, ["crawl", "unsupported_site"])
+
+        # Check that the command exited with error code
+        assert result.exit_code == 1
+
+        # Check expected output in stdout
+        assert "Unsupported site: unsupported_site" in result.stdout
+        assert "Available sites: migri, te_palvelut, kela" in result.stdout
+
+    @patch("tapio.cli.ConfigManager")
     @patch("tapio.cli.Parser")
-    def test_parse_command(self, mock_parser, runner):
+    def test_parse_command(self, mock_parser, mock_config_manager, runner):
         """Test the parse command."""
-        # Set up mock
+        # Set up mock parser
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.return_value = ["file1", "file2", "file3"]
         mock_parser.return_value = mock_parser_instance
-        # Mock the list_available_site_configs method
-        mock_parser.list_available_site_configs.return_value = ["migri"]
+
+        # Set up mock config manager
+        mock_config_instance = MagicMock()
+        mock_config_instance.list_available_sites.return_value = ["migri"]
+        mock_config_manager.return_value = mock_config_instance
 
         # Run the command
         result = runner.invoke(
@@ -145,8 +198,8 @@ class TestCli:
             config_path=None,
         )
 
-        # Check that list_available_site_configs was called with the correct parameter
-        mock_parser.list_available_site_configs.assert_called_once_with(None)
+        # Check that list_available_sites was called
+        mock_config_instance.list_available_sites.assert_called_once()
 
         # Check that parse_all was called correctly (without domain parameter)
         mock_parser_instance.parse_all.assert_called_once_with()
@@ -157,14 +210,19 @@ class TestCli:
         assert "Parsing completed" in result.stdout
         assert "Processed 3 files" in result.stdout
 
+    @patch("tapio.cli.ConfigManager")
     @patch("tapio.cli.Parser")
-    def test_parse_command_with_domain(self, mock_parser, runner):
+    def test_parse_command_with_domain(self, mock_parser, mock_config_manager, runner):
         """Test the parse command with a domain filter."""
-        # Set up mock
+        # Set up mock parser
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.return_value = ["file1", "file2"]
         mock_parser.return_value = mock_parser_instance
-        mock_parser.list_available_site_configs.return_value = ["migri"]
+
+        # Set up mock config manager
+        mock_config_instance = MagicMock()
+        mock_config_instance.list_available_sites.return_value = ["migri"]
+        mock_config_manager.return_value = mock_config_instance
 
         # Run the command with domain filter
         result = runner.invoke(app, ["parse", "--domain", "example.com", "--site", "migri"])
@@ -175,18 +233,21 @@ class TestCli:
         # Check that parse_all was called correctly (domain is now handled internally)
         mock_parser_instance.parse_all.assert_called_once_with()
 
-        # Check that list_available_site_configs was called with the correct parameter
-        mock_parser.list_available_site_configs.assert_called_once_with(None)
+        # Check that list_available_sites was called
+        mock_config_instance.list_available_sites.assert_called_once()
 
         # Check expected output in stdout
         assert "Starting HTML parsing" in result.stdout
         assert "Processed 2 files" in result.stdout
 
-    @patch("tapio.cli.Parser")
-    def test_parse_command_unsupported_site(self, mock_parser, runner):
+    @patch("tapio.cli.ConfigManager")
+    def test_parse_command_unsupported_site(self, mock_config_manager, runner):
         """Test the parse command with an unsupported site."""
-        # Mock the list_available_site_configs method to return only valid sites
-        mock_parser.list_available_site_configs.return_value = ["migri", "kela"]
+        # Set up mock config manager
+        mock_config_instance = MagicMock()
+        mock_config_instance.list_available_sites.return_value = ["migri", "te_palvelut", "kela"]
+        mock_config_manager.return_value = mock_config_instance
+
         # Run the command with an unsupported site
         result = runner.invoke(app, ["parse", "--site", "unsupported"])
 
@@ -195,18 +256,24 @@ class TestCli:
 
         # Check expected output in stdout
         assert "Unsupported site: unsupported" in result.stdout
+        assert "Available sites: migri, te_palvelut, kela" in result.stdout
 
-        # Check that list_available_site_configs was called with the correct parameter
-        mock_parser.list_available_site_configs.assert_called_once_with(None)
+        # Check that list_available_sites was called
+        mock_config_instance.list_available_sites.assert_called_once()
 
+    @patch("tapio.cli.ConfigManager")
     @patch("tapio.cli.Parser")
-    def test_parse_command_exception(self, mock_parser, runner):
+    def test_parse_command_exception(self, mock_parser, mock_config_manager, runner):
         """Test handling of exceptions in parse command."""
-        # Set up mock to raise an exception
+        # Set up mock parser that raises an exception
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.side_effect = Exception("Test error")
         mock_parser.return_value = mock_parser_instance
-        mock_parser.list_available_site_configs.return_value = ["migri"]
+
+        # Set up mock config manager
+        mock_config_instance = MagicMock()
+        mock_config_instance.list_available_sites.return_value = ["migri"]
+        mock_config_manager.return_value = mock_config_instance
 
         # Run the command
         result = runner.invoke(app, ["parse", "--site", "migri"])
@@ -218,18 +285,26 @@ class TestCli:
         assert "Starting HTML parsing" in result.stdout
         assert "Error during parsing: Test error" in result.stdout
 
-        # Check that list_available_site_configs was called with the correct parameter
-        mock_parser.list_available_site_configs.assert_called_once_with(None)
+        # Check that list_available_sites was called
+        mock_config_instance.list_available_sites.assert_called_once()
 
+    @patch("tapio.cli.ConfigManager")
     @patch("tapio.cli.Parser")
-    def test_parse_command_custom_config(self, mock_parser, runner):
+    @patch("os.path.exists")
+    def test_parse_command_custom_config(self, mock_exists, mock_parser, mock_config_manager, runner):
         """Test the parse command with a custom config path."""
-        # Set up mock
+        # Setup mock for file existence check
+        mock_exists.return_value = True
+
+        # Set up mock parser
         mock_parser_instance = MagicMock()
         mock_parser_instance.parse_all.return_value = ["file1", "file2"]
         mock_parser.return_value = mock_parser_instance
-        # Mock the list_available_site_configs method
-        mock_parser.list_available_site_configs.return_value = ["custom_site"]
+
+        # Set up mock config manager
+        mock_config_instance = MagicMock()
+        mock_config_instance.list_available_sites.return_value = ["custom_site"]
+        mock_config_manager.return_value = mock_config_instance
 
         # Run the command with a custom config
         result = runner.invoke(
@@ -246,10 +321,11 @@ class TestCli:
         # Check that the command ran successfully
         assert result.exit_code == 0
 
-        # Check that list_available_site_configs was called with the custom config path
-        mock_parser.list_available_site_configs.assert_called_once_with(
-            "custom_configs.yaml",
-        )
+        # Check that ConfigManager was instantiated with the correct custom config path
+        mock_config_manager.assert_called_with("custom_configs.yaml")
+
+        # Check that list_available_sites was called
+        mock_config_instance.list_available_sites.assert_called_once()
 
         # Check that the parser was initialized correctly with the custom config
         mock_parser.assert_called_once_with(
