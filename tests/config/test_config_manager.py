@@ -58,10 +58,19 @@ class TestConfigManager:
     def test_from_file_class_method(self):
         """Test the from_file class method."""
         test_config_path = "/path/to/custom/config.yaml"
+        test_yaml_content = """
+            sites:
+              test_site:
+                site_name: "test"
+                base_url: "https://example.com"
+                content_selectors:
+                  - "//main"
+        """
 
-        with patch("tapio.config.config_manager.ConfigManager.__init__", return_value=None) as mock_init:
-            ConfigManager.from_file(test_config_path)
-            mock_init.assert_called_with(config_path=test_config_path)
+        with patch("tapio.config.config_manager.open", mock_open(read_data=test_yaml_content)):
+            config_manager = ConfigManager.from_file(test_config_path)
+            assert isinstance(config_manager, ConfigManager)
+            assert "test_site" in config_manager.list_available_sites()
 
     def test_file_not_found(self):
         """Test handling of non-existent configuration file."""
