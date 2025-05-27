@@ -1,7 +1,28 @@
 # Tapio
 
-## Overview
 Tapio is a tool designed to extract, process, and query information from multiple websites, including Migri.fi (Finnish Immigration Service). It provides end-to-end RAG (Retrieval Augmented Generation) capabilities including web crawling, content parsing, vectorization, and an interactive chatbot interface.
+
+- [Tapio](#tapio)
+  - [Key Demographics](#key-demographics)
+  - [Needs](#needs)
+  - [Features](#features)
+  - [Installation and Setup](#installation-and-setup)
+    - [Prerequisites](#prerequisites)
+    - [Setting up](#setting-up)
+    - [Configuration](#configuration)
+  - [Usage](#usage)
+    - [Using the CLI](#using-the-cli)
+      - [Discovering CLI Commands](#discovering-cli-commands)
+      - [Listing Available Site Configurations](#listing-available-site-configurations)
+  - [Basic Workflow Example](#basic-workflow-example)
+  - [Site Configurations](#site-configurations)
+    - [Configuration Structure](#configuration-structure)
+    - [Required and Optional Fields](#required-and-optional-fields)
+    - [Adding a New Site](#adding-a-new-site)
+  - [Global Configuration Settings](#global-configuration-settings)
+  - [Contributing](#contributing)
+  - [License](#license)
+
 
 ##  Key Demographics
 
@@ -24,7 +45,7 @@ Tapio is a tool designed to extract, process, and query information from multipl
 - Saves raw HTML content with domain-based organization
 - Parses HTML content into structured Markdown files
 - Vectorizes parsed content into ChromaDB for semantic search
-- Provides a Gradio-based RAG chatbot interface for querying content
+- Provides a Tapio RAG chatbot interface for querying content
 - Integrates with Ollama for local LLM inference
 - Clean separation between crawling, parsing, vectorization, and querying
 - Domain restriction and crawl depth control
@@ -64,147 +85,80 @@ python setup_dirs.py
 ```
 This will create the necessary directories (`content/crawled` and `content/parsed`) for storing crawled and parsed content.
 
+### Configuration
+
+The parser uses site-specific configurations to extract content correctly from different websites. These configurations are defined in `tapio/config/site_configs.yaml`.
+
+When you run the `parse` command with just the `--site` parameter (e.g., `uv run -m tapio.cli parse --site migri`), the parser automatically:
+1. Determines the base directory from the site's configuration
+2. Processes only HTML files from that directory
+3. Applies the appropriate content selectors and markdown conversion rulestion) capabilities including web crawling, content parsing, vectorization, and an interactive chatbot interface.
+
 ## Usage
 
-### Running the Crawler, Parser, and Vectorizer
+### Using the CLI
 
-The tool follows a three-step process to crawl, parse, and vectorize content:
+Tapio features a comprehensive CLI with built-in documentation. The basic workflow involves four main steps:
 
-1. **Crawl** a website to retrieve and save HTML content:
-Migri example:
-```bash
-uv run -m tapio.cli crawl migri --depth 2 --output-dir content/crawled
-```
+1. **Crawl** websites to collect content
+2. **Parse** HTML into structured Markdown
+3. **Vectorize** content for semantic search
+4. **Query** content using the Tapio app interface
 
-Kela example:
-```bash
-uv run -m tapio.cli crawl kela --depth 2 --output-dir content/crawled
-```
+#### Discovering CLI Commands
 
-1. **Parse** the HTML content into structured Markdown:
+To see all available commands:
 
 ```bash
-uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parsed --site migri
+uv run -m tapio.cli --help
 ```
 
-The `--site` parameter specifies which site configuration to use. The parser will:
-- Process only files located in the domain directory defined by the site's configuration
-- Apply site-specific selectors to extract the relevant content
-- Convert relative links to absolute URLs using the site's base URL
-- Format the content according to the site's markdown configuration
-
-#### Site-Specific Parsing
-
-Each site configuration defines:
-- The domain directory to process (e.g., `migri.fi`)
-- The base URL for link conversions (e.g., `https://migri.fi`)
-- Selectors for extracting titles and content
-- HTML-to-Markdown conversion preferences
-
-For example, to parse content from different sites:
-
-```bash
-# Parse the Finnish Immigration Service (Migri) site
-uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parsed --site migri
-
-# Parse the TE Services site
-uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parsed --site te_palvelut
-
-# Parse the Kela site
-uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parsed --site kela
-```
-
-Available sites include any defined in the parser configurations (`site_configs.yaml`). To see all available site configurations:
-
-```bash
-uv run -m tapio.cli info --list-site-configs
-```
-
-3. **Vectorize** the parsed Markdown content into ChromaDB for semantic search:
-```bash
-uv run -m tapio.cli vectorize --input-dir content/parsed --db-dir chroma_db --collection migri_docs
-```
-
-4. **Launch the RAG Chatbot** to interactively query the content:
-```bash
-uv run -m tapio.cli gradio-app
-```
-
-### RAG Chatbot Options
-
-The RAG chatbot allows you to query information from your vectorized content using a local LLM through Ollama. The chatbot provides several configuration options:
-
-```bash
-# Quick start - launch with development server
-uv run -m tapio.cli dev
-
-# Long form - launch with default settings
-uv run -m tapio.cli gradio-app
-
-# Use a specific Ollama model
-uv run -m tapio.cli gradio-app --model-name llama3.2:latest
-
-# Specify a different ChromaDB collection
-uv run -m tapio.cli gradio-app --collection-name my_collection
-
-# Create a shareable link for the app
-uv run -m tapio.cli gradio-app --share
-```
-
-### Parameters and Options
-
-For detailed information about available parameters and options for any command:
+For detailed help on any specific command:
 
 ```bash
 uv run -m tapio.cli <command> --help
 ```
 
-Available commands:
-- `crawl`: Crawl websites using site configurations and save HTML content
-- `parse`: Parse HTML files into structured Markdown
-- `vectorize`: Vectorize parsed Markdown into ChromaDB
-- `gradio-app`: Launch the Gradio RAG chatbot interface
-- `info`: Show information about available commands
-
-To view available site configurations for parsing:
-
+For example:
 ```bash
-# List all available sites
-uv run -m tapio.cli info --list-site-configs
-
-# Show detailed configuration for a specific site
-uv run -m tapio.cli info --show-site-config migri
+uv run -m tapio.cli tapio-app --help
 ```
 
-## End-to-End Workflow Example: Migri Site
+#### Listing Available Site Configurations
 
-Here's a complete workflow for crawling, parsing, and querying the Finnish Immigration Service website:
-
-### 1. Crawl the Migri Website
+To view all sites that can be crawled or parsed:
 
 ```bash
-uv run -m tapio.cli crawl migri --depth 2 --output-dir content/crawled
+uv run -m tapio.cli list-sites
 ```
 
-This will use the Migri site configuration to determine the base URL, save HTML files in `content/crawled/migri.fi/`, and create a URL mappings file.
-
-### 2. Parse the Migri Content
+For detailed site configuration information:
 
 ```bash
-uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parsed --site migri
+uv run -m tapio.cli list-sites --verbose
 ```
 
-This will process only files in the `migri.fi` directory using Migri's content selectors.
+The CLI provides comprehensive help text, default values, and option descriptions, eliminating the need to reference this documentation for command specifics.
 
-### 3. Vectorize and Query
+## Basic Workflow Example
+
+Here's a simplified example of the end-to-end workflow using the Finnish Immigration Service (Migri) website:
 
 ```bash
-# Vectorize the content
-uv run -m tapio.cli vectorize --input-dir content/parsed --collection migri_docs
+# Step 1: Crawl website content
+uv run -m tapio.cli crawl migri
 
-# Launch the chatbot
-uv run -m tapio.cli gradio-app --collection-name migri_docs
+# Step 2: Parse HTML to structured Markdown
+uv run -m tapio.cli parse --site migri
+
+# Step 3: Vectorize content for semantic search
+uv run -m tapio.cli vectorize
+
+# Step 4: Launch the chatbot interface
+uv run -m tapio.cli tapio-app
 ```
+
+Each command has additional options that can be discovered using the `--help` flag. The CLI handles default directories and settings automatically.
 
 ## Site Configurations
 

@@ -11,3 +11,5 @@ DEFAULT_DIRS = {
     "PARSED_DIR": "content/parsed",
     "CHROMA_DIR": "chroma_db",
 }
+
+DEFAULT_CHROMA_COLLECTION = "tapio_knowledge"

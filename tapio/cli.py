@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 import typer
 
 from tapio.config import ConfigManager
-from tapio.config.settings import DEFAULT_DIRS
+from tapio.config.settings import DEFAULT_CHROMA_COLLECTION, DEFAULT_DIRS
 from tapio.crawler.runner import ScrapyRunner
 from tapio.parser import Parser
 from tapio.vectorstore.vectorizer import MarkdownVectorizer
@@ -127,18 +127,6 @@ def crawl(
 
 @app.command()
 def parse(
-    input_dir: str = typer.Option(
-        DEFAULT_DIRS["CRAWLED_DIR"],
-        "--input-dir",
-        "-i",
-        help="Directory containing HTML files to parse",
-    ),
-    output_dir: str = typer.Option(
-        DEFAULT_DIRS["PARSED_DIR"],
-        "--output-dir",
-        "-o",
-        help="Directory to save parsed content as Markdown files",
-    ),
     domain: str | None = typer.Option(
         None,
         "--domain",
@@ -174,16 +162,18 @@ def parse(
     HTML to Markdown for different website types.
 
     Examples:
-        $ python -m tapio.cli parse -s migri
-        $ python -m tapio.cli parse -s te_palvelut -d te-palvelut.fi
-        $ python -m tapio.cli parse -s kela -c custom_configs.yaml
+        $ python -m tapio.cli parse --site migri
+
+        # With optional parameters (rarely needed)
+        $ python -m tapio.cli parse --site te_palvelut --domain te-palvelut.fi
+        $ python -m tapio.cli parse --site kela --config custom_configs.yaml
     """
     # Set log level based on verbose flag
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    typer.echo(f"📝 Starting HTML parsing from {input_dir}")
-    typer.echo(f"📄 Saving parsed content to: {output_dir}")
+    typer.echo(f"📝 Starting HTML parsing from {DEFAULT_DIRS['CRAWLED_DIR']}")
+    typer.echo(f"📄 Saving parsed content to: {DEFAULT_DIRS['PARSED_DIR']}")
 
     try:
         # Use ConfigManager for site configuration management
@@ -194,8 +184,8 @@ def parse(
             typer.echo(f"🔧 Using configuration for site: {site}")
             parser = Parser(
                 site=site,
-                input_dir=input_dir,
-                output_dir=output_dir,
+                input_dir=DEFAULT_DIRS["CRAWLED_DIR"],
+                output_dir=DEFAULT_DIRS["PARSED_DIR"],
                 config_path=config_path,
             )
         else:
@@ -210,8 +200,8 @@ def parse(
         # Output information
         site_name = parser.config.site_name if hasattr(parser, "config") else parser.site_name
         typer.echo(f"✅ Parsing completed! Processed {len(results)} files.")
-        typer.echo(f"📝 Content saved as Markdown files in {output_dir}")
-        typer.echo(f"📝 Index created at {output_dir}/{site_name}/index.md")
+        typer.echo(f"📝 Content saved as Markdown files in {DEFAULT_DIRS['PARSED_DIR']}")
+        typer.echo(f"📝 Index created at {DEFAULT_DIRS['PARSED_DIR']}/{site_name}/index.md")
 
     except Exception as e:
         typer.echo(f"❌ Error during parsing: {str(e)}", err=True)
@@ -220,24 +210,6 @@ def parse(
 
 @app.command()
 def vectorize(
-    input_dir: str = typer.Option(
-        DEFAULT_DIRS["PARSED_DIR"],
-        "--input-dir",
-        "-i",
-        help="Directory containing parsed Markdown files to vectorize",
-    ),
-    db_dir: str = typer.Option(
-        DEFAULT_DIRS["CHROMA_DIR"],
-        "--db-dir",
-        "-d",
-        help="Directory to store the ChromaDB database",
-    ),
-    collection_name: str = typer.Option(
-        "migri_docs",
-        "--collection",
-        "-c",
-        help="Name of the ChromaDB collection to create",
-    ),
     domain: str | None = typer.Option(
         None,
         "--domain",
@@ -270,15 +242,20 @@ def vectorize(
     and stores them in ChromaDB with associated metadata from the original source.
 
     Example:
-        $ python -m tapio.cli vectorize -i parsed_content -d chroma_db -c migri_docs
+        $ python -m tapio.cli vectorize
     """
     # Set log level based on verbose flag
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    input_dir = DEFAULT_DIRS["PARSED_DIR"]
+    db_dir = DEFAULT_DIRS["CHROMA_DIR"]
+    collection_name = DEFAULT_CHROMA_COLLECTION
+
     typer.echo(f"🧠 Starting vectorization of parsed content from {input_dir}")
     typer.echo(f"💾 Vector database will be stored in: {db_dir}")
     typer.echo(f"🔤 Using embedding model: {embedding_model}")
+    typer.echo(f"📑 Using collection name: {collection_name}")
 
     try:
         # Initialize vectorizer
@@ -357,26 +334,14 @@ def info(
     typer.echo("  crawl      - Crawl websites and save HTML content")
     typer.echo("  parse      - Parse HTML files and convert to structured Markdown")
     typer.echo("  vectorize  - Vectorize parsed Markdown files and store in ChromaDB")
-    typer.echo("  gradio_app - Launch the Gradio web interface for querying with the RAG chatbot")
+    typer.echo("  tapio-app  - Launch the Tapio web interface for querying with the RAG chatbot")
     typer.echo("  info       - Show this information")
     typer.echo("  dev        - Launch the development server for the Tapio Assistant chatbot")
     typer.echo("\nRun a command with --help for more information")
 
 
 @app.command()
-def gradio_app(
-    collection_name: str = typer.Option(
-        "migri_docs",
-        "--collection-name",
-        "-c",
-        help="Name of the ChromaDB collection to query",
-    ),
-    db_dir: str = typer.Option(
-        "chroma_db",
-        "--db-dir",
-        "-d",
-        help="Directory containing the ChromaDB database",
-    ),
+def tapio_app(
     model_name: str = typer.Option(
         "llama3.2",
         "--model-name",
@@ -395,10 +360,14 @@ def gradio_app(
         help="Create a shareable link for the app",
     ),
 ) -> None:
-    """Launch the Gradio web interface for RAG-powered chatbot."""
+    """Launch the Tapio web interface for RAG-powered chatbot."""
     try:
         # Import the main function from the gradio_app module
+        # TODO: Rename module from gradio_app to tapio_app in future PR
         from tapio.gradio_app import main as launch_gradio
+
+        collection_name = DEFAULT_CHROMA_COLLECTION
+        db_dir = DEFAULT_DIRS["CHROMA_DIR"]
 
         typer.echo(f"🚀 Starting Gradio app with {model_name} model")
         typer.echo(f"📚 Using ChromaDB collection '{collection_name}' from '{db_dir}'")
@@ -428,10 +397,8 @@ def gradio_app(
 def dev() -> None:
     """Launch the development server for the Tapio Assistant chatbot."""
     typer.echo("🚀 Launching Tapio Assistant chatbot development server...")
-    # Call the gradio_app function with default settings
-    gradio_app(
-        collection_name="migri_docs",
-        db_dir="chroma_db",
+    # Call the tapio_app function with default settings
+    tapio_app(
         model_name="llama3.2",
         share=False,
     )
@@ -495,12 +462,10 @@ def list_sites(
         raise typer.Exit(code=1)
 
 
-def run_gradio_app() -> None:
-    """Entry point for the 'dev' command to launch the Gradio app with default settings."""
-    # This function calls the gradio_app command with default settings
-    gradio_app(
-        collection_name="migri_docs",
-        db_dir="chroma_db",
+def run_tapio_app() -> None:
+    """Entry point for the 'dev' command to launch the Tapio app with default settings."""
+    # This function calls the tapio_app command with default settings
+    tapio_app(
         model_name="llama3.2",
         share=False,
     )
