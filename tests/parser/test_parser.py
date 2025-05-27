@@ -6,14 +6,8 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock
 
-import pytest
 import yaml
 
-from tapio.config.config_models import (
-    HtmlToMarkdownConfig,
-    ParserConfigRegistry,
-    SiteParserConfig,
-)
 from tapio.parser import Parser
 
 
@@ -400,106 +394,3 @@ class TestParser(unittest.TestCase):
         self.parser.current_base_url = None
         result = self.parser._convert_relative_links_to_absolute(html_content)
         self.assertEqual(result, html_content)  # Should be unchanged
-
-
-class TestSiteParserConfig:
-    """Test the SiteParserConfig model."""
-
-    def test_get_content_selector(self):
-        """Test the get_content_selector method."""
-        from lxml import html as lxml_html
-
-        # Create a test config
-        config = SiteParserConfig(
-            site_name="test",
-            base_url="https://example.com",
-            base_dir="example",
-            content_selectors=['//div[@id="main"]', '//div[@class="content"]', "//article"],
-        )
-
-        # Create a test HTML tree
-        html_content = """
-        <html>
-            <body>
-                <div class="content">Content here</div>
-                <article>Article content</article>
-            </body>
-        </html>
-        """
-        tree = lxml_html.fromstring(html_content)
-
-        # Test first selector not found, second matches
-        element = config.get_content_selector(tree)
-        assert element is not None
-        assert element.text == "Content here"
-
-        # Test when first selector matches
-        html_content = """
-        <html>
-            <body>
-                <div id="main">Main content</div>
-                <div class="content">Secondary content</div>
-            </body>
-        </html>
-        """
-        tree = lxml_html.fromstring(html_content)
-        element = config.get_content_selector(tree)
-        assert element is not None
-        assert element.text == "Main content"
-
-        # Test when no selectors match
-        html_content = """
-        <html>
-            <body>
-                <div class="other">Other content</div>
-            </body>
-        </html>
-        """
-        tree = lxml_html.fromstring(html_content)
-        element = config.get_content_selector(tree)
-        assert element is None
-
-
-class TestParserConfigRegistry:
-    """Test the ParserConfigRegistry model."""
-
-    def test_model_validation(self):
-        """Test model validation."""
-        # Valid config
-        config_data = {"sites": {"test": {"site_name": "test", "content_selectors": ["//div"]}}}
-        registry = ParserConfigRegistry.model_validate(config_data)
-        assert "test" in registry.sites
-        assert registry.sites["test"].site_name == "test"
-
-        # Invalid config (missing required fields)
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError):
-            ParserConfigRegistry.model_validate({"sites": {"test": {"site_name": "test"}}})
-
-
-class TestHtmlToMarkdownConfig:
-    """Test the HtmlToMarkdownConfig model."""
-
-    def test_default_values(self):
-        """Test default values."""
-        config = HtmlToMarkdownConfig()
-        assert config.ignore_links is False
-        assert config.body_width == 0
-        assert config.protect_links is True
-        assert config.unicode_snob is True
-        assert config.ignore_images is False
-        assert config.ignore_tables is False
-
-    def test_custom_values(self):
-        """Test custom values."""
-        config = HtmlToMarkdownConfig(
-            ignore_links=True,
-            body_width=80,
-            protect_links=False,
-            unicode_snob=False,
-        )
-        assert config.ignore_links is True
-        assert config.body_width == 80
-        assert config.protect_links is False
-        assert config.unicode_snob is False

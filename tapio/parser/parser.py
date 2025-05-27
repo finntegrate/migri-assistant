@@ -384,11 +384,13 @@ class Parser:
             if rel_path.startswith(".."):
                 # File is outside domain directory
                 self.logger.info(f"File outside domain dir, using base URL: {self.config.base_url}")
-                return self.config.base_url
+                return str(self.config.base_url)
 
             # Normalize path and construct URL
             normalized_path = rel_path.replace("\\", "/")
-            constructed_url = urljoin(self.config.base_url, normalized_path)
+            # Convert HttpUrl to string for urljoin
+            base_url_str = str(self.config.base_url)
+            constructed_url = urljoin(base_url_str, normalized_path)
             self.logger.info(f"Constructed base URL: {constructed_url}")
             return constructed_url
 
@@ -396,7 +398,7 @@ class Parser:
             self.logger.warning(
                 f"Error constructing URL from path, using base URL: {self.config.base_url}",
             )  # noqa: E501
-            return self.config.base_url
+            return str(self.config.base_url)
 
     def _extract_domain_from_path(self, file_path: str | Path, input_dir: str | None = None) -> str:
         """

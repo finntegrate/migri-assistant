@@ -96,7 +96,9 @@ def crawl(
 
     # Extract domain from URL if allowed_domains is not provided
     if allowed_domains is None:
-        parsed_url = urlparse(url)
+        # Convert HttpUrl to string for urlparse
+        url_str = str(url)
+        parsed_url = urlparse(url_str)
         allowed_domains = [parsed_url.netloc]
 
     typer.echo(f"🕸️ Starting web crawler for {site} ({url}) with depth {depth}")
@@ -110,7 +112,7 @@ def crawl(
 
         # Start crawling
         results = runner.run(
-            start_urls=[url],
+            start_urls=[str(url)],  # Convert HttpUrl to string
             depth=depth,
             allowed_domains=allowed_domains,
             output_dir=output_dir,

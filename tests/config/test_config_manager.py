@@ -101,7 +101,7 @@ class TestConfigManager:
             site_config = config_manager.get_site_config("test_site")
             assert isinstance(site_config, SiteParserConfig)
             assert site_config.site_name == "test"
-            assert site_config.base_url == "https://example.com"
+            assert str(site_config.base_url) == "https://example.com/"
             assert "//main" in site_config.content_selectors
 
     def test_get_nonexistent_site_config(self):

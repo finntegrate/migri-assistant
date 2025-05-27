@@ -8,7 +8,7 @@ conversion settings.
 from typing import Any
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, HttpUrl
 
 
 class HtmlToMarkdownConfig(BaseModel):
@@ -34,10 +34,9 @@ class SiteParserConfig(BaseModel):
     """
 
     site_name: str
-    base_url: str = Field(
-        "https://example.com",
-        description="Base URL of the website (e.g., 'https://migri.fi')",
-    )
+    base_url: HttpUrl
+    # Note: In Pydantic v2, default HttpUrl values need to be provided using model_config
+    # or Field validators; using literal default values can cause type errors
     title_selector: str = "//title"
     content_selectors: list[str] = Field(
         ...,
@@ -46,28 +45,6 @@ class SiteParserConfig(BaseModel):
     fallback_to_body: bool = True
     description: str | None = None
     markdown_config: HtmlToMarkdownConfig = Field(default_factory=HtmlToMarkdownConfig)
-
-    @field_validator("base_url")
-    @classmethod
-    def validate_base_url(cls, v: str) -> str:
-        """Validate that base_url is a properly formatted URL.
-
-        Args:
-            v: URL value to validate
-
-        Returns:
-            The validated URL
-
-        Raises:
-            ValueError: If the URL is not valid (missing or has invalid scheme/netloc)
-        """
-        if not v:
-            raise ValueError("base_url cannot be empty")
-
-        parsed = urlparse(v)
-        if parsed.scheme not in ("http", "https") or not parsed.netloc:
-            raise ValueError(f"Invalid URL: {v}. Must be a valid http or https URL with a domain name.")
-        return v
 
     @property
     def base_dir(self) -> str:
@@ -78,11 +55,12 @@ class SiteParserConfig(BaseModel):
         Returns:
             Domain name without protocol prefix (e.g., 'migri.fi')
         """
-        parsed = urlparse(self.base_url or "")
+        url_str = str(self.base_url)
+        parsed = urlparse(url_str)
         # Use hostname to strip any port, and ensure a non-empty result
         host = parsed.hostname
         if not host:
-            raise ValueError(f"Invalid base_url: {self.base_url!r}")
+            raise ValueError(f"Invalid base_url: {url_str!r}")
         return host
 
     def get_content_selector(self, tree: Any) -> Any | None:
