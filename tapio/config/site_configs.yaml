@@ -43,3 +43,16 @@ sites:
     description: "Kela (Social Insurance Institution of Finland) website"
     markdown_config:
       ignore_images: true
+  
+  # Example configuration for Vero website
+  vero:
+    site_name: "vero"
+    base_url: "https://www.vero.fi/en/"
+    title_selector: "//h1 | //title"
+    content_selectors:
+      - '//main[@id="content-container"]'
+    fallback_to_body: true
+    description: "Vero (Guidance about taxation in Finland) website"
+    markdown_config:
+      ignore_images: true
+      
