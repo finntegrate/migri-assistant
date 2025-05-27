@@ -11,13 +11,10 @@ Tapio is a tool designed to extract, process, and query information from multipl
     - [Setting up](#setting-up)
     - [Configuration](#configuration)
   - [Usage](#usage)
-    - [Running the Crawler, Parser, and Vectorizer](#running-the-crawler-parser-and-vectorizer)
-    - [RAG Chatbot Options](#rag-chatbot-options)
-    - [Parameters and Options](#parameters-and-options)
-  - [End-to-End Workflow Example: Migri Site](#end-to-end-workflow-example-migri-site)
-    - [1. Crawl the Migri Website](#1-crawl-the-migri-website)
-    - [2. Parse the Migri Content](#2-parse-the-migri-content)
-    - [3. Vectorize and Query](#3-vectorize-and-query)
+    - [Using the CLI](#using-the-cli)
+      - [Discovering CLI Commands](#discovering-cli-commands)
+      - [Listing Available Site Configurations](#listing-available-site-configurations)
+  - [Basic Workflow Example](#basic-workflow-example)
   - [Site Configurations](#site-configurations)
     - [Configuration Structure](#configuration-structure)
     - [Required and Optional Fields](#required-and-optional-fields)
@@ -99,112 +96,69 @@ When you run the `parse` command with just the `--site` parameter (e.g., `uv run
 
 ## Usage
 
-### Running the Crawler, Parser, and Vectorizer
+### Using the CLI
 
-The tool follows a three-step process to crawl, parse, and vectorize content:
+Tapio features a comprehensive CLI with built-in documentation. The basic workflow involves four main steps:
 
-**Crawl** a website to retrieve and save HTML content:
+1. **Crawl** websites to collect content
+2. **Parse** HTML into structured Markdown
+3. **Vectorize** content for semantic search
+4. **Query** content using the Tapio app interface
 
-Migri example:
-```bash
-uv run -m tapio.cli crawl migri --depth 2
-```
+#### Discovering CLI Commands
 
-**Parse** the HTML content into structured Markdown:
-
-```bash
-uv run -m tapio.cli parse --site migri
-```
-
-
-**Vectorize** the parsed Markdown content into ChromaDB for semantic search:
-```bash
-uv run -m tapio.cli vectorize
-```
-
-**Launch the RAG Chatbot** to interactively query the content:
-```bash
-uv run -m tapio.cli tapio-app
-```
-
-### RAG Chatbot Options
-
-The RAG chatbot allows you to query information from your vectorized content using a local LLM through Ollama. The chatbot provides several configuration options:
+To see all available commands:
 
 ```bash
-# Quick start - launch with development server
-uv run -m tapio.cli dev
-
-# Long form - launch with default settings
-uv run -m tapio.cli tapio-app
-
-# Use a specific Ollama model
-uv run -m tapio.cli tapio-app --model-name llama3.2:latest
-
-# (The collection name is now set to the default from settings)
-
-# Create a shareable link for the app
-uv run -m tapio.cli tapio-app --share
+uv run -m tapio.cli --help
 ```
 
-### Parameters and Options
-
-For detailed information about available parameters and options for any command:
+For detailed help on any specific command:
 
 ```bash
 uv run -m tapio.cli <command> --help
 ```
 
-Available commands:
-- `crawl`: Crawl websites using site configurations and save HTML content
-- `parse`: Parse HTML files into structured Markdown (simplified command, requires only `--site` parameter)
-- `vectorize`: Vectorize parsed Markdown into ChromaDB (simplified command, uses defaults for directories and collection name)
-- `tapio-app`: Launch the Tapio RAG chatbot interface (simplified command, uses defaults for collection name and database directory)
-- `info`: Show information about available commands
-
-To view available site configurations for parsing:
-
+For example:
 ```bash
-# List all available sites
-uv run -m tapio.cli info --list-site-configs
-
-# Show detailed configuration for a specific site
-uv run -m tapio.cli info --show-site-config migri
+uv run -m tapio.cli tapio-app --help
 ```
 
-## End-to-End Workflow Example: Migri Site
+#### Listing Available Site Configurations
 
-Here's a complete workflow for crawling, parsing, and querying the Finnish Immigration Service website:
-
-### 1. Crawl the Migri Website
+To view all sites that can be crawled or parsed:
 
 ```bash
-uv run -m tapio.cli crawl migri --depth 2
+uv run -m tapio.cli list-sites
 ```
 
-This will use the Migri site configuration to determine the base URL, save HTML files in `content/crawled/migri.fi/`, and create a URL mappings file.
-
-### 2. Parse the Migri Content
+For detailed site configuration information:
 
 ```bash
+uv run -m tapio.cli list-sites --verbose
+```
+
+The CLI provides comprehensive help text, default values, and option descriptions, eliminating the need to refer back to this documentation for command specifics.
+
+## Basic Workflow Example
+
+Here's a simplified example of the end-to-end workflow using the Finnish Immigration Service (Migri) website:
+
+```bash
+# Step 1: Crawl website content
+uv run -m tapio.cli crawl migri
+
+# Step 2: Parse HTML to structured Markdown
 uv run -m tapio.cli parse --site migri
-```
 
-This will automatically:
-- Process all HTML files in the `migri.fi` directory (determined from the site's base URL)
-- Apply Migri's content selectors to extract the relevant content
-- Convert the HTML to Markdown using site-specific configuration
-- Save the parsed files in `content/parsed/migri/`
-
-### 3. Vectorize and Query
-
-```bash
-# Vectorize the content
+# Step 3: Vectorize content for semantic search
 uv run -m tapio.cli vectorize
 
-# Launch the chatbot
+# Step 4: Launch the chatbot interface
 uv run -m tapio.cli tapio-app
 ```
+
+Each command has additional options that can be discovered using the `--help` flag. The CLI handles default directories and settings automatically.
 
 ## Site Configurations
 
