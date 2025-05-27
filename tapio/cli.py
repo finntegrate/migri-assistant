@@ -334,7 +334,7 @@ def info(
     typer.echo("  crawl      - Crawl websites and save HTML content")
     typer.echo("  parse      - Parse HTML files and convert to structured Markdown")
     typer.echo("  vectorize  - Vectorize parsed Markdown files and store in ChromaDB")
-    typer.echo("  tapio_app  - Launch the Tapio web interface for querying with the RAG chatbot")
+    typer.echo("  tapio-app  - Launch the Tapio web interface for querying with the RAG chatbot")
     typer.echo("  info       - Show this information")
     typer.echo("  dev        - Launch the development server for the Tapio Assistant chatbot")
     typer.echo("\nRun a command with --help for more information")
