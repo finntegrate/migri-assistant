@@ -13,20 +13,81 @@ from tapio.config.config_models import SiteParserConfig
 class TestConfigManager:
     """Tests for the ConfigManager class."""
 
-    def test_init_default_path(self):
+    @pytest.fixture
+    def basic_config_yaml(self):
+        """Fixture providing basic site configuration YAML."""
+        return """
+            sites:
+              test_site:
+                site_name: "test"
+                base_url: "https://example.com"
+                content_selectors:
+                  - "//main"
+        """
+
+    @pytest.fixture
+    def multi_site_config_yaml(self):
+        """Fixture providing configuration with multiple sites."""
+        return """
+            sites:
+              site1:
+                site_name: "Site 1"
+                base_url: "https://site1.com"
+                content_selectors:
+                  - "//main"
+              site2:
+                site_name: "Site 2"
+                base_url: "https://site2.com"
+                content_selectors:
+                  - "//main"
+              site3:
+                site_name: "Site 3"
+                base_url: "https://site3.com"
+                content_selectors:
+                  - "//main"
+        """
+
+    @pytest.fixture
+    def site_with_descriptions_yaml(self):
+        """Fixture providing sites with description fields."""
+        return """
+            sites:
+              site1:
+                site_name: "Site 1"
+                base_url: "https://site1.com"
+                content_selectors:
+                  - "//main"
+                description: "First site description"
+              site2:
+                site_name: "Site 2"
+                base_url: "https://site2.com"
+                content_selectors:
+                  - "//main"
+                description: "Second site description"
+              site3:
+                site_name: "Site 3"
+                base_url: "https://site3.com"
+                content_selectors:
+                  - "//main"
+        """
+
+    @pytest.fixture
+    def invalid_url_config_yaml(self):
+        """Fixture providing configuration with invalid URL."""
+        return """
+            sites:
+              invalid_url_site:
+                site_name: "invalid"
+                base_url: "invalid-url"
+                content_selectors:
+                  - "//main"
+        """
+
+    def test_init_default_path(self, basic_config_yaml):
         """Test initialization with default config path."""
         with patch(
             "tapio.config.config_manager.open",
-            mock_open(
-                read_data="""
-                sites:
-                  test_site:
-                    site_name: "test"
-                    base_url: "https://example.com"
-                    content_selectors:
-                      - "//main"
-            """,
-            ),
+            mock_open(read_data=basic_config_yaml),
         ) as mock_file:
             config_manager = ConfigManager()
 
@@ -36,10 +97,10 @@ class TestConfigManager:
             # Check that at least one site was loaded
             assert len(config_manager.list_available_sites()) > 0
 
-    def test_init_custom_path(self):
-        """Test initialization with custom config path."""
-        test_config_path = "/path/to/custom/config.yaml"
-        test_yaml_content = """
+    @pytest.fixture
+    def custom_site_config_yaml(self):
+        """Fixture providing custom site configuration YAML."""
+        return """
             sites:
               custom_site:
                 site_name: "custom"
@@ -48,26 +109,22 @@ class TestConfigManager:
                   - "//main"
         """
 
-        with patch("tapio.config.config_manager.open", mock_open(read_data=test_yaml_content)) as mock_file:
+    def test_init_custom_path(self, custom_site_config_yaml):
+        """Test initialization with custom config path."""
+        test_config_path = "/path/to/custom/config.yaml"
+
+        with patch("tapio.config.config_manager.open", mock_open(read_data=custom_site_config_yaml)) as mock_file:
             config_manager = ConfigManager(config_path=test_config_path)
             mock_file.assert_called_with(test_config_path, encoding="utf-8")
 
             # Test the loaded site data
             assert "custom_site" in config_manager.list_available_sites()
 
-    def test_from_file_class_method(self):
+    def test_from_file_class_method(self, basic_config_yaml):
         """Test the from_file class method."""
         test_config_path = "/path/to/custom/config.yaml"
-        test_yaml_content = """
-            sites:
-              test_site:
-                site_name: "test"
-                base_url: "https://example.com"
-                content_selectors:
-                  - "//main"
-        """
 
-        with patch("tapio.config.config_manager.open", mock_open(read_data=test_yaml_content)):
+        with patch("tapio.config.config_manager.open", mock_open(read_data=basic_config_yaml)):
             config_manager = ConfigManager.from_file(test_config_path)
             assert isinstance(config_manager, ConfigManager)
             assert "test_site" in config_manager.list_available_sites()
@@ -91,20 +148,11 @@ class TestConfigManager:
             with pytest.raises(ValidationError):
                 ConfigManager(config_path="invalid_structure.yaml")
 
-    def test_get_site_config(self):
+    def test_get_site_config(self, basic_config_yaml):
         """Test retrieving a specific site configuration."""
         with patch(
             "tapio.config.config_manager.open",
-            mock_open(
-                read_data="""
-                sites:
-                  test_site:
-                    site_name: "test"
-                    base_url: "https://example.com"
-                    content_selectors:
-                      - "//main"
-            """,
-            ),
+            mock_open(read_data=basic_config_yaml),
         ):
             config_manager = ConfigManager()
             site_config = config_manager.get_site_config("test_site")
@@ -113,66 +161,29 @@ class TestConfigManager:
             assert str(site_config.base_url) == "https://example.com/"
             assert "//main" in site_config.content_selectors
 
-    def test_get_nonexistent_site_config(self):
+    def test_get_nonexistent_site_config(self, basic_config_yaml):
         """Test retrieving a non-existent site configuration."""
         with patch(
             "tapio.config.config_manager.open",
-            mock_open(
-                read_data="""
-                sites:
-                  test_site:
-                    site_name: "test"
-                    base_url: "https://example.com"
-                    content_selectors:
-                      - "//main"
-            """,
-            ),
+            mock_open(read_data=basic_config_yaml),
         ):
             config_manager = ConfigManager()
             with pytest.raises(ValueError, match="Site 'nonexistent' not found in configuration"):
                 config_manager.get_site_config("nonexistent")
 
-    def test_get_site_with_invalid_url(self):
+    def test_get_site_with_invalid_url(self, invalid_url_config_yaml):
         """Test retrieving site configuration with invalid base_url."""
         with patch(
             "tapio.config.config_manager.open",
-            mock_open(
-                read_data="""
-                sites:
-                  invalid_url_site:
-                    site_name: "invalid"
-                    base_url: "invalid-url"
-                    content_selectors:
-                      - "//main"
-            """,
-            ),
+            mock_open(read_data=invalid_url_config_yaml),
         ):
             # Now the validation happens at model creation time via Pydantic
             with pytest.raises(ValidationError):
                 _ = ConfigManager()
 
-    def test_list_available_sites(self):
+    def test_list_available_sites(self, multi_site_config_yaml):
         """Test listing all available site configurations."""
-        test_config = """
-            sites:
-              site1:
-                site_name: "Site 1"
-                base_url: "https://site1.com"
-                content_selectors:
-                  - "//main"
-              site2:
-                site_name: "Site 2"
-                base_url: "https://site2.com"
-                content_selectors:
-                  - "//main"
-              site3:
-                site_name: "Site 3"
-                base_url: "https://site3.com"
-                content_selectors:
-                  - "//main"
-        """
-
-        with patch("tapio.config.config_manager.open", mock_open(read_data=test_config)):
+        with patch("tapio.config.config_manager.open", mock_open(read_data=multi_site_config_yaml)):
             config_manager = ConfigManager()
             available_sites = config_manager.list_available_sites()
             assert len(available_sites) == 3
@@ -180,30 +191,9 @@ class TestConfigManager:
             assert "site2" in available_sites
             assert "site3" in available_sites
 
-    def test_get_site_descriptions(self):
+    def test_get_site_descriptions(self, site_with_descriptions_yaml):
         """Test getting descriptions for all site configurations."""
-        test_config = """
-            sites:
-              site1:
-                site_name: "Site 1"
-                base_url: "https://site1.com"
-                content_selectors:
-                  - "//main"
-                description: "First site description"
-              site2:
-                site_name: "Site 2"
-                base_url: "https://site2.com"
-                content_selectors:
-                  - "//main"
-                description: "Second site description"
-              site3:
-                site_name: "Site 3"
-                base_url: "https://site3.com"
-                content_selectors:
-                  - "//main"
-        """
-
-        with patch("tapio.config.config_manager.open", mock_open(read_data=test_config)):
+        with patch("tapio.config.config_manager.open", mock_open(read_data=site_with_descriptions_yaml)):
             config_manager = ConfigManager()
             site_descriptions = config_manager.get_site_descriptions()
 
