@@ -31,7 +31,7 @@ When you run the `parse` command with just the `--site` parameter (e.g., `uv run
 - Saves raw HTML content with domain-based organization
 - Parses HTML content into structured Markdown files
 - Vectorizes parsed content into ChromaDB for semantic search
-- Provides a Gradio-based RAG chatbot interface for querying content
+- Provides a Tapio RAG chatbot interface for querying content
 - Integrates with Ollama for local LLM inference
 - Clean separation between crawling, parsing, vectorization, and querying
 - Domain restriction and crawl depth control
@@ -136,7 +136,7 @@ uv run -m tapio.cli vectorize
 
 4. **Launch the RAG Chatbot** to interactively query the content:
 ```bash
-uv run -m tapio.cli gradio-app
+uv run -m tapio.cli tapio-app
 ```
 
 ### RAG Chatbot Options
@@ -148,15 +148,15 @@ The RAG chatbot allows you to query information from your vectorized content usi
 uv run -m tapio.cli dev
 
 # Long form - launch with default settings
-uv run -m tapio.cli gradio-app
+uv run -m tapio.cli tapio-app
 
 # Use a specific Ollama model
-uv run -m tapio.cli gradio-app --model-name llama3.2:latest
+uv run -m tapio.cli tapio-app --model-name llama3.2:latest
 
 # (The collection name is now set to the default from settings)
 
 # Create a shareable link for the app
-uv run -m tapio.cli gradio-app --share
+uv run -m tapio.cli tapio-app --share
 ```
 
 ### Parameters and Options
@@ -171,7 +171,7 @@ Available commands:
 - `crawl`: Crawl websites using site configurations and save HTML content
 - `parse`: Parse HTML files into structured Markdown (simplified command, requires only `--site` parameter)
 - `vectorize`: Vectorize parsed Markdown into ChromaDB (simplified command, uses defaults for directories and collection name)
-- `gradio-app`: Launch the Gradio RAG chatbot interface (simplified command, uses defaults for collection name and database directory)
+- `tapio-app`: Launch the Tapio RAG chatbot interface (simplified command, uses defaults for collection name and database directory)
 - `info`: Show information about available commands
 
 To view available site configurations for parsing:
@@ -215,7 +215,7 @@ This will automatically:
 uv run -m tapio.cli vectorize
 
 # Launch the chatbot
-uv run -m tapio.cli gradio-app
+uv run -m tapio.cli tapio-app
 ```
 
 ## Site Configurations

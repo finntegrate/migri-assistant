@@ -334,14 +334,14 @@ def info(
     typer.echo("  crawl      - Crawl websites and save HTML content")
     typer.echo("  parse      - Parse HTML files and convert to structured Markdown")
     typer.echo("  vectorize  - Vectorize parsed Markdown files and store in ChromaDB")
-    typer.echo("  gradio_app - Launch the Gradio web interface for querying with the RAG chatbot")
+    typer.echo("  tapio_app  - Launch the Tapio web interface for querying with the RAG chatbot")
     typer.echo("  info       - Show this information")
     typer.echo("  dev        - Launch the development server for the Tapio Assistant chatbot")
     typer.echo("\nRun a command with --help for more information")
 
 
 @app.command()
-def gradio_app(
+def tapio_app(
     model_name: str = typer.Option(
         "llama3.2",
         "--model-name",
@@ -360,9 +360,10 @@ def gradio_app(
         help="Create a shareable link for the app",
     ),
 ) -> None:
-    """Launch the Gradio web interface for RAG-powered chatbot."""
+    """Launch the Tapio web interface for RAG-powered chatbot."""
     try:
         # Import the main function from the gradio_app module
+        # TODO: Rename module from gradio_app to tapio_app in future PR
         from tapio.gradio_app import main as launch_gradio
 
         collection_name = DEFAULT_CHROMA_COLLECTION
@@ -396,8 +397,8 @@ def gradio_app(
 def dev() -> None:
     """Launch the development server for the Tapio Assistant chatbot."""
     typer.echo("🚀 Launching Tapio Assistant chatbot development server...")
-    # Call the gradio_app function with default settings
-    gradio_app(
+    # Call the tapio_app function with default settings
+    tapio_app(
         model_name="llama3.2",
         share=False,
     )
@@ -461,10 +462,10 @@ def list_sites(
         raise typer.Exit(code=1)
 
 
-def run_gradio_app() -> None:
-    """Entry point for the 'dev' command to launch the Gradio app with default settings."""
-    # This function calls the gradio_app command with default settings
-    gradio_app(
+def run_tapio_app() -> None:
+    """Entry point for the 'dev' command to launch the Tapio app with default settings."""
+    # This function calls the tapio_app command with default settings
+    tapio_app(
         model_name="llama3.2",
         share=False,
     )

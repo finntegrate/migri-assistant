@@ -421,10 +421,10 @@ class TestCli:
         assert "Error during vectorization: Test error" in result.stdout
 
     @patch("tapio.gradio_app.main")
-    def test_gradio_app_command(self, mock_launch_gradio, runner):
-        """Test the gradio-app command."""
+    def test_tapio_app_command(self, mock_launch_gradio, runner):
+        """Test the tapio-app command."""
         # Run the command
-        result = runner.invoke(app, ["gradio-app"])
+        result = runner.invoke(app, ["tapio-app"])
 
         # Check that the command ran successfully
         assert result.exit_code == 0
@@ -439,13 +439,13 @@ class TestCli:
         )
 
     @patch("tapio.gradio_app.main")
-    def test_gradio_app_command_with_options(self, mock_launch_gradio, runner):
-        """Test the gradio-app command with custom options."""
+    def test_tapio_app_command_with_options(self, mock_launch_gradio, runner):
+        """Test the tapio-app command with custom options."""
         # Run the command with options
         result = runner.invoke(
             app,
             [
-                "gradio-app",
+                "tapio-app",
                 "--model-name",
                 "llama3.2:latest",
                 "--max-tokens",
@@ -466,8 +466,8 @@ class TestCli:
             share=True,
         )
 
-    @patch("tapio.cli.gradio_app")
-    def test_dev_command(self, mock_gradio_app, runner):
+    @patch("tapio.cli.tapio_app")
+    def test_dev_command(self, mock_tapio_app, runner):
         """Test the dev command."""
         # Run the command
         result = runner.invoke(app, ["dev"])
@@ -475,8 +475,8 @@ class TestCli:
         # Check that the command ran successfully
         assert result.exit_code == 0
 
-        # Check that gradio_app was called correctly
-        mock_gradio_app.assert_called_once_with(
+        # Check that tapio_app was called correctly
+        mock_tapio_app.assert_called_once_with(
             model_name="llama3.2",
             share=False,
         )
