@@ -1,14 +1,31 @@
 # Tapio
 
-## Overview
 Tapio is a tool designed to extract, process, and query information from multiple websites, including Migri.fi (Finnish Immigration Service). It provides end-to-end RAG (Retrieval Augmented Gen### Site Configurations
 
-The parser uses site-specific configurations to extract content correctly from different websites. These configurations are defined in `tapio/config/site_configs.yaml`.
+- [Tapio](#tapio)
+  - [Key Demographics](#key-demographics)
+  - [Needs](#needs)
+  - [Features](#features)
+  - [Installation and Setup](#installation-and-setup)
+    - [Prerequisites](#prerequisites)
+    - [Setting up](#setting-up)
+    - [Configuration](#configuration)
+  - [Usage](#usage)
+    - [Running the Crawler, Parser, and Vectorizer](#running-the-crawler-parser-and-vectorizer)
+    - [RAG Chatbot Options](#rag-chatbot-options)
+    - [Parameters and Options](#parameters-and-options)
+  - [End-to-End Workflow Example: Migri Site](#end-to-end-workflow-example-migri-site)
+    - [1. Crawl the Migri Website](#1-crawl-the-migri-website)
+    - [2. Parse the Migri Content](#2-parse-the-migri-content)
+    - [3. Vectorize and Query](#3-vectorize-and-query)
+  - [Site Configurations](#site-configurations)
+    - [Configuration Structure](#configuration-structure)
+    - [Required and Optional Fields](#required-and-optional-fields)
+    - [Adding a New Site](#adding-a-new-site)
+  - [Global Configuration Settings](#global-configuration-settings)
+  - [Contributing](#contributing)
+  - [License](#license)
 
-When you run the `parse` command with just the `--site` parameter (e.g., `uv run -m tapio.cli parse --site migri`), the parser automatically:
-1. Determines the base directory from the site's configuration
-2. Processes only HTML files from that directory
-3. Applies the appropriate content selectors and markdown conversion rulestion) capabilities including web crawling, content parsing, vectorization, and an interactive chatbot interface.
 
 ##  Key Demographics
 
@@ -71,70 +88,41 @@ python setup_dirs.py
 ```
 This will create the necessary directories (`content/crawled` and `content/parsed`) for storing crawled and parsed content.
 
+### Configuration
+
+The parser uses site-specific configurations to extract content correctly from different websites. These configurations are defined in `tapio/config/site_configs.yaml`.
+
+When you run the `parse` command with just the `--site` parameter (e.g., `uv run -m tapio.cli parse --site migri`), the parser automatically:
+1. Determines the base directory from the site's configuration
+2. Processes only HTML files from that directory
+3. Applies the appropriate content selectors and markdown conversion rulestion) capabilities including web crawling, content parsing, vectorization, and an interactive chatbot interface.
+
 ## Usage
 
 ### Running the Crawler, Parser, and Vectorizer
 
 The tool follows a three-step process to crawl, parse, and vectorize content:
 
-1. **Crawl** a website to retrieve and save HTML content:
+**Crawl** a website to retrieve and save HTML content:
+
 Migri example:
 ```bash
 uv run -m tapio.cli crawl migri --depth 2
 ```
 
-Kela example:
-```bash
-uv run -m tapio.cli crawl kela --depth 2
-```
-
-1. **Parse** the HTML content into structured Markdown:
+**Parse** the HTML content into structured Markdown:
 
 ```bash
 uv run -m tapio.cli parse --site migri
 ```
 
-The `--site` parameter specifies which site configuration to use. This is the only required parameter, and the parser will automatically:
-- Process all files located in the domain directory defined by the site's configuration
-- Apply site-specific selectors to extract the relevant content
-- Convert relative links to absolute URLs using the site's base URL
-- Format the content according to the site's markdown configuration
 
-#### Site-Specific Parsing
-
-Each site configuration defines:
-- The domain directory to process (e.g., `migri.fi`)
-- The base URL for link conversions (e.g., `https://migri.fi`)
-- Selectors for extracting titles and content
-- HTML-to-Markdown conversion preferences
-
-For example, to parse content from different sites:
-
-```bash
-# Parse the Finnish Immigration Service (Migri) site
-uv run -m tapio.cli parse --site migri
-
-# Parse the TE Services site
-uv run -m tapio.cli parse --site te_palvelut
-
-# Parse the Kela site
-uv run -m tapio.cli parse --site kela
-```
-
-The parse command has been simplified to require only the site parameter. Additional options such as `--domain` and `--config` are available but not required for most use cases.
-
-Available sites include any defined in the parser configurations (`site_configs.yaml`). To see all available site configurations:
-
-```bash
-uv run -m tapio.cli info --list-site-configs
-```
-
-3. **Vectorize** the parsed Markdown content into ChromaDB for semantic search:
+**Vectorize** the parsed Markdown content into ChromaDB for semantic search:
 ```bash
 uv run -m tapio.cli vectorize
 ```
 
-4. **Launch the RAG Chatbot** to interactively query the content:
+**Launch the RAG Chatbot** to interactively query the content:
 ```bash
 uv run -m tapio.cli tapio-app
 ```
