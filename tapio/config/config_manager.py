@@ -83,13 +83,7 @@ class ConfigManager:
         if site not in self._config_registry.sites:
             raise ValueError(f"Site '{site}' not found in configuration")
 
-        config = self._config_registry.sites[site]
-
-        # Validate required fields
-        if not config.base_url or not config.base_url.startswith(("http://", "https://")):
-            raise ValueError(f"Invalid base_url in configuration for site '{site}': {config.base_url}")
-
-        return config
+        return self._config_registry.sites[site]
 
     def list_available_sites(self) -> list[str]:
         """

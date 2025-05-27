@@ -8,7 +8,7 @@ conversion settings.
 from typing import Any
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class HtmlToMarkdownConfig(BaseModel):
@@ -46,6 +46,28 @@ class SiteParserConfig(BaseModel):
     fallback_to_body: bool = True
     description: str | None = None
     markdown_config: HtmlToMarkdownConfig = Field(default_factory=HtmlToMarkdownConfig)
+
+    @field_validator("base_url")
+    @classmethod
+    def validate_base_url(cls, v: str) -> str:
+        """Validate that base_url is a properly formatted URL.
+
+        Args:
+            v: URL value to validate
+
+        Returns:
+            The validated URL
+
+        Raises:
+            ValueError: If the URL is not valid (missing or has invalid scheme/netloc)
+        """
+        if not v:
+            raise ValueError("base_url cannot be empty")
+
+        parsed = urlparse(v)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise ValueError(f"Invalid URL: {v}. Must be a valid http or https URL with a domain name.")
+        return v
 
     @property
     def base_dir(self) -> str:

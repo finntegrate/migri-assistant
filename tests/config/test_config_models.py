@@ -82,36 +82,33 @@ class TestSiteParserConfigBaseDir:
 
     def test_empty_base_url(self):
         """Test base_dir with empty base_url."""
-        config = SiteParserConfig(
-            site_name="test",
-            base_url="",  # Empty string
-            content_selectors=['//div[@id="main"]'],
-        )
-        # Should raise ValueError when accessing base_dir
-        with pytest.raises(ValueError, match=r"Invalid base_url: ''"):
-            _ = config.base_dir
+        # Now validation happens at initialization time
+        with pytest.raises(ValueError, match=r"base_url cannot be empty"):
+            _ = SiteParserConfig(
+                site_name="test",
+                base_url="",  # Empty string
+                content_selectors=['//div[@id="main"]'],
+            )
 
     def test_invalid_url_scheme(self):
         """Test base_dir with invalid URL scheme."""
-        config = SiteParserConfig(
-            site_name="test",
-            base_url="invalid-url",  # No scheme
-            content_selectors=['//div[@id="main"]'],
-        )
-        # Should fail because the URL has no hostname
-        with pytest.raises(ValueError, match=r"Invalid base_url: 'invalid-url'"):
-            _ = config.base_dir
+        # Now validation happens at initialization time
+        with pytest.raises(ValueError, match=r"Invalid URL: invalid-url"):
+            _ = SiteParserConfig(
+                site_name="test",
+                base_url="invalid-url",  # No scheme
+                content_selectors=['//div[@id="main"]'],
+            )
 
     def test_file_url(self):
         """Test base_dir with file URL."""
-        config = SiteParserConfig(
-            site_name="test",
-            base_url="file:///path/to/file.html",
-            content_selectors=['//div[@id="main"]'],
-        )
-        # file URLs don't have a hostname, so this should raise an error
-        with pytest.raises(ValueError):
-            _ = config.base_dir
+        # Now validation happens at initialization time
+        with pytest.raises(ValueError, match=r"Invalid URL: file:///path/to/file.html"):
+            _ = SiteParserConfig(
+                site_name="test",
+                base_url="file:///path/to/file.html",
+                content_selectors=['//div[@id="main"]'],
+            )
 
 
 class TestSiteParserConfig:

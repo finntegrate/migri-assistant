@@ -138,9 +138,9 @@ class TestConfigManager:
             """,
             ),
         ):
-            config_manager = ConfigManager()
-            with pytest.raises(ValueError, match="Invalid base_url in configuration for site"):
-                config_manager.get_site_config("invalid_url_site")
+            # Now the validation happens at model creation time via Pydantic
+            with pytest.raises(ValidationError):
+                _ = ConfigManager()
 
     def test_list_available_sites(self):
         """Test listing all available site configurations."""
