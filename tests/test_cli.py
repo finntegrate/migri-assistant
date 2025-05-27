@@ -34,19 +34,26 @@ class TestCli:
         assert "info" in result.stdout
 
     @patch("tapio.cli.ScrapyRunner")
-    def test_crawl_command(self, mock_scrapy_runner, runner):
+    @patch("tapio.cli.Parser")
+    def test_crawl_command(self, mock_parser, mock_scrapy_runner, runner):
         """Test the crawl command."""
-        # Set up mock
+        # Set up mocks
         mock_runner_instance = MagicMock()
         mock_runner_instance.run.return_value = ["page1", "page2", "page3"]
         mock_scrapy_runner.return_value = mock_runner_instance
+
+        # Mock parser site config
+        mock_site_config = MagicMock()
+        mock_site_config.base_url = "https://example.com"
+        mock_parser.get_site_config.return_value = mock_site_config
+        mock_parser.list_available_site_configs.return_value = ["migri"]
 
         # Run the command
         result = runner.invoke(
             app,
             [
                 "crawl",
-                "https://example.com",
+                "migri",
                 "--depth",
                 "2",
                 "--output-dir",
@@ -57,14 +64,20 @@ class TestCli:
         # Check that the command ran successfully
         assert result.exit_code == 0
 
+        # Check that list_available_site_configs was called
+        mock_parser.list_available_site_configs.assert_called_once_with(None)
+
+        # Check that get_site_config was called with the correct site name
+        mock_parser.get_site_config.assert_called_once_with("migri", None)
+
         # Check that the runner was initialized correctly
         mock_scrapy_runner.assert_called_once()
 
         # Check that run was called with the correct arguments
         mock_runner_instance.run.assert_called_once_with(
-            start_urls=["https://example.com"],
+            start_urls=["https://example.com"],  # URL from site config
             depth=2,
-            allowed_domains=["example.com"],
+            allowed_domains=["example.com"],  # Domain extracted from URL
             output_dir="test_output",
         )
 
@@ -74,41 +87,71 @@ class TestCli:
         assert "Processed 3 pages" in result.stdout
 
     @patch("tapio.cli.ScrapyRunner")
-    def test_crawl_command_keyboard_interrupt(self, mock_scrapy_runner, runner):
+    @patch("tapio.cli.Parser")
+    def test_crawl_command_keyboard_interrupt(self, mock_parser, mock_scrapy_runner, runner):
         """Test handling of keyboard interrupt in crawl command."""
+        # Set up mock site configuration
+        mock_site_config = MagicMock()
+        mock_site_config.base_url = "https://example.com"
+        mock_parser.get_site_config.return_value = mock_site_config
+        mock_parser.list_available_site_configs.return_value = ["migri"]
+
         # Set up mock to raise KeyboardInterrupt
         mock_runner_instance = MagicMock()
         mock_runner_instance.run.side_effect = KeyboardInterrupt()
         mock_scrapy_runner.return_value = mock_runner_instance
 
         # Run the command
-        result = runner.invoke(app, ["crawl", "https://example.com"])
+        result = runner.invoke(app, ["crawl", "migri"])
 
         # Check that the command exited successfully (handled the interrupt)
         assert result.exit_code == 0
 
         # Check expected output in stdout
-        assert "Starting web crawler" in result.stdout
+        assert "Starting web crawler for migri" in result.stdout
         assert "Crawling interrupted by user" in result.stdout
         assert "Partial results have been saved" in result.stdout
 
     @patch("tapio.cli.ScrapyRunner")
-    def test_crawl_command_exception(self, mock_scrapy_runner, runner):
+    @patch("tapio.cli.Parser")
+    def test_crawl_command_exception(self, mock_parser, mock_scrapy_runner, runner):
         """Test handling of exceptions in crawl command."""
+        # Set up mock site configuration
+        mock_site_config = MagicMock()
+        mock_site_config.base_url = "https://example.com"
+        mock_parser.get_site_config.return_value = mock_site_config
+        mock_parser.list_available_site_configs.return_value = ["migri"]
+
         # Set up mock to raise an exception
         mock_runner_instance = MagicMock()
         mock_runner_instance.run.side_effect = Exception("Test error")
         mock_scrapy_runner.return_value = mock_runner_instance
 
         # Run the command
-        result = runner.invoke(app, ["crawl", "https://example.com"])
+        result = runner.invoke(app, ["crawl", "migri"])
 
         # Check that the command exited with error code
         assert result.exit_code == 1
 
         # Check expected output in stdout
-        assert "Starting web crawler" in result.stdout
+        assert "Starting web crawler for migri" in result.stdout
         assert "Error during crawling: Test error" in result.stdout
+
+    @patch("tapio.cli.Parser")
+    def test_crawl_command_invalid_site(self, mock_parser, runner):
+        """Test the crawl command with an invalid site name."""
+        # Mock the list_available_site_configs method to return only valid sites
+        mock_parser.list_available_site_configs.return_value = ["migri", "kela"]
+
+        # Run the command with an unsupported site
+        result = runner.invoke(app, ["crawl", "unsupported_site"])
+
+        # Check that the command exited with error code
+        assert result.exit_code == 1
+
+        # Check expected output in stdout
+        assert "Unsupported site: unsupported_site" in result.stdout
+        assert "Available sites: migri, kela" in result.stdout
 
     @patch("tapio.cli.Parser")
     def test_parse_command(self, mock_parser, runner):

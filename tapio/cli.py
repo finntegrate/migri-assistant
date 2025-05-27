@@ -27,18 +27,24 @@ app = typer.Typer(help="Tapio Assistant CLI - Web crawling and parsing tool")
 
 @app.command()
 def crawl(
-    url: str = typer.Argument(..., help="The URL to crawl content from"),
+    site: str = typer.Argument(..., help="Site configuration to use for crawling (e.g., 'migri')"),
     depth: int = typer.Option(
         1,
         "--depth",
         "-d",
         help="Maximum link-following depth (1 is just the provided URL)",
     ),
+    config_path: str | None = typer.Option(
+        None,
+        "--config",
+        "-c",
+        help="Path to custom parser configurations file",
+    ),
     allowed_domains: list[str] | None = typer.Option(
         None,
         "--domain",
         "-D",
-        help="Domains to restrict crawling to (defaults to URL's domain)",
+        help="Domains to restrict crawling to (defaults to site's domain)",
     ),
     output_dir: str = typer.Option(
         DEFAULT_DIRS["CRAWLED_DIR"],
@@ -56,21 +62,41 @@ def crawl(
     """
     Crawl a website to a configurable depth and save raw HTML content.
 
+    The crawler uses site configurations from the parser_configs.yaml file
+    and retrieves the base URL from the specified site configuration.
+
     The crawler is interruptible - press Ctrl+C to stop and save current progress.
 
     Example:
-        $ python -m tapio.cli crawl https://migri.fi -d 2 -o migri_content
+        $ python -m tapio.cli crawl migri -d 2 -o migri_content
     """
     # Set log level based on verbose flag
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+
+    # Check if the site is supported by listing available configurations
+    available_sites = Parser.list_available_site_configs(config_path)
+
+    if site not in available_sites:
+        typer.echo(f"❌ Unsupported site: {site}")
+        typer.echo(f"Available sites: {', '.join(available_sites)}")
+        raise typer.Exit(code=1)
+
+    # Get the site configuration
+    site_config = Parser.get_site_config(site, config_path)
+    if not site_config:
+        typer.echo(f"❌ Error: Site configuration found but could not be loaded: {site}")
+        raise typer.Exit(code=1)
+
+    # Get the base URL from the site configuration
+    url = site_config.base_url
 
     # Extract domain from URL if allowed_domains is not provided
     if allowed_domains is None:
         parsed_url = urlparse(url)
         allowed_domains = [parsed_url.netloc]
 
-    typer.echo(f"🕸️ Starting web crawler on {url} with depth {depth}")
+    typer.echo(f"🕸️ Starting web crawler for {site} ({url}) with depth {depth}")
     typer.echo(f"💾 Saving HTML content to: {output_dir}")
 
     try:
