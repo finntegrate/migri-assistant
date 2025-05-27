@@ -138,7 +138,7 @@ For detailed site configuration information:
 uv run -m tapio.cli list-sites --verbose
 ```
 
-The CLI provides comprehensive help text, default values, and option descriptions, eliminating the need to refer back to this documentation for command specifics.
+The CLI provides comprehensive help text, default values, and option descriptions, eliminating the need to reference this documentation for command specifics.
 
 ## Basic Workflow Example
 
