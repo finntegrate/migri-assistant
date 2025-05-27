@@ -6,7 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from tapio.cli import app
-from tapio.config.settings import DEFAULT_DIRS
+from tapio.config.settings import DEFAULT_CHROMA_COLLECTION, DEFAULT_DIRS
 
 
 @pytest.fixture
@@ -347,8 +347,6 @@ class TestCli:
             app,
             [
                 "vectorize",
-                "--collection",
-                "test_collection",
             ],
         )
 
@@ -357,7 +355,7 @@ class TestCli:
 
         # Check that the vectorizer was initialized correctly
         mock_vectorizer.assert_called_once_with(
-            collection_name="test_collection",
+            collection_name=DEFAULT_CHROMA_COLLECTION,
             persist_directory=DEFAULT_DIRS["CHROMA_DIR"],
             embedding_model_name="all-MiniLM-L6-v2",
             chunk_size=1000,

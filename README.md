@@ -131,7 +131,7 @@ uv run -m tapio.cli info --list-site-configs
 
 3. **Vectorize** the parsed Markdown content into ChromaDB for semantic search:
 ```bash
-uv run -m tapio.cli vectorize --collection migri_docs
+uv run -m tapio.cli vectorize
 ```
 
 4. **Launch the RAG Chatbot** to interactively query the content:
@@ -171,7 +171,7 @@ uv run -m tapio.cli <command> --help
 Available commands:
 - `crawl`: Crawl websites using site configurations and save HTML content
 - `parse`: Parse HTML files into structured Markdown (simplified command, requires only `--site` parameter)
-- `vectorize`: Vectorize parsed Markdown into ChromaDB (simplified command, uses defaults for input and output directories)
+- `vectorize`: Vectorize parsed Markdown into ChromaDB (simplified command, uses defaults for directories and collection name)
 - `gradio-app`: Launch the Gradio RAG chatbot interface
 - `info`: Show information about available commands
 
@@ -213,7 +213,7 @@ This will automatically:
 
 ```bash
 # Vectorize the content
-uv run -m tapio.cli vectorize --collection migri_docs
+uv run -m tapio.cli vectorize
 
 # Launch the chatbot
 uv run -m tapio.cli gradio-app --collection-name migri_docs

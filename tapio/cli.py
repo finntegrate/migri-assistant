@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 import typer
 
 from tapio.config import ConfigManager
-from tapio.config.settings import DEFAULT_DIRS
+from tapio.config.settings import DEFAULT_CHROMA_COLLECTION, DEFAULT_DIRS
 from tapio.crawler.runner import ScrapyRunner
 from tapio.parser import Parser
 from tapio.vectorstore.vectorizer import MarkdownVectorizer
@@ -210,12 +210,6 @@ def parse(
 
 @app.command()
 def vectorize(
-    collection_name: str = typer.Option(
-        "migri_docs",
-        "--collection",
-        "-c",
-        help="Name of the ChromaDB collection to create",
-    ),
     domain: str | None = typer.Option(
         None,
         "--domain",
@@ -248,7 +242,7 @@ def vectorize(
     and stores them in ChromaDB with associated metadata from the original source.
 
     Example:
-        $ python -m tapio.cli vectorize --collection migri_docs
+        $ python -m tapio.cli vectorize
     """
     # Set log level based on verbose flag
     if verbose:
@@ -256,10 +250,12 @@ def vectorize(
 
     input_dir = DEFAULT_DIRS["PARSED_DIR"]
     db_dir = DEFAULT_DIRS["CHROMA_DIR"]
+    collection_name = DEFAULT_CHROMA_COLLECTION
 
     typer.echo(f"🧠 Starting vectorization of parsed content from {input_dir}")
     typer.echo(f"💾 Vector database will be stored in: {db_dir}")
     typer.echo(f"🔤 Using embedding model: {embedding_model}")
+    typer.echo(f"📑 Using collection name: {collection_name}")
 
     try:
         # Initialize vectorizer
