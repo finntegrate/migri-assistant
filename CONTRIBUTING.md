@@ -176,7 +176,9 @@ The project has been designed with a clear separation of concerns:
 The application uses a centralized configuration system:
 
 - `config/settings.py`: Contains global configuration settings used across different components
-- `config/parser_configs.yaml`: Site-specific parser configurations
+- `config/site_configs.yaml`: Site-specific parser configurations
+- `config/config_models.py`: Pydantic models for configuration
+- `config/config_manager.py`: Central manager for accessing configurations
 
 When adding new features that require configuration values:
 

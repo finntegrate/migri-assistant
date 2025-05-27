@@ -9,12 +9,12 @@ from unittest.mock import MagicMock
 import pytest
 import yaml
 
-from tapio.parser import Parser
-from tapio.parser.config_models import (
+from tapio.config.config_models import (
     HtmlToMarkdownConfig,
     ParserConfigRegistry,
     SiteParserConfig,
 )
+from tapio.parser import Parser
 
 
 class TestParser(unittest.TestCase):

@@ -2,7 +2,7 @@
 
 import pytest
 
-from tapio.parser.config_models import HtmlToMarkdownConfig, SiteParserConfig
+from tapio.config.config_models import HtmlToMarkdownConfig, SiteParserConfig
 
 
 class TestSiteParserConfigBaseDir:

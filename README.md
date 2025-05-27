@@ -114,7 +114,7 @@ uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parse
 uv run -m tapio.cli parse --input-dir content/crawled --output-dir content/parsed --site kela
 ```
 
-Available sites include any defined in the parser configurations (`parser_configs.yaml`). To see all available site configurations:
+Available sites include any defined in the parser configurations (`site_configs.yaml`). To see all available site configurations:
 
 ```bash
 uv run -m tapio.cli info --list-site-configs
@@ -208,7 +208,7 @@ uv run -m tapio.cli gradio-app --collection-name migri_docs
 
 ## Site Configurations
 
-The parser uses site-specific configurations to extract content correctly from different websites. These configurations are defined in `tapio/config/parser_configs.yaml`.
+The parser uses site-specific configurations to extract content correctly from different websites. These configurations are defined in `tapio/config/site_configs.yaml`.
 
 ### Configuration Structure
 
@@ -258,7 +258,7 @@ To add support for a new website:
 
 1. Determine the site's structure by examining a few pages
 2. Identify the appropriate XPath selectors for title and main content
-3. Add a new entry to `parser_configs.yaml` with the required fields
+3. Add a new entry to `site_configs.yaml` with the required fields
 4. Use the unique site key with the parse command
 
 For example, to add support for a hypothetical "example.com":
