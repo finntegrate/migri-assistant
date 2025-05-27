@@ -127,18 +127,6 @@ def crawl(
 
 @app.command()
 def parse(
-    input_dir: str = typer.Option(
-        DEFAULT_DIRS["CRAWLED_DIR"],
-        "--input-dir",
-        "-i",
-        help="Directory containing HTML files to parse",
-    ),
-    output_dir: str = typer.Option(
-        DEFAULT_DIRS["PARSED_DIR"],
-        "--output-dir",
-        "-o",
-        help="Directory to save parsed content as Markdown files",
-    ),
     domain: str | None = typer.Option(
         None,
         "--domain",
@@ -174,16 +162,18 @@ def parse(
     HTML to Markdown for different website types.
 
     Examples:
-        $ python -m tapio.cli parse -s migri
-        $ python -m tapio.cli parse -s te_palvelut -d te-palvelut.fi
-        $ python -m tapio.cli parse -s kela -c custom_configs.yaml
+        $ python -m tapio.cli parse --site migri
+
+        # With optional parameters (rarely needed)
+        $ python -m tapio.cli parse --site te_palvelut --domain te-palvelut.fi
+        $ python -m tapio.cli parse --site kela --config custom_configs.yaml
     """
     # Set log level based on verbose flag
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    typer.echo(f"📝 Starting HTML parsing from {input_dir}")
-    typer.echo(f"📄 Saving parsed content to: {output_dir}")
+    typer.echo(f"📝 Starting HTML parsing from {DEFAULT_DIRS['CRAWLED_DIR']}")
+    typer.echo(f"📄 Saving parsed content to: {DEFAULT_DIRS['PARSED_DIR']}")
 
     try:
         # Use ConfigManager for site configuration management
@@ -194,8 +184,8 @@ def parse(
             typer.echo(f"🔧 Using configuration for site: {site}")
             parser = Parser(
                 site=site,
-                input_dir=input_dir,
-                output_dir=output_dir,
+                input_dir=DEFAULT_DIRS["CRAWLED_DIR"],
+                output_dir=DEFAULT_DIRS["PARSED_DIR"],
                 config_path=config_path,
             )
         else:
@@ -210,8 +200,8 @@ def parse(
         # Output information
         site_name = parser.config.site_name if hasattr(parser, "config") else parser.site_name
         typer.echo(f"✅ Parsing completed! Processed {len(results)} files.")
-        typer.echo(f"📝 Content saved as Markdown files in {output_dir}")
-        typer.echo(f"📝 Index created at {output_dir}/{site_name}/index.md")
+        typer.echo(f"📝 Content saved as Markdown files in {DEFAULT_DIRS['PARSED_DIR']}")
+        typer.echo(f"📝 Index created at {DEFAULT_DIRS['PARSED_DIR']}/{site_name}/index.md")
 
     except Exception as e:
         typer.echo(f"❌ Error during parsing: {str(e)}", err=True)

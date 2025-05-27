@@ -178,10 +178,6 @@ class TestCli:
             app,
             [
                 "parse",
-                "--input-dir",
-                "test_input",
-                "--output-dir",
-                "test_output",
                 "--site",
                 "migri",
             ],
@@ -193,8 +189,8 @@ class TestCli:
         # Check that the parser was initialized correctly
         mock_parser.assert_called_once_with(
             site="migri",
-            input_dir="test_input",
-            output_dir="test_output",
+            input_dir=DEFAULT_DIRS["CRAWLED_DIR"],
+            output_dir=DEFAULT_DIRS["PARSED_DIR"],
             config_path=None,
         )
 
