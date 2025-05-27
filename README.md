@@ -311,4 +311,4 @@ To modify these settings, edit the `settings.py` file. This ensures consistent p
 If you'd like to contribute to this project, please see our [Contributing Guide](CONTRIBUTING.md) for details on our code of conduct, development process, and how to submit pull requests.
 
 ## License
-This project is licensed under the Apache 2.0 License. See the LICENSE file for more details.
+This project is licensed under the European Union Public License version 1.2. See the LICENSE file for more details.
