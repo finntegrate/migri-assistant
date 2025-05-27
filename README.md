@@ -73,12 +73,12 @@ The tool follows a three-step process to crawl, parse, and vectorize content:
 1. **Crawl** a website to retrieve and save HTML content:
 Migri example:
 ```bash
-uv run -m tapio.cli crawl https://migri.fi/en/home --depth 2 --output-dir content/crawled
+uv run -m tapio.cli crawl migri --depth 2 --output-dir content/crawled
 ```
 
 Kela example:
 ```bash
-uv run -m tapio.cli crawl https://www.kela.fi/main-page --depth 2 --output-dir content/crawled
+uv run -m tapio.cli crawl kela --depth 2 --output-dir content/crawled
 ```
 
 1. **Parse** the HTML content into structured Markdown:
@@ -160,7 +160,7 @@ uv run -m tapio.cli <command> --help
 ```
 
 Available commands:
-- `crawl`: Crawl websites and save HTML content
+- `crawl`: Crawl websites using site configurations and save HTML content
 - `parse`: Parse HTML files into structured Markdown
 - `vectorize`: Vectorize parsed Markdown into ChromaDB
 - `gradio-app`: Launch the Gradio RAG chatbot interface
@@ -183,10 +183,10 @@ Here's a complete workflow for crawling, parsing, and querying the Finnish Immig
 ### 1. Crawl the Migri Website
 
 ```bash
-uv run -m tapio.cli crawl https://migri.fi/en/home --depth 2 --output-dir content/crawled
+uv run -m tapio.cli crawl migri --depth 2 --output-dir content/crawled
 ```
 
-This will save HTML files in `content/crawled/migri.fi/` and create a URL mappings file.
+This will use the Migri site configuration to determine the base URL, save HTML files in `content/crawled/migri.fi/`, and create a URL mappings file.
 
 ### 2. Parse the Migri Content
 

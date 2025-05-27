@@ -63,8 +63,8 @@ def crawl(
     """
     Crawl a website to a configurable depth and save raw HTML content.
 
-    The crawler uses site configurations from the parser_configs.yaml file
-    and retrieves the base URL from the specified site configuration.
+    This command takes a site identifier and uses the corresponding configuration
+    from the site_configs.yaml file to determine the base URL for crawling.
 
     The crawler is interruptible - press Ctrl+C to stop and save current progress.
 
