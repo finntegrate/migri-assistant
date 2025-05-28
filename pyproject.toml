@@ -60,6 +60,7 @@ line-ending = "auto"
 dev = [
     "mypy>=1.15.0",
     "pre-commit>=4.2.0",
+    "pyrefly>=0.17.0",
     "pytest>=8.3.5",
     "pytest-cov>=6.1.1",
     "types-lxml>=2025.3.30",
