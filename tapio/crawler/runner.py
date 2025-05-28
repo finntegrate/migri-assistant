@@ -35,6 +35,7 @@ class ScrapyRunner:
         """
         Initialize Scrapy runner with logging configuration.
         """
+        self.logger = logging.getLogger(__name__)
         self.setup_logging()
         self.results: list[dict[str, Any]] = []
 
@@ -47,7 +48,6 @@ class ScrapyRunner:
             format="%(asctime)s [%(levelname)s] %(message)s",
             handlers=[logging.StreamHandler()],
         )
-        self.logger = logging.getLogger(__name__)
 
     def _item_scraped(self, item: dict[str, Any], response: Any, spider: Any) -> None:
         """

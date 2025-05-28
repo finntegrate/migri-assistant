@@ -97,6 +97,7 @@ class Parser:
         self.output_dir = os.path.join(output_dir, self.site or "default")
 
         self.setup_logging()
+        self.logger = logging.getLogger(__name__)
 
         # Load URL mappings if available
         self.url_mappings: dict[str, dict[str, str]] = {}
@@ -105,7 +106,7 @@ class Parser:
         # Create output directory if it doesn't exist
         os.makedirs(self.output_dir, exist_ok=True)
 
-        logging.info(f"Initialized Parser for {self.site}")
+        self.logger.info(f"Initialized Parser for {self.site}")
 
     def setup_logging(self) -> None:
         """Set up logging configuration"""
@@ -114,7 +115,6 @@ class Parser:
             format="%(asctime)s [%(levelname)s] %(message)s",
             handlers=[logging.StreamHandler()],
         )
-        self.logger = logging.getLogger(__name__)
 
     def _load_url_mappings(self) -> None:
         """Load URL mappings from the JSON file"""
