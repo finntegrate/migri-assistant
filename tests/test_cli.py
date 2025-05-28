@@ -525,7 +525,6 @@ class TestCli:
 
         # Mock site config
         mock_site_config = MagicMock()
-        mock_site_config.site_name = "migri"
         mock_site_config.description = "Finnish Immigration Service"
         mock_site_config.title_selector = "h1"
         mock_site_config.content_selectors = ["main", "article"]
@@ -548,7 +547,6 @@ class TestCli:
 
         # Check expected output in stdout
         assert "Available Site Configurations:" in result.stdout
-        assert "Site name: migri" in result.stdout
         assert "Description: Finnish Immigration Service" in result.stdout
         assert "Title selector: h1" in result.stdout
         assert "Content selectors:" in result.stdout

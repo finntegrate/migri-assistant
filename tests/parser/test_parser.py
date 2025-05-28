@@ -81,7 +81,6 @@ class TestParser(unittest.TestCase):
         self.test_config = {
             "sites": {
                 "example": {
-                    "site_name": "example",
                     "base_url": f"https://{self.domain}",
                     "base_dir": self.domain,
                     "title_selector": "//title",
@@ -95,7 +94,6 @@ class TestParser(unittest.TestCase):
                     "markdown_config": {"ignore_links": False, "body_width": 0},
                 },
                 "no_fallback": {
-                    "site_name": "no_fallback",
                     "base_url": f"https://{self.domain}",
                     "base_dir": self.domain,
                     "title_selector": "//h1",
@@ -130,10 +128,8 @@ class TestParser(unittest.TestCase):
         self.assertEqual(self.parser.site, "example")
         self.assertEqual(self.parser.input_dir, self.input_dir)
         self.assertEqual(self.parser.output_dir, os.path.join(self.output_dir, "example"))
-        self.assertEqual(self.parser.site_name, "example")
 
         # Test config loaded correctly
-        self.assertEqual(self.parser.config.site_name, "example")
         self.assertEqual(self.parser.config.title_selector, "//title")
         self.assertEqual(len(self.parser.config.content_selectors), 3)
         self.assertTrue(self.parser.config.fallback_to_body)
@@ -263,7 +259,6 @@ class TestParser(unittest.TestCase):
         config = Parser.get_site_config("example", self.config_path)
         self.assertIsNotNone(config)
         if config:  # Check if config is not None before accessing attributes
-            self.assertEqual(config.site_name, "example")
             self.assertEqual(config.description, "Example Website for Testing")
 
         # Test getting non-existent site config

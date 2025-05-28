@@ -171,7 +171,6 @@ Each site configuration includes:
 ```yaml
 sites:
   migri:                                    # Site key used with --site
-    site_name: "migri"                      # Name for output directories and logs
     base_url: "https://migri.fi"            # Base URL for converting relative links (optional, default: "https://example.com")
                                             # The base directory is automatically derived from this URL (e.g., "migri.fi")
     title_selector: "//title"               # XPath selector for page title
