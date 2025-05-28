@@ -118,11 +118,9 @@ class TestSiteParserConfig:
     def test_default_values(self):
         """Test default values for SiteParserConfig."""
         config = SiteParserConfig(
-            site_name="test",
             base_url=HttpUrl("https://example.com"),
             content_selectors=['//div[@id="main"]'],
         )
-        assert config.site_name == "test"
         assert str(config.base_url) == "https://example.com/"
         assert config.title_selector == "//title"
         assert config.fallback_to_body is True
@@ -219,7 +217,6 @@ class TestParserConfigRegistry:
         config_data = {
             "sites": {
                 "test": {
-                    "site_name": "test",
                     "base_url": "https://example.com",
                     "content_selectors": ["//div"],
                 },
@@ -227,7 +224,6 @@ class TestParserConfigRegistry:
         }
         registry = ParserConfigRegistry.model_validate(config_data)
         assert "test" in registry.sites
-        assert registry.sites["test"].site_name == "test"
         assert str(registry.sites["test"].base_url) == "https://example.com/"
 
         # Invalid config (missing required fields)

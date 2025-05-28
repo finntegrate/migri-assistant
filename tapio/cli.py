@@ -198,10 +198,9 @@ def parse(
         results = parser.parse_all()
 
         # Output information
-        site_name = parser.config.site_name if hasattr(parser, "config") else parser.site_name
         typer.echo(f"✅ Parsing completed! Processed {len(results)} files.")
         typer.echo(f"📝 Content saved as Markdown files in {DEFAULT_DIRS['PARSED_DIR']}")
-        typer.echo(f"📝 Index created at {DEFAULT_DIRS['PARSED_DIR']}/{site_name}/index.md")
+        typer.echo(f"📝 Index created at {DEFAULT_DIRS['PARSED_DIR']}/{parser.site}/index.md")
 
     except Exception as e:
         typer.echo(f"❌ Error during parsing: {str(e)}", err=True)
@@ -316,7 +315,6 @@ def info(
         try:
             config = config_manager.get_site_config(show_site_config)
             typer.echo(f"Configuration for site: {show_site_config}")
-            typer.echo(f"  Site name: {config.site_name}")
             typer.echo(f"  Base URL: {config.base_url}")
             typer.echo(f"  Base directory: {config.base_dir}")
             typer.echo(f"  Description: {config.description}")
@@ -438,7 +436,6 @@ def list_sites(
                     # Get detailed configuration for the site
                     site_config = config_manager.get_site_config(site_name)
                     typer.echo(f"\n📄 {site_name}:")
-                    typer.echo(f"  Site name: {site_config.site_name}")
                     typer.echo(f"  Description: {site_config.description or 'No description'}")
                     typer.echo(f"  Title selector: {site_config.title_selector}")
                     typer.echo("  Content selectors:")

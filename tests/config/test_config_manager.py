@@ -157,7 +157,6 @@ class TestConfigManager:
             config_manager = ConfigManager()
             site_config = config_manager.get_site_config("test_site")
             assert isinstance(site_config, SiteParserConfig)
-            assert site_config.site_name == "test"
             assert str(site_config.base_url) == "https://example.com/"
             assert "//main" in site_config.content_selectors
 

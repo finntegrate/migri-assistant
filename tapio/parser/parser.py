@@ -94,8 +94,8 @@ class Parser:
         self.current_base_url: str | None = None  # Will store the base URL of the current document
 
         self.input_dir = input_dir
-        self.output_dir = os.path.join(output_dir, self.config.site_name or "default")
-        self.site_name = self.config.site_name
+        self.output_dir = os.path.join(output_dir, self.site or "default")
+
         self.setup_logging()
 
         # Load URL mappings if available
@@ -105,7 +105,7 @@ class Parser:
         # Create output directory if it doesn't exist
         os.makedirs(self.output_dir, exist_ok=True)
 
-        logging.info(f"Initialized Parser for {self.config.site_name}")
+        logging.info(f"Initialized Parser for {self.site}")
 
     def setup_logging(self) -> None:
         """Set up logging configuration"""
@@ -735,7 +735,7 @@ class Parser:
         index_path = os.path.join(self.output_dir, "index.md")
 
         with open(index_path, "w", encoding="utf-8") as f:
-            f.write(f"# {self.site_name or 'Site'} Parsed Content Index\n\n")
+            f.write(f"# {self.site or 'Site'} Parsed Content Index\n\n")
             f.write(f"Total pages parsed: {len(results)}\n\n")
             f.write("| Title | Source File | Output File |\n")
             f.write("|-------|-------------|-------------|\n")
