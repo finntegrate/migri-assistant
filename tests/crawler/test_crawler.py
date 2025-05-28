@@ -106,18 +106,28 @@ class TestBaseCrawler(unittest.TestCase):
         mock_response.text = "<html><body><h1>Test Page</h1></body></html>"
         mock_response.headers.get.return_value = b"text/html; charset=utf-8"
         mock_response.css.return_value.getall.return_value = ["/page1", "/page2"]
+        mock_response.meta = {"depth": 0}  # Add depth to meta
+        mock_response.cb_kwargs = {}  # Add empty cb_kwargs
 
         # Mock the save_html_content method
         crawler._save_html_content = MagicMock()
 
-        # Call parse
-        result = next(crawler.parse(mock_response, current_depth=0))
+        # Call parse (no longer need to pass current_depth parameter)
+        results = list(crawler.parse(mock_response))
 
-        # Verify the result
-        self.assertEqual(result["url"], "https://example.com/test")
-        self.assertEqual(result["html"], mock_response.text)
-        self.assertEqual(result["depth"], 0)
-        self.assertTrue("crawl_timestamp" in result)
+        # Should have one CrawlResult and potentially some Request objects
+        self.assertGreaterEqual(len(results), 1)
+
+        # First result should be the CrawlResult
+        result = results[0]
+        self.assertIsInstance(result, dict)  # CrawlResult is a dict
+
+        # Verify the result (type narrowing for mypy)
+        if isinstance(result, dict):
+            self.assertEqual(result["url"], "https://example.com/test")
+            self.assertEqual(result["html"], mock_response.text)
+            self.assertEqual(result["depth"], 0)
+            self.assertTrue("crawl_timestamp" in result)
 
         # Verify save_html_content was called
         crawler._save_html_content.assert_called_once_with(
@@ -172,7 +182,13 @@ class TestBaseCrawler(unittest.TestCase):
         )
 
         # Setup test data
-        crawler.url_mappings = {"test": "data"}
+        crawler.url_mappings = {
+            "test.html": {
+                "url": "https://example.com/test",
+                "timestamp": "2023-01-01T00:00:00",
+                "content_type": "text/html",
+            },
+        }
 
         # Test exception handling
         with (
@@ -379,7 +395,7 @@ class TestBaseCrawler(unittest.TestCase):
         self.assertIn("https://example.com", urls)
         self.assertIn("https://test.com", urls)
 
-        # Check callback and kwargs
+        # Check callback and meta depth
         for request in requests:
             self.assertEqual(request.callback, crawler.parse)
-            self.assertEqual(request.cb_kwargs, {"current_depth": 0})
+            self.assertEqual(request.meta, {"depth": 0})

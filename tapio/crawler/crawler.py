@@ -157,23 +157,23 @@ class BaseCrawler(Spider):
             Scrapy Request objects for each starting URL.
         """
         for url in self.start_urls:
-            yield Request(url=url, callback=self.parse, cb_kwargs={"current_depth": 0})
+            yield Request(url=url, callback=self.parse, meta={"depth": 0})
 
-    def parse(
-        self,
-        response: Response,
-        current_depth: int = 0,
-    ) -> Generator[CrawlResult | Request, None, None]:
+    def parse(self, response: Response) -> Generator[CrawlResult | Request, None, None]:
         """
         Parse a web page, yield its content, and follow links up to the specified depth.
 
         Args:
             response: The HTTP response from Scrapy.
-            current_depth: Current crawling depth (distance from start URLs).
 
         Yields:
             Either a CrawlResult dict with page data or a Request object for the next URLs to crawl.
         """
+        # Get current depth from request meta (Scrapy's built-in depth tracking)
+        # or from cb_kwargs if passed via response.follow()
+        current_depth = getattr(response, "cb_kwargs", {}).get("current_depth")
+        if current_depth is None:
+            current_depth = response.meta.get("depth", 0)
         url = response.url
         if url in self.visited_urls:
             return  # Avoid processing the same URL multiple times
@@ -223,7 +223,7 @@ class BaseCrawler(Spider):
                     yield response.follow(
                         href,
                         callback=self.parse,
-                        cb_kwargs={"current_depth": current_depth + 1},
+                        meta={"depth": current_depth + 1},
                         errback=self.errback_handler,
                     )
         except Exception as e:
