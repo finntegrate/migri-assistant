@@ -26,6 +26,26 @@ class HtmlToMarkdownConfig(BaseModel):
     ignore_tables: bool = False  # Include tables
 
 
+class CrawlerConfig(BaseModel):
+    """Configuration settings for web crawling behavior.
+
+    Defines crawler-specific settings such as rate limiting, concurrency limits,
+    and other behavioral parameters to prevent overwhelming target servers.
+    """
+
+    delay_between_requests: float = Field(
+        default=1.0,
+        ge=0.0,
+        description="Delay between requests in seconds to avoid rate limiting",
+    )
+    max_concurrent: int = Field(
+        default=5,
+        ge=1,
+        le=50,
+        description="Maximum number of concurrent requests",
+    )
+
+
 class SiteParserConfig(BaseModel):
     """Configuration for site-specific HTML parsing.
 
@@ -45,6 +65,7 @@ class SiteParserConfig(BaseModel):
     fallback_to_body: bool = True
     description: str | None = None
     markdown_config: HtmlToMarkdownConfig = Field(default_factory=HtmlToMarkdownConfig)
+    crawler_config: CrawlerConfig = Field(default_factory=CrawlerConfig)
 
     @property
     def base_dir(self) -> str:

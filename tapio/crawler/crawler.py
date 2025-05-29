@@ -1,17 +1,13 @@
+import asyncio
 import json
 import logging
 import os
-import signal
-from collections.abc import Generator
 from datetime import datetime
-from typing import Any, TypedDict
-from urllib.parse import urlparse
+from typing import TypedDict
+from urllib.parse import urljoin, urlparse
 
-from scrapy import Spider, signals
-from scrapy.crawler import Crawler
-from scrapy.http.request import Request
-from scrapy.http.response import Response
-from twisted.python.failure import Failure
+import httpx
+from bs4 import BeautifulSoup
 
 from tapio.config.settings import DEFAULT_DIRS
 
@@ -34,52 +30,13 @@ class CrawlResult(TypedDict):
     content_type: str
 
 
-class BaseCrawler(Spider):
+class BaseCrawler:
     """
-    Base crawler spider implementation for web scraping.
+    Base crawler implementation for web scraping using httpx and BeautifulSoup.
 
     This crawler is responsible for fetching web pages, storing their content,
-    and following links up to a specified depth.
+    and following links up to a specified depth using async/await patterns.
     """
-
-    name = "base_crawler"  # Changed from web_spider
-
-    @classmethod
-    def from_crawler(cls, crawler: Crawler, *args: Any, **kwargs: Any) -> "BaseCrawler":
-        """
-        Connect signals and initialize the spider.
-
-        Args:
-            crawler: The Scrapy crawler instance.
-            *args: Additional positional arguments for the spider.
-            **kwargs: Additional keyword arguments for the spider.
-
-        Returns:
-            An initialized BaseCrawler instance.
-        """
-        spider = super().from_crawler(crawler, *args, **kwargs)
-        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
-
-        # Add a better SIGINT handling without directly using crawler.engine
-        def sigint_handler(signum: int, frame: Any) -> None:
-            """
-            Handle SIGINT (Ctrl+C) gracefully.
-
-            Args:
-                signum: Signal number.
-                frame: Current stack frame.
-            """
-            logging.info("Interrupted by Ctrl+C. Shutting down gracefully...")
-            # Use reactor to stop instead of trying to close the spider directly
-            from twisted.internet import reactor
-
-            if reactor.running:  # type: ignore[attr-defined]
-                reactor.callFromThread(reactor.stop)  # type: ignore[attr-defined]
-
-        # Register signal handler
-        signal.signal(signal.SIGINT, sigint_handler)
-
-        return spider
 
     def __init__(
         self,
@@ -87,8 +44,9 @@ class BaseCrawler(Spider):
         allowed_domains: list[str] | None = None,
         depth: int = 1,
         output_dir: str = DEFAULT_DIRS["CRAWLED_DIR"],
-        *args: Any,
-        **kwargs: Any,
+        timeout: int = 30,
+        max_concurrent: int = 10,
+        delay_between_requests: float = 1.0,
     ) -> None:
         """
         Initialize the crawler with configuration parameters.
@@ -99,10 +57,10 @@ class BaseCrawler(Spider):
                 If None, domains are extracted from start_urls.
             depth: How many links deep to follow from the starting URLs.
             output_dir: Directory to save crawled HTML files.
-            *args: Additional positional arguments for the Spider class.
-            **kwargs: Additional keyword arguments for the Spider class.
+            timeout: HTTP request timeout in seconds.
+            max_concurrent: Maximum number of concurrent requests.
+            delay_between_requests: Delay in seconds between requests to avoid rate limiting.
         """
-        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         # Convert single URL to list if needed
         if isinstance(start_urls, str):
             self.start_urls = [start_urls]
@@ -121,11 +79,14 @@ class BaseCrawler(Spider):
 
         self.max_depth = int(depth)
         self.output_dir = output_dir
+        self.timeout = timeout
+        self.max_concurrent = max_concurrent
+        self.delay_between_requests = delay_between_requests
 
         # Create output directory if it doesn't exist
         os.makedirs(self.output_dir, exist_ok=True)
 
-        # Track visited URLs
+        # Track visited URLs to avoid duplicates
         self.visited_urls: set[str] = set()
 
         # URL mapping dictionary to store file path -> original URL mappings
@@ -133,6 +94,9 @@ class BaseCrawler(Spider):
 
         # Path for the URL mapping file
         self.mapping_file = os.path.join(self.output_dir, "url_mappings.json")
+
+        # Semaphore will be created in async context
+        self._semaphore: asyncio.Semaphore | None = None
 
         # Load existing mappings if they exist
         if os.path.exists(self.mapping_file):
@@ -149,85 +113,153 @@ class BaseCrawler(Spider):
         logging.info(f"Allowed domains: {self.allowed_domains}")
         logging.info(f"Output directory: {self.output_dir}")
 
-    def start_requests(self) -> Generator[Request, None, None]:
-        """
-        Start the crawling process with the provided URLs.
+    @property
+    def semaphore(self) -> asyncio.Semaphore:
+        """Get or create the semaphore for concurrent request limiting."""
+        if self._semaphore is None:
+            self._semaphore = asyncio.Semaphore(self.max_concurrent)
+        return self._semaphore
 
-        Yields:
-            Scrapy Request objects for each starting URL.
+    async def crawl(self) -> list[CrawlResult]:
         """
-        for url in self.start_urls:
-            yield Request(url=url, callback=self.parse, meta={"depth": 0})
+        Start the crawling process and return the results.
 
-    def parse(self, response: Response) -> Generator[CrawlResult | Request, None, None]:
+        Returns:
+            List of CrawlResult dictionaries containing page data.
         """
-        Parse a web page, yield its content, and follow links up to the specified depth.
+        results: list[CrawlResult] = []
+
+        # Use a timeout for the entire client session
+        timeout = httpx.Timeout(self.timeout)
+
+        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+            # Create initial tasks for all starting URLs
+            tasks = [self._crawl_url(client, url, 0, results) for url in self.start_urls]
+
+            # Process all tasks
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Save final URL mappings
+        self._save_url_mappings()
+        logging.info(f"Crawling completed. Processed {len(results)} pages.")
+
+        return results
+
+    async def _crawl_url(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        current_depth: int,
+        results: list[CrawlResult],
+    ) -> None:
+        """
+        Crawl a single URL and recursively crawl linked pages.
 
         Args:
-            response: The HTTP response from Scrapy.
-
-        Yields:
-            Either a CrawlResult dict with page data or a Request object for the next URLs to crawl.
+            client: httpx async client for making requests.
+            url: URL to crawl.
+            current_depth: Current crawling depth.
+            results: List to append crawl results to.
         """
-        # Get current depth from request meta (Scrapy's built-in depth tracking)
-        # or from cb_kwargs if passed via response.follow()
-        current_depth = getattr(response, "cb_kwargs", {}).get("current_depth")
-        if current_depth is None:
-            current_depth = response.meta.get("depth", 0)
-        url = response.url
+        # Check if URL was already visited
         if url in self.visited_urls:
-            return  # Avoid processing the same URL multiple times
+            return
 
-        self.visited_urls.add(url)
+        # Check depth limit
+        if current_depth > self.max_depth:
+            return
 
-        logging.info(f"Processing {url} at depth {current_depth}/{self.max_depth}")
+        # Check domain restrictions
+        if not self._is_allowed_domain(url):
+            logging.debug(f"Skipping URL outside allowed domains: {url}")
+            return
 
-        try:
-            # Check if it's HTML content type
-            header_value = response.headers.get("Content-Type", b"") or b""
-            content_type = header_value.decode("utf-8", errors="ignore").lower()
+        # Use semaphore to limit concurrent requests
+        async with self.semaphore:
+            try:
+                logging.info(f"Processing {url} at depth {current_depth}/{self.max_depth}")
 
-            # Only process HTML pages
-            if "text/html" not in content_type:
-                logging.info(
-                    f"Skipping non-HTML content type '{content_type}' at {url}",
+                # Add delay between requests to avoid rate limiting
+                if self.delay_between_requests > 0:
+                    await asyncio.sleep(self.delay_between_requests)
+
+                # Mark URL as visited
+                self.visited_urls.add(url)
+
+                # Make HTTP request
+                response = await client.get(url)
+                response.raise_for_status()
+
+                # Check content type
+                content_type = response.headers.get("content-type", "").lower()
+                if "text/html" not in content_type:
+                    logging.info(f"Skipping non-HTML content type '{content_type}' at {url}")
+                    return
+
+                # Parse HTML content
+                html_content = response.text
+                soup = BeautifulSoup(html_content, "lxml")
+
+                # Save the HTML content and store URL mapping
+                file_path = self._save_html_content(url, html_content)
+                rel_path = os.path.relpath(file_path, self.output_dir)
+
+                self.url_mappings[rel_path] = UrlMappingData(
+                    url=url,
+                    timestamp=datetime.now().isoformat(),
+                    content_type=content_type,
                 )
-                return
 
-            # Save the raw HTML content and store URL mapping
-            file_path = self._save_html_content(url, response.text)
+                # Create crawl result
+                crawl_result: CrawlResult = {
+                    "url": url,
+                    "html": html_content,
+                    "depth": current_depth,
+                    "crawl_timestamp": datetime.now().isoformat(),
+                    "content_type": content_type,
+                }
+                results.append(crawl_result)
 
-            # Store the relative path (from output_dir) in the mappings
-            rel_path = os.path.relpath(file_path, self.output_dir)
-            self.url_mappings[rel_path] = {
-                "url": url,
-                "timestamp": datetime.now().isoformat(),
-                "content_type": content_type,
-            }
+                # Save URL mappings periodically
+                self._save_url_mappings()
 
-            # Save the URL mappings file periodically
-            self._save_url_mappings()
+                # Extract and follow links if we haven't reached max depth
+                if current_depth < self.max_depth:
+                    links = self._extract_links(soup, url)
 
-            # Yield info about the crawled content
-            yield {
-                "url": url,
-                "html": response.text,
-                "depth": current_depth,
-                "crawl_timestamp": datetime.now().isoformat(),
-                "content_type": content_type,
-            }
+                    # Create tasks for following links
+                    link_tasks = [
+                        self._crawl_url(client, link, current_depth + 1, results)
+                        for link in links
+                        if link not in self.visited_urls
+                    ]
 
-            # Follow links if we haven't reached max depth
-            if current_depth < self.max_depth:
-                for href in self._extract_links(response):
-                    yield response.follow(
-                        href,
-                        callback=self.parse,
-                        meta={"depth": current_depth + 1},
-                        errback=self.errback_handler,
-                    )
-        except Exception as e:
-            logging.error(f"Error processing {url}: {str(e)}")
+                    # Process link tasks concurrently
+                    if link_tasks:
+                        await asyncio.gather(*link_tasks, return_exceptions=True)
+
+            except httpx.HTTPStatusError as e:
+                logging.warning(f"HTTP error for {url}: {e.response.status_code}")
+            except httpx.RequestError as e:
+                logging.warning(f"Request error for {url}: {str(e)}")
+            except Exception as e:
+                logging.error(f"Error processing {url}: {str(e)}")
+
+    def _is_allowed_domain(self, url: str) -> bool:
+        """
+        Check if a URL belongs to an allowed domain.
+
+        Args:
+            url: URL to check.
+
+        Returns:
+            True if the URL domain is allowed, False otherwise.
+        """
+        if not self.allowed_domains:
+            return True
+
+        parsed_url = urlparse(url)
+        return parsed_url.netloc in self.allowed_domains
 
     def _save_html_content(self, url: str, html_content: str) -> str:
         """
@@ -305,39 +337,38 @@ class BaseCrawler(Spider):
         except Exception as e:
             logging.error(f"Error saving URL mappings: {str(e)}")
 
-    def spider_closed(self, spider: Spider) -> None:
+    def _extract_links(self, soup: BeautifulSoup, base_url: str) -> list[str]:
         """
-        Called when the spider is closed.
+        Extract valid links to follow from a BeautifulSoup object.
 
         Args:
-            spider: The spider instance that was closed.
-        """
-        logging.info(f"Crawler closed. Visited {len(self.visited_urls)} pages")
-
-        # Save the URL mappings one final time when spider closes
-        self._save_url_mappings()
-        logging.info(f"Saved final URL mappings with {len(self.url_mappings)} entries")
-
-    def errback_handler(self, failure: Failure) -> None:
-        """
-        Handle request failures gracefully.
-
-        Args:
-            failure: The Twisted Failure object containing error details.
-        """
-        request = failure.request  # type: ignore[attr-defined]
-        logging.warning(f"Error on {request.url}: {failure.value}")
-
-    def _extract_links(self, response: Response) -> list[str]:
-        """
-        Extract valid links to follow from a response.
-
-        Args:
-            response: The HTTP response from Scrapy.
+            soup: BeautifulSoup object of the parsed HTML.
+            base_url: Base URL for resolving relative links.
 
         Returns:
-            A list of URLs to follow.
+            A list of absolute URLs to follow.
         """
-        # Using a simple approach for now, extracting all links
-        links = response.css("a::attr(href)").getall()
+        links = []
+
+        # Extract all href attributes from anchor tags
+        for anchor in soup.find_all("a", href=True):
+            # Get href attribute - BeautifulSoup guarantees it exists due to href=True filter
+            href = anchor["href"]  # type: ignore[index]
+
+            # Skip if href is None or empty
+            if not href:
+                continue
+
+            # Convert to string (BeautifulSoup can return different types)
+            href = str(href)
+
+            # Convert relative URLs to absolute URLs
+            absolute_url = urljoin(base_url, href)
+
+            # Filter out non-http(s) schemes and fragments
+            if absolute_url.startswith(("http://", "https://")) and "#" not in absolute_url:
+                # Check if the domain is allowed
+                if self._is_allowed_domain(absolute_url):
+                    links.append(absolute_url)
+
         return links
