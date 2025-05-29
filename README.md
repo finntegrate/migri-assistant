@@ -44,11 +44,6 @@ uv sync
 ollama pull llama3.2
 ```
 
-3. Create content directories:
-```bash
-python setup_dirs.py
-```
-
 ## Usage
 
 ### CLI Overview
