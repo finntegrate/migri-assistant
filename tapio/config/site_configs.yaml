@@ -1,7 +1,6 @@
 # Default configuration file for HTML content parsers
 sites:
   migri:
-    site_name: "migri"
     base_url: "https://migri.fi"
     title_selector: "//title"
     content_selectors:
@@ -18,10 +17,12 @@ sites:
       unicode_snob: true
       ignore_images: false
       ignore_tables: false
+    crawler_config:
+      delay_between_requests: 1.0
+      max_concurrent: 3
 
   # Example configuration for TE Services website
   te_palvelut:
-    site_name: "te_services"
     base_url: "https://toimistot.te-palvelut.fi"
     title_selector: "//title"
     content_selectors:
@@ -31,10 +32,12 @@ sites:
     description: "TE Services (Work and Economic Development) website"
     markdown_config:
       ignore_tables: false
+    crawler_config:
+      delay_between_requests: 1.5
+      max_concurrent: 3
 
   # Example configuration for Kela website
   kela:
-    site_name: "kela"
     base_url: "https://www.kela.fi"
     title_selector: "//h1 | //title"
     content_selectors:
@@ -43,10 +46,12 @@ sites:
     description: "Kela (Social Insurance Institution of Finland) website"
     markdown_config:
       ignore_images: true
-  
+    crawler_config:
+      delay_between_requests: 1.2
+      max_concurrent: 4
+
   # Example configuration for Vero website
   vero:
-    site_name: "vero"
     base_url: "https://www.vero.fi/en/"
     title_selector: "//h1 | //title"
     content_selectors:
@@ -55,4 +60,6 @@ sites:
     description: "Vero (Guidance about taxation in Finland) website"
     markdown_config:
       ignore_images: true
-      
+    crawler_config:
+      delay_between_requests: 2.0
+      max_concurrent: 2

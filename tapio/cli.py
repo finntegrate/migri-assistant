@@ -5,7 +5,7 @@ import typer
 
 from tapio.config import ConfigManager
 from tapio.config.settings import DEFAULT_CHROMA_COLLECTION, DEFAULT_DIRS
-from tapio.crawler.runner import ScrapyRunner
+from tapio.crawler.runner import CrawlerRunner, CrawlerSettings
 from tapio.parser import Parser
 from tapio.vectorstore.vectorizer import MarkdownVectorizer
 
@@ -95,12 +95,25 @@ def crawl(
         parsed_url = urlparse(url_str)
         allowed_domains = [parsed_url.netloc]
 
+    # Get crawler settings from site configuration
+    crawler_config = site_config.crawler_config
+
+    # Create properly typed custom_settings
+    custom_settings: CrawlerSettings = {
+        "delay_between_requests": crawler_config.delay_between_requests,
+        "max_concurrent": crawler_config.max_concurrent,
+    }
+
     typer.echo(f"🕸️ Starting web crawler for {site} ({url}) with depth {depth}")
     typer.echo(f"💾 Saving HTML content to: {DEFAULT_DIRS['CRAWLED_DIR']}")
+    typer.echo(
+        f"⏱️ Using {crawler_config.delay_between_requests}s delay between requests "
+        f"and max {crawler_config.max_concurrent} concurrent requests",
+    )
 
     try:
         # Initialize crawler runner
-        runner = ScrapyRunner()
+        runner = CrawlerRunner()
 
         typer.echo("⚠️ Press Ctrl+C at any time to interrupt crawling.")
 
@@ -110,6 +123,7 @@ def crawl(
             depth=depth,
             allowed_domains=allowed_domains,
             output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
+            custom_settings=custom_settings,
         )
 
         # Output information
@@ -442,6 +456,9 @@ def list_sites(
                     for selector in site_config.content_selectors:
                         typer.echo(f"    - {selector}")
                     typer.echo(f"  Fallback to body: {site_config.fallback_to_body}")
+                    typer.echo("  Crawler configuration:")
+                    typer.echo(f"    - Delay between requests: {site_config.crawler_config.delay_between_requests}s")
+                    typer.echo(f"    - Max concurrent requests: {site_config.crawler_config.max_concurrent}")
                 except ValueError:
                     # Skip sites with invalid configurations
                     typer.echo(f"\n❌ {site_name}: Invalid configuration")

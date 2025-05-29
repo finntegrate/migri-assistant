@@ -33,19 +33,24 @@ class TestCli:
         assert "vectorize" in result.stdout
         assert "info" in result.stdout
 
-    @patch("tapio.cli.ScrapyRunner")
+    @patch("tapio.cli.CrawlerRunner")
     @patch("tapio.cli.ConfigManager")
-    def test_crawl_command(self, mock_config_manager, mock_scrapy_runner, runner):
+    def test_crawl_command(self, mock_config_manager, mock_crawler_runner, runner):
         """Test the crawl command."""
         # Set up mocks
         mock_runner_instance = MagicMock()
         mock_runner_instance.run.return_value = ["page1", "page2", "page3"]
-        mock_scrapy_runner.return_value = mock_runner_instance
+        mock_crawler_runner.return_value = mock_runner_instance
 
         # Mock ConfigManager
         mock_config_instance = MagicMock()
         mock_site_config = MagicMock()
         mock_site_config.base_url = "https://example.com"
+        # Mock the crawler_config with appropriate default values
+        mock_crawler_config = MagicMock()
+        mock_crawler_config.delay_between_requests = 1.0
+        mock_crawler_config.max_concurrent = 5
+        mock_site_config.crawler_config = mock_crawler_config
         mock_config_instance.get_site_config.return_value = mock_site_config
         mock_config_instance.list_available_sites.return_value = ["migri"]
         mock_config_manager.return_value = mock_config_instance
@@ -71,7 +76,7 @@ class TestCli:
         mock_config_instance.get_site_config.assert_called_once_with("migri")
 
         # Check that the runner was initialized correctly
-        mock_scrapy_runner.assert_called_once()
+        mock_crawler_runner.assert_called_once()
 
         # Check that run was called with the correct arguments
         mock_runner_instance.run.assert_called_once_with(
@@ -79,6 +84,10 @@ class TestCli:
             depth=2,
             allowed_domains=["example.com"],  # Domain extracted from URL
             output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
+            custom_settings={
+                "delay_between_requests": 1.0,
+                "max_concurrent": 5,
+            },
         )
 
         # Check expected output in stdout
@@ -86,14 +95,19 @@ class TestCli:
         assert "Crawling completed" in result.stdout
         assert "Processed 3 pages" in result.stdout
 
-    @patch("tapio.cli.ScrapyRunner")
+    @patch("tapio.cli.CrawlerRunner")
     @patch("tapio.cli.ConfigManager")
-    def test_crawl_command_keyboard_interrupt(self, mock_config_manager, mock_scrapy_runner, runner):
+    def test_crawl_command_keyboard_interrupt(self, mock_config_manager, mock_crawler_runner, runner):
         """Test handling of keyboard interrupt in crawl command."""
         # Mock ConfigManager
         mock_config_instance = MagicMock()
         mock_site_config = MagicMock()
         mock_site_config.base_url = "https://example.com"
+        # Mock the crawler_config
+        mock_crawler_config = MagicMock()
+        mock_crawler_config.delay_between_requests = 1.0
+        mock_crawler_config.max_concurrent = 5
+        mock_site_config.crawler_config = mock_crawler_config
         mock_config_instance.get_site_config.return_value = mock_site_config
         mock_config_instance.list_available_sites.return_value = ["migri"]
         mock_config_manager.return_value = mock_config_instance
@@ -101,7 +115,7 @@ class TestCli:
         # Set up mock to raise KeyboardInterrupt
         mock_runner_instance = MagicMock()
         mock_runner_instance.run.side_effect = KeyboardInterrupt()
-        mock_scrapy_runner.return_value = mock_runner_instance
+        mock_crawler_runner.return_value = mock_runner_instance
 
         # Run the command
         result = runner.invoke(app, ["crawl", "migri"])
@@ -114,14 +128,19 @@ class TestCli:
         assert "Crawling interrupted by user" in result.stdout
         assert "Partial results have been saved" in result.stdout
 
-    @patch("tapio.cli.ScrapyRunner")
+    @patch("tapio.cli.CrawlerRunner")
     @patch("tapio.cli.ConfigManager")
-    def test_crawl_command_exception(self, mock_config_manager, mock_scrapy_runner, runner):
+    def test_crawl_command_exception(self, mock_config_manager, mock_crawler_runner, runner):
         """Test handling of exceptions in crawl command."""
         # Mock ConfigManager
         mock_config_instance = MagicMock()
         mock_site_config = MagicMock()
         mock_site_config.base_url = "https://example.com"
+        # Mock the crawler_config
+        mock_crawler_config = MagicMock()
+        mock_crawler_config.delay_between_requests = 1.0
+        mock_crawler_config.max_concurrent = 5
+        mock_site_config.crawler_config = mock_crawler_config
         mock_config_instance.get_site_config.return_value = mock_site_config
         mock_config_instance.list_available_sites.return_value = ["migri"]
         mock_config_manager.return_value = mock_config_instance
@@ -129,7 +148,7 @@ class TestCli:
         # Set up mock to raise an exception
         mock_runner_instance = MagicMock()
         mock_runner_instance.run.side_effect = Exception("Test error")
-        mock_scrapy_runner.return_value = mock_runner_instance
+        mock_crawler_runner.return_value = mock_runner_instance
 
         # Run the command
         result = runner.invoke(app, ["crawl", "migri"])

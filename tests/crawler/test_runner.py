@@ -1,39 +1,34 @@
-import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from tapio.crawler.runner import ScrapyRunner
+import pytest
+
+from tapio.config.settings import DEFAULT_DIRS
+from tapio.crawler.runner import CrawlerRunner
 
 
-class TestScrapyRunner(unittest.TestCase):
-    """Test the ScrapyRunner class that manages the crawling process."""
+class TestCrawlerRunner:
+    """Test the CrawlerRunner class that manages the crawling process."""
 
-    def setUp(self):
-        self.runner = ScrapyRunner()
-        self.runner.logger = MagicMock()  # Mock the logger
+    def setup_method(self):
+        self.runner = CrawlerRunner()
 
-    @patch("tapio.crawler.runner.CrawlerRunner")
-    @patch("tapio.crawler.runner.reactor")
-    @patch("tapio.crawler.runner.Settings")
-    def test_run_basic(self, mock_settings_class, mock_reactor, mock_crawler_runner):
+    @patch("tapio.crawler.runner.BaseCrawler")
+    def test_run_basic(self, mock_base_crawler):
         """Test the basic functionality of the run method."""
-        # Mock Settings class
-        mock_settings = MagicMock()
-        mock_settings_class.return_value = mock_settings
-
-        # Mock crawler runner and crawler
+        # Mock BaseCrawler instance
         mock_crawler_instance = MagicMock()
-        mock_crawler_runner.return_value.create_crawler.return_value = mock_crawler_instance
-
-        # Set up mock for crawler.crawl to return a deferred that calls its callback
-        def mock_crawl(*args, **kwargs):
-            d = MagicMock()
-            # Simulate the deferred calling its callback immediately
-            return d
-
-        mock_crawler_instance.crawl.side_effect = mock_crawl
-
-        # Mock reactor.run to do nothing
-        mock_reactor.running = False
+        mock_crawler_instance.crawl = AsyncMock(
+            return_value=[
+                {
+                    "url": "https://example.com",
+                    "html": "<html><body>Test</body></html>",
+                    "depth": 0,
+                    "crawl_timestamp": "2023-01-01T00:00:00",
+                    "content_type": "text/html",
+                },
+            ],
+        )
+        mock_base_crawler.return_value = mock_crawler_instance
 
         # Call the run method
         start_urls = ["https://example.com"]
@@ -41,68 +36,92 @@ class TestScrapyRunner(unittest.TestCase):
         allowed_domains = ["example.com"]
         output_dir = "test_output"
 
-        _ = self.runner.run(
+        results = self.runner.run(
             start_urls=start_urls,
             depth=depth,
             allowed_domains=allowed_domains,
             output_dir=output_dir,
         )
 
-        # Verify CrawlerRunner was created with settings
-        mock_crawler_runner.assert_called_once()
-
-        # Verify create_crawler was called with BaseCrawler
-        mock_crawler_runner.return_value.create_crawler.assert_called_once()
-
-        # Verify crawler.crawl was called with our parameters
-        mock_crawler_instance.crawl.assert_called_once()
-        crawl_args, crawl_kwargs = mock_crawler_instance.crawl.call_args
-        self.assertEqual(crawl_kwargs["start_urls"], start_urls)
-        self.assertEqual(crawl_kwargs["depth"], depth)
-        self.assertEqual(crawl_kwargs["allowed_domains"], allowed_domains)
-        self.assertEqual(crawl_kwargs["output_dir"], output_dir)
-
-        # Verify reactor.run was called
-        mock_reactor.run.assert_called_once()
-
-    @patch("tapio.crawler.runner.CrawlerRunner")
-    @patch("tapio.crawler.runner.reactor")
-    @patch("tapio.crawler.runner.Settings")
-    def test_run_with_error(self, mock_settings_class, mock_reactor, mock_crawler_runner):
-        """Test error handling in the run method."""
-        # Mock Settings class
-        mock_settings = MagicMock()
-        mock_settings_class.return_value = mock_settings
-
-        # Mock crawler runner to raise an exception
-        mock_crawler_runner.return_value.create_crawler.side_effect = Exception(
-            "Test error",
+        # Verify BaseCrawler was instantiated with correct parameters
+        mock_base_crawler.assert_called_once_with(
+            start_urls=start_urls,
+            allowed_domains=allowed_domains,
+            depth=depth,
+            output_dir=output_dir,
         )
 
-        # Mock reactor
-        mock_reactor.running = False
+        # Verify crawler.crawl was called
+        mock_crawler_instance.crawl.assert_called_once()
 
-        # Call the run method
-        self.runner.run(start_urls=["https://example.com"], depth=1)
+        # Verify results were returned
+        assert len(results) == 1
+        assert results[0]["url"] == "https://example.com"
 
-        # Verify the logger.error was called with the error
-        self.runner.logger.error.assert_called_once()
-        self.assertIn("Test error", str(self.runner.logger.error.call_args))
+    @patch("tapio.crawler.runner.BaseCrawler")
+    def test_run_with_custom_settings(self, mock_base_crawler):
+        """Test the run method with custom settings."""
+        # Mock BaseCrawler instance
+        mock_crawler_instance = MagicMock()
+        mock_crawler_instance.crawl = AsyncMock(return_value=[])
+        mock_base_crawler.return_value = mock_crawler_instance
 
-        # Verify reactor.stop was called if running
-        mock_reactor.stop.assert_not_called()  # Should not be called as reactor.running is False
+        # Call the run method with custom settings
+        from tapio.crawler.runner import CrawlerSettings
 
-    def test_item_scraped(self):
-        """Test the _item_scraped method for collecting results."""
-        # Setup
-        self.runner.results = []
-        item = {"url": "https://example.com", "html": "<html></html>"}
-        response = MagicMock()
-        spider = MagicMock()
+        custom_settings: CrawlerSettings = {"timeout": 60, "max_concurrent": 5}
 
-        # Call the method
-        self.runner._item_scraped(item, response, spider)
+        self.runner.run(
+            start_urls=["https://example.com"],
+            custom_settings=custom_settings,
+        )
 
-        # Verify the item was added to results
-        self.assertEqual(len(self.runner.results), 1)
-        self.assertEqual(self.runner.results[0], item)
+        # Verify BaseCrawler was instantiated with custom settings
+        mock_base_crawler.assert_called_once_with(
+            start_urls=["https://example.com"],
+            allowed_domains=None,
+            depth=1,
+            output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
+            timeout=60,
+            max_concurrent=5,
+        )
+
+    @patch("tapio.crawler.runner.BaseCrawler")
+    @pytest.mark.asyncio
+    async def test_run_async(self, mock_base_crawler):
+        """Test the async run_async method."""
+        # Mock BaseCrawler instance
+        mock_crawler_instance = MagicMock()
+        mock_crawler_instance.crawl = AsyncMock(
+            return_value=[
+                {
+                    "url": "https://example.com",
+                    "html": "<html><body>Test</body></html>",
+                    "depth": 0,
+                    "crawl_timestamp": "2023-01-01T00:00:00",
+                    "content_type": "text/html",
+                },
+            ],
+        )
+        mock_base_crawler.return_value = mock_crawler_instance
+
+        # Call the async run method
+        results = await self.runner.run_async(
+            start_urls=["https://example.com"],
+            depth=2,
+        )
+
+        # Verify BaseCrawler was instantiated correctly
+        mock_base_crawler.assert_called_once_with(
+            start_urls=["https://example.com"],
+            allowed_domains=None,
+            depth=2,
+            output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
+        )
+
+        # Verify crawler.crawl was called
+        mock_crawler_instance.crawl.assert_called_once()
+
+        # Verify results were returned
+        assert len(results) == 1
+        assert results[0]["url"] == "https://example.com"

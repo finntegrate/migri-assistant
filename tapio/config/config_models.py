@@ -5,7 +5,7 @@ site-specific HTML parsing, including content selectors and HTML-to-Markdown
 conversion settings.
 """
 
-from typing import Any
+from typing import Annotated, Any
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, HttpUrl
@@ -26,6 +26,20 @@ class HtmlToMarkdownConfig(BaseModel):
     ignore_tables: bool = False  # Include tables
 
 
+class CrawlerConfig(BaseModel):
+    """Configuration settings for web crawling behavior.
+
+    Defines crawler-specific settings such as rate limiting, concurrency limits,
+    and other behavioral parameters to prevent overwhelming target servers.
+    """
+
+    delay_between_requests: Annotated[
+        float,
+        Field(ge=0.0, description="Delay between requests in seconds to avoid rate limiting"),
+    ] = 1.0
+    max_concurrent: Annotated[int, Field(ge=1, le=50, description="Maximum number of concurrent requests")] = 5
+
+
 class SiteParserConfig(BaseModel):
     """Configuration for site-specific HTML parsing.
 
@@ -33,7 +47,6 @@ class SiteParserConfig(BaseModel):
     used to identify important page elements and conversion settings.
     """
 
-    # site_name: str
     base_url: HttpUrl
     # Note: In Pydantic v2, default HttpUrl values need to be provided using model_config
     # or Field validators; using literal default values can cause type errors
@@ -45,6 +58,7 @@ class SiteParserConfig(BaseModel):
     fallback_to_body: bool = True
     description: str | None = None
     markdown_config: HtmlToMarkdownConfig = Field(default_factory=HtmlToMarkdownConfig)
+    crawler_config: CrawlerConfig = Field(default_factory=CrawlerConfig)
 
     @property
     def base_dir(self) -> str:

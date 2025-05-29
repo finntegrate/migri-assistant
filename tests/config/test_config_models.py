@@ -3,7 +3,53 @@
 import pytest
 from pydantic import HttpUrl, ValidationError
 
-from tapio.config.config_models import HtmlToMarkdownConfig, ParserConfigRegistry, SiteParserConfig
+from tapio.config.config_models import CrawlerConfig, HtmlToMarkdownConfig, ParserConfigRegistry, SiteParserConfig
+
+
+class TestCrawlerConfig:
+    """Test the CrawlerConfig model."""
+
+    def test_default_values(self):
+        """Test default values for CrawlerConfig."""
+        config = CrawlerConfig()
+        assert config.delay_between_requests == 1.0
+        assert config.max_concurrent == 5
+
+    def test_custom_values(self):
+        """Test CrawlerConfig with custom values."""
+        config = CrawlerConfig(
+            delay_between_requests=2.5,
+            max_concurrent=10,
+        )
+        assert config.delay_between_requests == 2.5
+        assert config.max_concurrent == 10
+
+    def test_delay_validation(self):
+        """Test that delay_between_requests must be non-negative."""
+        # Valid values
+        config = CrawlerConfig(delay_between_requests=0.0)
+        assert config.delay_between_requests == 0.0
+
+        # Invalid negative value
+        with pytest.raises(ValidationError):
+            CrawlerConfig(delay_between_requests=-1.0)
+
+    def test_max_concurrent_validation(self):
+        """Test that max_concurrent must be within valid range."""
+        # Valid values
+        config = CrawlerConfig(max_concurrent=1)
+        assert config.max_concurrent == 1
+
+        config = CrawlerConfig(max_concurrent=50)
+        assert config.max_concurrent == 50
+
+        # Invalid values - too low
+        with pytest.raises(ValidationError):
+            CrawlerConfig(max_concurrent=0)
+
+        # Invalid values - too high
+        with pytest.raises(ValidationError):
+            CrawlerConfig(max_concurrent=51)
 
 
 class TestSiteParserConfigBaseDir:
@@ -12,8 +58,7 @@ class TestSiteParserConfigBaseDir:
     def test_normal_url(self):
         """Test base_dir with normal URL."""
         config = SiteParserConfig(
-            site_name="test",
-            base_url="https://example.com",
+            base_url=HttpUrl("https://example.com"),
             content_selectors=['//div[@id="main"]'],
         )
         assert config.base_dir == "example.com"
@@ -21,8 +66,7 @@ class TestSiteParserConfigBaseDir:
     def test_url_with_subdomain(self):
         """Test base_dir with URL containing subdomain."""
         config = SiteParserConfig(
-            site_name="test",
-            base_url="https://docs.example.com",
+            base_url=HttpUrl("https://docs.example.com"),
             content_selectors=['//div[@id="main"]'],
         )
         assert config.base_dir == "docs.example.com"
@@ -30,8 +74,7 @@ class TestSiteParserConfigBaseDir:
     def test_url_with_port(self):
         """Test base_dir with URL containing port number."""
         config = SiteParserConfig(
-            site_name="test",
-            base_url="https://example.com:8080",
+            base_url=HttpUrl("https://example.com:8080"),
             content_selectors=['//div[@id="main"]'],
         )
         assert config.base_dir == "example.com"  # should exclude port
@@ -39,8 +82,7 @@ class TestSiteParserConfigBaseDir:
     def test_url_with_path(self):
         """Test base_dir with URL containing path."""
         config = SiteParserConfig(
-            site_name="test",
-            base_url="https://example.com/path/to/page",
+            base_url=HttpUrl("https://example.com/path/to/page"),
             content_selectors=['//div[@id="main"]'],
         )
         assert config.base_dir == "example.com"  # should exclude path
@@ -48,8 +90,7 @@ class TestSiteParserConfigBaseDir:
     def test_url_with_query_params(self):
         """Test base_dir with URL containing query parameters."""
         config = SiteParserConfig(
-            site_name="test",
-            base_url="https://example.com?param=value",
+            base_url=HttpUrl("https://example.com?param=value"),
             content_selectors=['//div[@id="main"]'],
         )
         assert config.base_dir == "example.com"  # should exclude query params
@@ -57,8 +98,7 @@ class TestSiteParserConfigBaseDir:
     def test_url_with_fragments(self):
         """Test base_dir with URL containing fragments."""
         config = SiteParserConfig(
-            site_name="test",
-            base_url="https://example.com#section",
+            base_url=HttpUrl("https://example.com#section"),
             content_selectors=['//div[@id="main"]'],
         )
         assert config.base_dir == "example.com"  # should exclude fragments
@@ -66,8 +106,7 @@ class TestSiteParserConfigBaseDir:
     def test_localhost_url(self):
         """Test base_dir with localhost URL."""
         config = SiteParserConfig(
-            site_name="test",
-            base_url="http://localhost:3000",
+            base_url=HttpUrl("http://localhost:3000"),
             content_selectors=['//div[@id="main"]'],
         )
         assert config.base_dir == "localhost"  # should exclude port
@@ -75,8 +114,7 @@ class TestSiteParserConfigBaseDir:
     def test_ip_address_url(self):
         """Test base_dir with IP address URL."""
         config = SiteParserConfig(
-            site_name="test",
-            base_url="http://127.0.0.1:8080",
+            base_url=HttpUrl("http://127.0.0.1:8080"),
             content_selectors=['//div[@id="main"]'],
         )
         assert config.base_dir == "127.0.0.1"  # should exclude port
@@ -86,8 +124,7 @@ class TestSiteParserConfigBaseDir:
         # Now validation happens at initialization time with Pydantic HttpUrl
         with pytest.raises(ValidationError, match=r"Input should be a valid URL"):
             _ = SiteParserConfig(
-                site_name="test",
-                base_url="",  # Empty string
+                base_url=HttpUrl(""),  # Empty string
                 content_selectors=['//div[@id="main"]'],
             )
 
@@ -96,8 +133,7 @@ class TestSiteParserConfigBaseDir:
         # Now validation happens at initialization time with Pydantic HttpUrl
         with pytest.raises(ValidationError, match=r"Input should be a valid URL"):
             _ = SiteParserConfig(
-                site_name="test",
-                base_url="invalid-url",  # No scheme
+                base_url=HttpUrl("invalid-url"),  # No scheme
                 content_selectors=['//div[@id="main"]'],
             )
 
@@ -106,8 +142,7 @@ class TestSiteParserConfigBaseDir:
         # Now validation happens at initialization time with Pydantic HttpUrl
         with pytest.raises(ValidationError, match=r"URL scheme should be 'http' or 'https'"):
             _ = SiteParserConfig(
-                site_name="test",
-                base_url="file:///path/to/file.html",
+                base_url=HttpUrl("file:///path/to/file.html"),
                 content_selectors=['//div[@id="main"]'],
             )
 
@@ -133,8 +168,7 @@ class TestSiteParserConfig:
 
         # Create a test config
         config = SiteParserConfig(
-            site_name="test",
-            base_url="https://example.com",
+            base_url=HttpUrl("https://example.com"),
             content_selectors=['//div[@id="main"]', '//div[@class="content"]', "//article"],
         )
 
