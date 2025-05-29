@@ -320,6 +320,12 @@ class BaseCrawler:
         # Create full path with domain as a subdirectory
         full_path = os.path.join(self.output_dir, domain, path.lstrip("/"))
 
+        # Ensure the path stays within output_dir (security check for path traversal)
+        abs_full_path = os.path.abspath(full_path)
+        abs_output_dir = os.path.abspath(self.output_dir)
+        if not abs_full_path.startswith(abs_output_dir):
+            raise ValueError(f"Invalid URL results in path outside output directory: {url}")
+
         return full_path
 
     def _save_url_mappings(self) -> None:

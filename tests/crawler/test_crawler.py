@@ -316,3 +316,28 @@ class TestBaseCrawler:
 
                 assert len(results) > 0
                 assert results[0]["url"] == "https://example.com"
+
+    def test_get_file_path_from_url_path_traversal_protection(self):
+        """Test that path traversal attacks are prevented."""
+        crawler = BaseCrawler(
+            start_urls="https://example.com",
+            output_dir=self.output_dir,
+        )
+
+        # Test path traversal attempts that should be blocked
+        malicious_urls = [
+            "https://example.com/../../../etc/passwd",
+            "https://example.com/normal/../../../sensitive",
+            "https://example.com/path/../../../../../../etc/hosts",
+        ]
+
+        for malicious_url in malicious_urls:
+            with pytest.raises(ValueError, match="Invalid URL results in path outside output directory"):
+                crawler._get_file_path_from_url(malicious_url)
+
+        # Test that URL-encoded path separators are treated as literal characters (not path traversal)
+        safe_encoded_url = "https://example.com/..%2F..%2F..%2Fetc%2Fpasswd"
+        result = crawler._get_file_path_from_url(safe_encoded_url)
+        # This should succeed because %2F is not decoded to / by urlparse
+        expected = os.path.join(self.output_dir, "example.com", "..%2F..%2F..%2Fetc%2Fpasswd.html")
+        assert result == expected
