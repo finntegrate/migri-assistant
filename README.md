@@ -77,12 +77,12 @@ uv run -m tapio.cli tapio-app
 
 ### Available Sites
 
-List configured sites:
+To list configured sites:
 ```bash
 uv run -m tapio.cli list-sites
 ```
 
-View detailed site configurations:
+To view detailed site configurations:
 ```bash
 uv run -m tapio.cli list-sites --verbose
 ```
@@ -149,6 +149,8 @@ sites:
 ```bash
 uv run -m tapio.cli crawl my_site
 uv run -m tapio.cli parse --site my_site
+uv run -m tapio.cli vectorize
+uv run -m tapio.cli tapio-app
 ```
 
 ## Configuration
