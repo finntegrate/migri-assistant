@@ -54,9 +54,7 @@ def test_rag_service_loads_prompts(rag_service):
         mock_load_prompt.assert_any_call("system_prompt")
 
         # Check that the user prompt was loaded with the correct variables
-        user_prompt_calls = [
-            call for call in mock_load_prompt.call_args_list if call[0][0] == "user_query"
-        ]
+        user_prompt_calls = [call for call in mock_load_prompt.call_args_list if call[0][0] == "user_query"]
         assert len(user_prompt_calls) == 1
 
         # Get the kwargs passed to load_prompt for user_query

@@ -57,8 +57,7 @@ class LLMService:
 
             if not model_exists:
                 logger.warning(
-                    f"{self.model_name} model not found in Ollama. "
-                    f"Please pull it with 'ollama pull {self.model_name}'",
+                    f"{self.model_name} model not found in Ollama. Please pull it with 'ollama pull {self.model_name}'",
                 )
                 return False
             return True
