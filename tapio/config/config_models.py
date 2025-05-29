@@ -5,7 +5,7 @@ site-specific HTML parsing, including content selectors and HTML-to-Markdown
 conversion settings.
 """
 
-from typing import Any
+from typing import Annotated, Any
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, HttpUrl
@@ -33,17 +33,11 @@ class CrawlerConfig(BaseModel):
     and other behavioral parameters to prevent overwhelming target servers.
     """
 
-    delay_between_requests: float = Field(
-        default=1.0,
-        ge=0.0,
-        description="Delay between requests in seconds to avoid rate limiting",
-    )
-    max_concurrent: int = Field(
-        default=5,
-        ge=1,
-        le=50,
-        description="Maximum number of concurrent requests",
-    )
+    delay_between_requests: Annotated[
+        float,
+        Field(ge=0.0, description="Delay between requests in seconds to avoid rate limiting"),
+    ] = 1.0
+    max_concurrent: Annotated[int, Field(ge=1, le=50, description="Maximum number of concurrent requests")] = 5
 
 
 class SiteParserConfig(BaseModel):

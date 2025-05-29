@@ -67,10 +67,7 @@ def find_markdown_files(directory: str, domain_filter: str | None = None) -> lis
                         try:
                             with open(file_path, encoding="utf-8") as f:
                                 post = frontmatter.load(f)
-                                if (
-                                    "domain" in post.metadata
-                                    and domain_filter in post.metadata["domain"]
-                                ):
+                                if "domain" in post.metadata and domain_filter in str(post.metadata["domain"]):
                                     markdown_files.append(file_path)
                         except Exception:
                             # Skip files that can't be parsed

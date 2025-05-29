@@ -5,7 +5,7 @@ import typer
 
 from tapio.config import ConfigManager
 from tapio.config.settings import DEFAULT_CHROMA_COLLECTION, DEFAULT_DIRS
-from tapio.crawler.runner import CrawlerRunner
+from tapio.crawler.runner import CrawlerRunner, CrawlerSettings
 from tapio.parser import Parser
 from tapio.vectorstore.vectorizer import MarkdownVectorizer
 
@@ -97,12 +97,19 @@ def crawl(
 
     # Get crawler settings from site configuration
     crawler_config = site_config.crawler_config
-    delay = crawler_config.delay_between_requests
-    max_concurrent = crawler_config.max_concurrent
+
+    # Create properly typed custom_settings
+    custom_settings: CrawlerSettings = {
+        "delay_between_requests": crawler_config.delay_between_requests,
+        "max_concurrent": crawler_config.max_concurrent,
+    }
 
     typer.echo(f"🕸️ Starting web crawler for {site} ({url}) with depth {depth}")
     typer.echo(f"💾 Saving HTML content to: {DEFAULT_DIRS['CRAWLED_DIR']}")
-    typer.echo(f"⏱️ Using {delay}s delay between requests and max {max_concurrent} concurrent requests")
+    typer.echo(
+        f"⏱️ Using {crawler_config.delay_between_requests}s delay between requests "
+        f"and max {crawler_config.max_concurrent} concurrent requests",
+    )
 
     try:
         # Initialize crawler runner
@@ -116,10 +123,7 @@ def crawl(
             depth=depth,
             allowed_domains=allowed_domains,
             output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
-            custom_settings={
-                "delay_between_requests": delay,
-                "max_concurrent": max_concurrent,
-            },
+            custom_settings=custom_settings,
         )
 
         # Output information

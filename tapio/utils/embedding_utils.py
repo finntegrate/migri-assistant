@@ -63,4 +63,4 @@ class EmbeddingGenerator:
         except Exception as e:
             logger.error(f"Error generating batch embeddings: {e}")
             # Return a list of Nones with the same length as the input
-            return [None] * len(texts)
+            return [None for _ in texts]
