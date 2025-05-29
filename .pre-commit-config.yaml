@@ -63,7 +63,7 @@ repos:
   - repo: local
     hooks:
       - id: pyrefly
-        name: PyRefly Code Check
+        name: Pyrefly Code Check
         entry: uv run pyrefly check
         language: system
         types: [python]

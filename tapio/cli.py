@@ -1,4 +1,5 @@
 import logging
+import os
 from urllib.parse import urlparse
 
 import typer
@@ -147,11 +148,12 @@ def parse(
         "-d",
         help="Domain to parse (e.g. 'migri.fi'). If not provided, all domains are parsed.",
     ),
-    site: str = typer.Option(
-        "migri",
+    site: str | None = typer.Option(
+        None,
         "--site",
         "-s",
-        help="Site to parse (loads appropriate configuration for content extraction)",
+        help="Site to parse (loads appropriate configuration for content extraction). "
+        "If not provided, all available sites with crawled content are parsed.",
     ),
     config_path: str | None = typer.Option(
         None,
@@ -194,27 +196,104 @@ def parse(
         config_manager = ConfigManager(config_path)
         available_sites = config_manager.list_available_sites()
 
-        if site in available_sites:
-            typer.echo(f"🔧 Using configuration for site: {site}")
-            parser = Parser(
-                site=site,
-                input_dir=DEFAULT_DIRS["CRAWLED_DIR"],
-                output_dir=DEFAULT_DIRS["PARSED_DIR"],
-                config_path=config_path,
-            )
+        if site is not None:
+            # Parse a specific site
+            if site in available_sites:
+                typer.echo(f"🔧 Using configuration for site: {site}")
+                parser = Parser(
+                    site=site,
+                    input_dir=DEFAULT_DIRS["CRAWLED_DIR"],
+                    output_dir=DEFAULT_DIRS["PARSED_DIR"],
+                    config_path=config_path,
+                )
+                results = parser.parse_all()
+
+                # Output information
+                typer.echo(f"✅ Parsing completed! Processed {len(results)} files.")
+                typer.echo(f"📝 Content saved as Markdown files in {DEFAULT_DIRS['PARSED_DIR']}")
+                typer.echo(f"📝 Index created at {DEFAULT_DIRS['PARSED_DIR']}/{parser.site}/index.md")
+            else:
+                typer.echo(f"❌ Unsupported site: {site}")
+                typer.echo(f"Available sites: {', '.join(available_sites)}")
+                raise typer.Exit(code=1)
         else:
-            typer.echo(f"❌ Unsupported site: {site}")
-            typer.echo(f"Available sites: {', '.join(available_sites)}")
-            raise typer.Exit(code=1)
+            # Parse all sites that have crawled content
+            typer.echo("🔧 No site specified, parsing all available sites with crawled content")
 
-        # Start parsing
-        # Domain filtering is now handled by the parser based on its configuration
-        results = parser.parse_all()
+            # Find which sites have crawled content by checking directories
+            crawled_dir = DEFAULT_DIRS["CRAWLED_DIR"]
+            if not os.path.exists(crawled_dir):
+                typer.echo(f"❌ Crawled content directory not found: {crawled_dir}")
+                raise typer.Exit(code=1)
 
-        # Output information
-        typer.echo(f"✅ Parsing completed! Processed {len(results)} files.")
-        typer.echo(f"📝 Content saved as Markdown files in {DEFAULT_DIRS['PARSED_DIR']}")
-        typer.echo(f"📝 Index created at {DEFAULT_DIRS['PARSED_DIR']}/{parser.site}/index.md")
+            # Get directories that contain HTML files (exclude non-directory files like url_mappings.json)
+            crawled_domains = []
+            for item in os.listdir(crawled_dir):
+                item_path = os.path.join(crawled_dir, item)
+                if os.path.isdir(item_path):
+                    # Check if this directory contains any HTML files
+                    has_html = False
+
+                    # First, check the immediate directory for HTML files (most common case)
+                    try:
+                        immediate_files = os.listdir(item_path)
+                        if any(f.endswith(".html") for f in immediate_files):
+                            has_html = True
+                    except OSError:
+                        # Directory might be inaccessible, continue with full walk
+                        pass
+
+                    # If not found in immediate directory, do a full recursive search
+                    if not has_html:
+                        for root, _, files in os.walk(item_path):
+                            if any(f.endswith(".html") for f in files):
+                                has_html = True
+                                break
+
+                    if has_html:
+                        crawled_domains.append(item)
+
+            if not crawled_domains:
+                typer.echo("❌ No crawled content found to parse")
+                raise typer.Exit(code=1)
+
+            typer.echo(f"📂 Found crawled content for domains: {', '.join(crawled_domains)}")
+
+            # Match crawled domains to site configurations
+            sites_to_parse: list[str] = []
+            for site_name in available_sites:
+                site_config = config_manager.get_site_config(site_name)
+                # The base_dir property derives the domain from base_url
+                if site_config.base_dir in crawled_domains:
+                    sites_to_parse.append(site_name)
+
+            if not sites_to_parse:
+                typer.echo("❌ No site configurations found matching crawled content")
+                typer.echo(f"Available sites: {', '.join(available_sites)}")
+                typer.echo(f"Crawled domains: {', '.join(crawled_domains)}")
+                raise typer.Exit(code=1)
+
+            typer.echo(f"🎯 Parsing sites: {', '.join(sites_to_parse)}")
+
+            # Parse each site
+            total_results = []
+            for site_name in sites_to_parse:
+                typer.echo(f"🔧 Parsing site: {site_name}")
+                parser = Parser(
+                    site=site_name,
+                    input_dir=DEFAULT_DIRS["CRAWLED_DIR"],
+                    output_dir=DEFAULT_DIRS["PARSED_DIR"],
+                    config_path=config_path,
+                )
+
+                site_results = parser.parse_all()
+                total_results.extend(site_results)
+                typer.echo(f"  ✅ {site_name}: Processed {len(site_results)} files")
+
+            # Output summary information
+            typer.echo(f"✅ All parsing completed! Processed {len(total_results)} files total.")
+            typer.echo(f"📝 Content saved as Markdown files in {DEFAULT_DIRS['PARSED_DIR']}")
+            typer.echo(f"📊 Parsed {len(sites_to_parse)} sites: {', '.join(sites_to_parse)}")
 
     except Exception as e:
         typer.echo(f"❌ Error during parsing: {str(e)}", err=True)
