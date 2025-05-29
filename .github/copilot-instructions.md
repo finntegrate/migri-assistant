@@ -65,7 +65,7 @@ Aim for at least 80% coverage for new code. The HTML coverage report can be foun
 
 ## Code Analysis
 
-We use PyRefly for static code analysis to identify potential bugs.
+We use Pyrefly for static code analysis to identify potential bugs.
 
 You can run the code analysis checker with the following command:
 
