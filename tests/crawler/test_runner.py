@@ -1,3 +1,4 @@
+import asyncio
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -86,7 +87,7 @@ class TestCrawlerRunner(unittest.TestCase):
         )
 
     @patch("tapio.crawler.runner.BaseCrawler")
-    async def test_run_async(self, mock_base_crawler):
+    def test_run_async(self, mock_base_crawler):
         """Test the async run_async method."""
         # Mock BaseCrawler instance
         mock_crawler_instance = MagicMock()
@@ -103,10 +104,12 @@ class TestCrawlerRunner(unittest.TestCase):
         )
         mock_base_crawler.return_value = mock_crawler_instance
 
-        # Call the async run method
-        results = await self.runner.run_async(
-            start_urls=["https://example.com"],
-            depth=2,
+        # Call the async run method using asyncio.run
+        results = asyncio.run(
+            self.runner.run_async(
+                start_urls=["https://example.com"],
+                depth=2,
+            ),
         )
 
         # Verify BaseCrawler was instantiated correctly
