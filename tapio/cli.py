@@ -233,10 +233,23 @@ def parse(
                 if os.path.isdir(item_path):
                     # Check if this directory contains any HTML files
                     has_html = False
-                    for root, _, files in os.walk(item_path):
-                        if any(f.endswith(".html") for f in files):
+
+                    # First, check the immediate directory for HTML files (most common case)
+                    try:
+                        immediate_files = os.listdir(item_path)
+                        if any(f.endswith(".html") for f in immediate_files):
                             has_html = True
-                            break
+                    except OSError:
+                        # Directory might be inaccessible, continue with full walk
+                        pass
+
+                    # If not found in immediate directory, do a full recursive search
+                    if not has_html:
+                        for root, _, files in os.walk(item_path):
+                            if any(f.endswith(".html") for f in files):
+                                has_html = True
+                                break
+
                     if has_html:
                         crawled_domains.append(item)
 
