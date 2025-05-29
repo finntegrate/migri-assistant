@@ -1,7 +1,6 @@
 """Test cases for the async BaseCrawler implementation."""
 
 import os
-import unittest
 from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
 import httpx
@@ -11,15 +10,15 @@ from bs4 import BeautifulSoup
 from tapio.crawler.crawler import BaseCrawler
 
 
-class TestBaseCrawler(unittest.TestCase):
+class TestBaseCrawler:
     """Test cases for BaseCrawler class."""
 
-    def setUp(self):
+    def setup_method(self):
         """Set up test fixtures."""
         self.output_dir = "test_crawler_output"
         os.makedirs(self.output_dir, exist_ok=True)
 
-    def tearDown(self):
+    def teardown_method(self):
         """Clean up test fixtures."""
         import shutil
 
@@ -34,10 +33,10 @@ class TestBaseCrawler(unittest.TestCase):
             depth=2,
             output_dir=self.output_dir,
         )
-        self.assertEqual(crawler.start_urls, ["https://example.com"])
-        self.assertEqual(crawler.max_depth, 2)
-        self.assertEqual(crawler.output_dir, self.output_dir)
-        self.assertEqual(crawler.allowed_domains, ["example.com"])
+        assert crawler.start_urls == ["https://example.com"]
+        assert crawler.max_depth == 2
+        assert crawler.output_dir == self.output_dir
+        assert crawler.allowed_domains == ["example.com"]
 
         # Test with multiple URLs
         crawler = BaseCrawler(
@@ -45,8 +44,8 @@ class TestBaseCrawler(unittest.TestCase):
             depth=1,
             output_dir=self.output_dir,
         )
-        self.assertEqual(len(crawler.start_urls), 2)
-        self.assertEqual(crawler.allowed_domains, ["example.com", "test.com"])
+        assert len(crawler.start_urls) == 2
+        assert crawler.allowed_domains == ["example.com", "test.com"]
 
     def test_get_file_path_from_url(self):
         """Test URL to file path conversion."""
@@ -58,18 +57,18 @@ class TestBaseCrawler(unittest.TestCase):
         # Test basic URL
         path = crawler._get_file_path_from_url("https://example.com")
         expected = os.path.join(self.output_dir, "example.com", "index.html")
-        self.assertEqual(path, expected)
+        assert path == expected
 
         # Test URL with path
         path = crawler._get_file_path_from_url("https://example.com/page")
         expected = os.path.join(self.output_dir, "example.com", "page.html")
-        self.assertEqual(path, expected)
+        assert path == expected
 
         # Test URL with query parameters
         path = crawler._get_file_path_from_url("https://example.com/page?param=value")
         expected_start = os.path.join(self.output_dir, "example.com", "page_param_value")
-        self.assertTrue(path.startswith(expected_start))
-        self.assertTrue(path.endswith(".html"))
+        assert path.startswith(expected_start)
+        assert path.endswith(".html")
 
     def test_get_file_path_from_url_with_trailing_slash(self):
         """Test URL to file path conversion with trailing slash."""
@@ -80,7 +79,7 @@ class TestBaseCrawler(unittest.TestCase):
 
         path = crawler._get_file_path_from_url("https://example.com/path/")
         expected = os.path.join(self.output_dir, "example.com", "path.html")
-        self.assertEqual(path, expected)
+        assert path == expected
 
     def test_save_html_content(self):
         """Test saving HTML content to file."""
@@ -94,11 +93,11 @@ class TestBaseCrawler(unittest.TestCase):
         crawler._save_html_content(url, html_content)
 
         expected_path = crawler._get_file_path_from_url(url)
-        self.assertTrue(os.path.exists(expected_path))
+        assert os.path.exists(expected_path)
 
         with open(expected_path, encoding="utf-8") as f:
             saved_content = f.read()
-            self.assertEqual(saved_content, html_content)
+            assert saved_content == html_content
 
     def test_is_allowed_domain(self):
         """Test domain filtering."""
@@ -108,9 +107,9 @@ class TestBaseCrawler(unittest.TestCase):
             output_dir=self.output_dir,
         )
 
-        self.assertTrue(crawler._is_allowed_domain("https://example.com/page"))
-        self.assertTrue(crawler._is_allowed_domain("https://test.com/page"))
-        self.assertFalse(crawler._is_allowed_domain("https://other.com/page"))
+        assert crawler._is_allowed_domain("https://example.com/page")
+        assert crawler._is_allowed_domain("https://test.com/page")
+        assert not crawler._is_allowed_domain("https://other.com/page")
 
     def test_extract_links(self):
         """Test extracting links from BeautifulSoup."""
@@ -138,7 +137,7 @@ class TestBaseCrawler(unittest.TestCase):
 
         expected_links = ["https://example.com/page1", "https://example.com/page2"]
 
-        self.assertEqual(sorted(links), sorted(expected_links))
+        assert sorted(links) == sorted(expected_links)
 
     def test_save_url_mappings(self):
         """Test saving URL mappings to a JSON file."""
@@ -189,6 +188,7 @@ class TestBaseCrawler(unittest.TestCase):
             start_urls=["https://example.com"],
             output_dir=self.output_dir,
             max_concurrent=1,
+            depth=0,  # Don't follow links to avoid multiple calls
         )
 
         mock_response = MagicMock()
@@ -199,17 +199,23 @@ class TestBaseCrawler(unittest.TestCase):
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
+        # Mock the semaphore to avoid async context issues
+        mock_semaphore = AsyncMock()
+        mock_semaphore.__aenter__ = AsyncMock(return_value=None)
+        mock_semaphore.__aexit__ = AsyncMock(return_value=None)
+        crawler._semaphore = mock_semaphore
+
         with patch.object(crawler, "_save_html_content", return_value="/fake/path.html"):
             results = []
             await crawler._crawl_url(mock_client, "https://example.com", 0, results)
 
             mock_client.get.assert_called_once_with("https://example.com")
 
-            self.assertEqual(len(results), 1)
+            assert len(results) == 1
             result = results[0]
-            self.assertEqual(result["url"], "https://example.com")
-            self.assertEqual(result["depth"], 0)
-            self.assertIn("Test", result["html"])
+            assert result["url"] == "https://example.com"
+            assert result["depth"] == 0
+            assert "Test" in result["html"]
 
     @pytest.mark.asyncio
     async def test_crawl_url_http_error(self):
@@ -228,12 +234,18 @@ class TestBaseCrawler(unittest.TestCase):
             ),
         )
 
+        # Mock the semaphore to avoid async context issues
+        mock_semaphore = AsyncMock()
+        mock_semaphore.__aenter__ = AsyncMock(return_value=None)
+        mock_semaphore.__aexit__ = AsyncMock(return_value=None)
+        crawler._semaphore = mock_semaphore
+
         results = []
         with patch("logging.warning") as mock_log:
             await crawler._crawl_url(mock_client, "https://example.com/404", 0, results)
 
             mock_log.assert_called()
-            self.assertEqual(len(results), 0)
+            assert len(results) == 0
 
     @pytest.mark.asyncio
     async def test_crawl_url_non_html_content(self):
@@ -250,10 +262,15 @@ class TestBaseCrawler(unittest.TestCase):
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=mock_response)
 
+        # Mock the semaphore to avoid async context issues
+        mock_semaphore = AsyncMock()
+        mock_semaphore.__aenter__ = AsyncMock(return_value=None)
+        mock_semaphore.__aexit__ = AsyncMock(return_value=None)
+        crawler._semaphore = mock_semaphore
+
         results = []
         await crawler._crawl_url(mock_client, "https://example.com/doc.pdf", 0, results)
-
-        self.assertEqual(len(results), 0)
+        assert len(results) == 0
 
     @pytest.mark.asyncio
     async def test_crawl_full_integration(self):
@@ -289,11 +306,13 @@ class TestBaseCrawler(unittest.TestCase):
 
         with patch("httpx.AsyncClient", return_value=mock_client_context):
             with patch.object(crawler, "_save_html_content"):
+                # Mock the _semaphore attribute to avoid async context issues
+                mock_semaphore = AsyncMock()
+                mock_semaphore.__aenter__ = AsyncMock(return_value=None)
+                mock_semaphore.__aexit__ = AsyncMock(return_value=None)
+                crawler._semaphore = mock_semaphore
+
                 results = await crawler.crawl()
 
-                self.assertGreater(len(results), 0)
-                self.assertEqual(results[0]["url"], "https://example.com")
-
-
-if __name__ == "__main__":
-    unittest.main()
+                assert len(results) > 0
+                assert results[0]["url"] == "https://example.com"

@@ -1,15 +1,15 @@
-import asyncio
-import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from tapio.config.settings import DEFAULT_DIRS
 from tapio.crawler.runner import CrawlerRunner
 
 
-class TestCrawlerRunner(unittest.TestCase):
+class TestCrawlerRunner:
     """Test the CrawlerRunner class that manages the crawling process."""
 
-    def setUp(self):
+    def setup_method(self):
         self.runner = CrawlerRunner()
 
     @patch("tapio.crawler.runner.BaseCrawler")
@@ -55,8 +55,8 @@ class TestCrawlerRunner(unittest.TestCase):
         mock_crawler_instance.crawl.assert_called_once()
 
         # Verify results were returned
-        self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]["url"], "https://example.com")
+        assert len(results) == 1
+        assert results[0]["url"] == "https://example.com"
 
     @patch("tapio.crawler.runner.BaseCrawler")
     def test_run_with_custom_settings(self, mock_base_crawler):
@@ -87,7 +87,8 @@ class TestCrawlerRunner(unittest.TestCase):
         )
 
     @patch("tapio.crawler.runner.BaseCrawler")
-    def test_run_async(self, mock_base_crawler):
+    @pytest.mark.asyncio
+    async def test_run_async(self, mock_base_crawler):
         """Test the async run_async method."""
         # Mock BaseCrawler instance
         mock_crawler_instance = MagicMock()
@@ -104,12 +105,10 @@ class TestCrawlerRunner(unittest.TestCase):
         )
         mock_base_crawler.return_value = mock_crawler_instance
 
-        # Call the async run method using asyncio.run
-        results = asyncio.run(
-            self.runner.run_async(
-                start_urls=["https://example.com"],
-                depth=2,
-            ),
+        # Call the async run method
+        results = await self.runner.run_async(
+            start_urls=["https://example.com"],
+            depth=2,
         )
 
         # Verify BaseCrawler was instantiated correctly
@@ -124,5 +123,5 @@ class TestCrawlerRunner(unittest.TestCase):
         mock_crawler_instance.crawl.assert_called_once()
 
         # Verify results were returned
-        self.assertEqual(len(results), 1)
-        self.assertEqual(results[0]["url"], "https://example.com")
+        assert len(results) == 1
+        assert results[0]["url"] == "https://example.com"
