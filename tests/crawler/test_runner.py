@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from tapio.config.settings import DEFAULT_DIRS
 from tapio.crawler.runner import CrawlerRunner
 
 
@@ -79,7 +80,7 @@ class TestCrawlerRunner(unittest.TestCase):
             start_urls=["https://example.com"],
             allowed_domains=None,
             depth=1,
-            output_dir="content/crawled",  # DEFAULT_DIRS["CRAWLED_DIR"]
+            output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
             timeout=60,
             max_concurrent=5,
         )
@@ -113,7 +114,7 @@ class TestCrawlerRunner(unittest.TestCase):
             start_urls=["https://example.com"],
             allowed_domains=None,
             depth=2,
-            output_dir="content/crawled",  # DEFAULT_DIRS["CRAWLED_DIR"]
+            output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
         )
 
         # Verify crawler.crawl was called
