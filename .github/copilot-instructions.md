@@ -73,13 +73,13 @@ You can run the code analysis checker with the following command:
 uv run pyrefly check
 ```
 
-PyRefly will analyze your code for:
+Pyrefly will analyze your code for:
 
 - Potential bugs
 - Code quality issues
 - Type safety concerns
 
-Configuration for PyRefly is stored in `pyrefly.toml`. Please address any issues reported by PyRefly or provide justification for exceptions if needed.
+Configuration for Pyrefly is stored in `pyrefly.toml`. Please address any issues reported by Pyrefly or provide justification for exceptions if needed.
 
 ## Ollama
 
