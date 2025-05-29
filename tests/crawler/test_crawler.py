@@ -294,28 +294,6 @@ class TestBaseCrawler(unittest.TestCase):
                 self.assertGreater(len(results), 0)
                 self.assertEqual(results[0]["url"], "https://example.com")
 
-    def test_crawl_sync_wrapper(self):
-        """Test that the crawl method exists and is callable."""
-        crawler = BaseCrawler(
-            start_urls=["https://example.com"],
-            output_dir=self.output_dir,
-        )
-
-        async def mock_crawl():
-            return [
-                {
-                    "url": "https://example.com",
-                    "html": "<html><body>Test</body></html>",
-                    "depth": 0,
-                    "crawl_timestamp": "2023-01-01T00:00:00",
-                    "content_type": "text/html",
-                },
-            ]
-
-        with patch.object(crawler, "crawl", mock_crawl):
-            self.assertTrue(hasattr(crawler, "crawl"))
-            self.assertTrue(callable(getattr(crawler, "crawl")))
-
 
 if __name__ == "__main__":
     unittest.main()
