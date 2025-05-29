@@ -47,7 +47,6 @@ class SiteParserConfig(BaseModel):
     used to identify important page elements and conversion settings.
     """
 
-    # site_name: str
     base_url: HttpUrl
     # Note: In Pydantic v2, default HttpUrl values need to be provided using model_config
     # or Field validators; using literal default values can cause type errors

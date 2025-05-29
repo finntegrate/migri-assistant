@@ -1,7 +1,6 @@
 # Default configuration file for HTML content parsers
 sites:
   migri:
-    site_name: "migri"
     base_url: "https://migri.fi"
     title_selector: "//title"
     content_selectors:
@@ -24,7 +23,6 @@ sites:
 
   # Example configuration for TE Services website
   te_palvelut:
-    site_name: "te_services"
     base_url: "https://toimistot.te-palvelut.fi"
     title_selector: "//title"
     content_selectors:
@@ -40,7 +38,6 @@ sites:
 
   # Example configuration for Kela website
   kela:
-    site_name: "kela"
     base_url: "https://www.kela.fi"
     title_selector: "//h1 | //title"
     content_selectors:
@@ -55,7 +52,6 @@ sites:
 
   # Example configuration for Vero website
   vero:
-    site_name: "vero"
     base_url: "https://www.vero.fi/en/"
     title_selector: "//h1 | //title"
     content_selectors:
