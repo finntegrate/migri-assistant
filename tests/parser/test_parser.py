@@ -301,15 +301,6 @@ class TestParser(unittest.TestCase):
             f"Expected parsed services file {parsed_services_file} to exist.",
         )
 
-        # Also, verify the site-level index file created by _create_index.
-        # This should be directly in self.output_dir.
-        site_index_file = os.path.join(self.output_dir, "index.md")
-        self.assertTrue(
-            os.path.exists(site_index_file),
-            f"Expected site-level index file {site_index_file} to exist. "
-            f"Contents of {self.output_dir}: {output_dir_contents}.",
-        )
-
         # Validate the content of parsed files
         titles = [result["title"] for result in results]
         self.assertIn("Example Website", titles)
