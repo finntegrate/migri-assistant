@@ -120,12 +120,9 @@ def crawl(
 
 @app.command()
 def parse(
-    site: str | None = typer.Option(
+    site: str | None = typer.Argument(
         None,
-        "--site",
-        "-s",
-        help="Site to parse (loads appropriate configuration for content extraction). "
-        "If not provided, all available sites with crawled content are parsed.",
+        help="Site to parse (e.g., 'migri'). If not provided, all available sites with crawled content are parsed.",
     ),
     config_path: str | None = typer.Option(
         None,
@@ -150,9 +147,9 @@ def parse(
     HTML to Markdown for different website types.
 
     Examples:
-        $ python -m tapio.cli parse --site migri
-        $ python -m tapio.cli parse --site te_palvelut
-        $ python -m tapio.cli parse --site kela --config custom_configs.yaml
+        $ python -m tapio.cli parse migri
+        $ python -m tapio.cli parse te_palvelut
+        $ python -m tapio.cli parse kela --config custom_configs.yaml
     """
     # Set log level based on verbose flag
     if verbose:
@@ -258,10 +255,8 @@ def parse(
 
 @app.command()
 def vectorize(
-    site: str | None = typer.Option(
+    site: str | None = typer.Argument(
         None,
-        "--site",
-        "-s",
         help="Site to vectorize (e.g. 'migri'). If not provided, all sites are processed.",
     ),
     embedding_model: str = typer.Option(
@@ -290,7 +285,7 @@ def vectorize(
     and stores them in ChromaDB with associated metadata from the original source.
 
     Examples:
-        $ python -m tapio.cli vectorize --site migri
+        $ python -m tapio.cli vectorize migri
         $ python -m tapio.cli vectorize
     """
     # Set log level based on verbose flag
@@ -525,7 +520,7 @@ def list_sites(
                 typer.echo(f"  • {site_name}{description}")
 
         typer.echo("\nUse these sites with the parse command, e.g.:")
-        typer.echo(f"  $ python -m tapio.cli parse -s {available_sites[0]}")
+        typer.echo(f"  $ python -m tapio.cli parse {available_sites[0]}")
 
     except Exception as e:
         typer.echo(f"❌ Error listing site configurations: {str(e)}", err=True)

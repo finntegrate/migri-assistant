@@ -66,7 +66,7 @@ Complete workflow for the Migri website:
 uv run -m tapio.cli crawl migri --depth 2
 
 # 2. Parse HTML to Markdown
-uv run -m tapio.cli parse --site migri
+uv run -m tapio.cli parse migri
 
 # 3. Create vector embeddings
 uv run -m tapio.cli vectorize
@@ -153,7 +153,7 @@ sites:
 4. Use with commands:
 ```bash
 uv run -m tapio.cli crawl my_site
-uv run -m tapio.cli parse --site my_site
+uv run -m tapio.cli parse my_site
 uv run -m tapio.cli vectorize
 uv run -m tapio.cli tapio-app
 ```

@@ -198,7 +198,6 @@ class TestCli:
             app,
             [
                 "parse",
-                "--site",
                 "migri",
             ],
         )
@@ -233,7 +232,7 @@ class TestCli:
         mock_config_manager.return_value = mock_config_instance
 
         # Run the command with an unsupported site
-        result = runner.invoke(app, ["parse", "--site", "unsupported"])
+        result = runner.invoke(app, ["parse", "unsupported"])
 
         # Check that the command exited with error code
         assert result.exit_code == 1
@@ -260,7 +259,7 @@ class TestCli:
         mock_config_manager.return_value = mock_config_instance
 
         # Run the command
-        result = runner.invoke(app, ["parse", "--site", "migri"])
+        result = runner.invoke(app, ["parse", "migri"])
 
         # Check that the command exited with error code
         assert result.exit_code == 1
@@ -295,7 +294,6 @@ class TestCli:
             app,
             [
                 "parse",
-                "--site",
                 "custom_site",
                 "--config",
                 "custom_configs.yaml",
@@ -373,7 +371,7 @@ class TestCli:
         # Mock os.path.exists to return True for the site directory
         with patch("tapio.cli.os.path.exists", return_value=True):
             # Run the command with site filter
-            result = runner.invoke(app, ["vectorize", "--site", "migri"])
+            result = runner.invoke(app, ["vectorize", "migri"])
 
         # Check that the command ran successfully
         assert result.exit_code == 0
@@ -880,7 +878,7 @@ class TestCli:
         # Mock os.path.exists to return False for the site directory
         with patch("tapio.cli.os.path.exists", return_value=False):
             # Run the command with non-existent site
-            result = runner.invoke(app, ["vectorize", "--site", "nonexistent"])
+            result = runner.invoke(app, ["vectorize", "nonexistent"])
 
         # Check that the command exited with error code
         assert result.exit_code == 1
