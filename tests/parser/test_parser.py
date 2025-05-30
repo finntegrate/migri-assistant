@@ -42,12 +42,9 @@ class TestParser(unittest.TestCase):
         os.makedirs(self.input_dir, exist_ok=True)
         os.makedirs(self.output_dir, exist_ok=True)
 
-        # Create test domain directories
-        self.domain_dir = os.path.join(self.input_dir, self.domain)
-        os.makedirs(self.domain_dir, exist_ok=True)
-
-        # Create test HTML files
-        with open(os.path.join(self.domain_dir, "index.html"), "w") as f:
+        # Create test HTML files directly in the crawled directory
+        # Following site-based structure where files are organized by website paths
+        with open(os.path.join(self.input_dir, "index.html"), "w") as f:
             f.write("""
             <html>
                 <head><title>Example Website</title></head>
@@ -64,7 +61,7 @@ class TestParser(unittest.TestCase):
             </html>
             """)
 
-        with open(os.path.join(self.domain_dir, "about.html"), "w") as f:
+        with open(os.path.join(self.input_dir, "about.html"), "w") as f:
             f.write("""
             <html>
                 <head><title>About Example</title></head>
@@ -78,7 +75,7 @@ class TestParser(unittest.TestCase):
             """)
 
         # Create HTML file without main-content div to test fallback selectors
-        with open(os.path.join(self.domain_dir, "no-main-content.html"), "w") as f:
+        with open(os.path.join(self.input_dir, "no-main-content.html"), "w") as f:
             f.write("""
             <html>
                 <head><title>No Main Content</title></head>
@@ -91,12 +88,29 @@ class TestParser(unittest.TestCase):
             </html>
             """)
 
+        # Create test files in subdirectories to test path-based structure
+        # This simulates website paths like /en/about.html creating en/about.md
+        en_dir = os.path.join(self.input_dir, "en")
+        os.makedirs(en_dir, exist_ok=True)
+
+        with open(os.path.join(en_dir, "services.html"), "w") as f:
+            f.write("""
+            <html>
+                <head><title>Services</title></head>
+                <body>
+                    <div id="main-content">
+                        <h1>Our Services</h1>
+                        <p>We provide various services.</p>
+                    </div>
+                </body>
+            </html>
+            """)
+
         # Create custom test configuration
         self.test_config = {
             "sites": {
                 "example": {
                     "base_url": f"https://{self.domain}",
-                    "base_dir": self.domain,
                     "description": "Example Website for Testing",
                     "parser_config": {
                         "title_selector": "//title",
@@ -111,7 +125,6 @@ class TestParser(unittest.TestCase):
                 },
                 "no_fallback": {
                     "base_url": f"https://{self.domain}",
-                    "base_dir": self.domain,
                     "parser_config": {
                         "title_selector": "//h1",
                         "content_selectors": ['//div[@id="does-not-exist"]'],
@@ -174,7 +187,7 @@ class TestParser(unittest.TestCase):
 
     def test_parse_html_with_main_content(self):
         """Test parsing HTML with main-content div."""
-        with open(os.path.join(self.domain_dir, "index.html")) as f:
+        with open(os.path.join(self.input_dir, "index.html")) as f:
             html_content = f.read()
 
         title, content = self.parser._parse_html(html_content)
@@ -187,7 +200,7 @@ class TestParser(unittest.TestCase):
 
     def test_parse_html_with_secondary_selector(self):
         """Test parsing HTML with secondary content selector."""
-        with open(os.path.join(self.domain_dir, "about.html")) as f:
+        with open(os.path.join(self.input_dir, "about.html")) as f:
             html_content = f.read()
 
         title, content = self.parser._parse_html(html_content)
@@ -198,7 +211,7 @@ class TestParser(unittest.TestCase):
 
     def test_parse_html_with_fallback(self):
         """Test fallback selector when primary selectors don't match."""
-        with open(os.path.join(self.domain_dir, "no-main-content.html")) as f:
+        with open(os.path.join(self.input_dir, "no-main-content.html")) as f:
             html_content = f.read()
 
         title, content = self.parser._parse_html(html_content)
@@ -216,7 +229,7 @@ class TestParser(unittest.TestCase):
         )
         no_fallback_parser.logger = MagicMock()
 
-        with open(os.path.join(self.domain_dir, "index.html")) as f:
+        with open(os.path.join(self.input_dir, "index.html")) as f:
             html_content = f.read()
 
         title, content = no_fallback_parser._parse_html(html_content)
@@ -255,35 +268,37 @@ class TestParser(unittest.TestCase):
         # Parse all files
         results = self.parser.parse_all()
 
-        # Check that we parsed 3 files
+        # Check that we parsed 4 files (3 in root + 1 in en/ subdirectory)
         self.assertEqual(
             len(results),
-            3,
-            f"Expected 3 parsed files, got {len(results)}. input_dir: {self.parser.input_dir}",
+            4,
+            f"Expected 4 parsed files, got {len(results)}. input_dir: {self.parser.input_dir}",
         )
 
         # Verify output directory structure.
-        # Input files are in self.input_dir / self.domain.
-        # Output files should be in self.output_dir / self.domain.
-        expected_output_subdir = os.path.join(self.output_dir, self.domain)
+        # With site-based structure, files placed directly in crawled directory
+        # should create corresponding MD files directly in the output directory
         output_dir_contents = os.listdir(self.output_dir) if os.path.exists(self.output_dir) else "does not exist"
-        self.assertTrue(
-            os.path.exists(expected_output_subdir),
-            f"Expected output subdirectory {expected_output_subdir} to exist. "
-            f"Contents of {self.output_dir}: {output_dir_contents}.",
-        )
 
-        # Verify the main index.html (parsed to index.md) file was created in the subdirectory.
-        # One of the test input files is os.path.join(self.domain_dir, "index.html").
-        # It should be parsed to os.path.join(expected_output_subdir, "index.md").
-        parsed_index_file = os.path.join(expected_output_subdir, "index.md")
-        expected_subdir_contents = (
-            os.listdir(expected_output_subdir) if os.path.exists(expected_output_subdir) else "does not exist"
-        )
+        # Verify the main index.html (parsed to index.md) file was created directly in output directory
+        parsed_index_file = os.path.join(self.output_dir, "index.md")
         self.assertTrue(
             os.path.exists(parsed_index_file),
             f"Expected parsed index file {parsed_index_file} to exist. "
-            f"Contents of {expected_output_subdir}: {expected_subdir_contents}.",
+            f"Contents of {self.output_dir}: {output_dir_contents}.",
+        )
+
+        # Verify the en/services.html file created en/services.md with path structure preserved
+        en_output_dir = os.path.join(self.output_dir, "en")
+        self.assertTrue(
+            os.path.exists(en_output_dir),
+            f"Expected en subdirectory {en_output_dir} to exist.",
+        )
+
+        parsed_services_file = os.path.join(en_output_dir, "services.md")
+        self.assertTrue(
+            os.path.exists(parsed_services_file),
+            f"Expected parsed services file {parsed_services_file} to exist.",
         )
 
         # Also, verify the site-level index file created by _create_index.
@@ -300,6 +315,7 @@ class TestParser(unittest.TestCase):
         self.assertIn("Example Website", titles)
         self.assertIn("About Example", titles)
         self.assertIn("No Main Content", titles)
+        self.assertIn("Services", titles)
 
     def test_list_available_site_configs(self):
         """Test listing available site configurations."""

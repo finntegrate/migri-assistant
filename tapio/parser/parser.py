@@ -395,23 +395,23 @@ class Parser:
 
     def _extract_domain_from_path(self, file_path: str | Path) -> str:
         """
-        Extract domain name from a file path.
+        Extract the first part of the path (typically a domain or language directory).
 
         Args:
             file_path: Path to the HTML file
 
         Returns:
-            Domain name extracted from the file path or "unknown" if not found
+            First directory name from the relative path or "unknown" if not found
         """
         try:
             # Get the path relative to the input directory
             rel_path = Path(file_path).relative_to(Path(self.input_dir))
-            domain_parts = rel_path.parts
-            if len(domain_parts) > 0:
-                domain = domain_parts[0]
+            path_parts = rel_path.parts
+            if len(path_parts) > 0:
+                first_part = path_parts[0]
             else:
-                domain = "unknown"
-            return domain
+                first_part = "unknown"
+            return first_part
         except ValueError:
             return "unknown"
 
@@ -425,7 +425,10 @@ class Parser:
         Returns:
             A DirectoryScope context manager that can be used in a with statement
         """
-        # Since we no longer use domain subdirectories, just return the input directory
+        # Return the input directory as the scoped directory
+        # Note: The original path structure from the input directory is preserved
+        # in the output through the _get_output_filename method, which maintains
+        # the same directory hierarchy (e.g., language directories, etc.)
         return DirectoryScope(self.input_dir, self.input_dir)
 
     def _parse_file_with_context(
@@ -571,7 +574,7 @@ class Parser:
             rel_path = html_file_path.relative_to(Path(self.input_dir))
             parts = rel_path.parts
 
-            # If there are parts (domain and path), preserve the structure
+            # If there are multiple parts in the path, preserve the structure
             if len(parts) >= 2:
                 # Preserve the original directory structure but replace .html extension
                 rel_output_path = str(rel_path).replace(".html", "")
