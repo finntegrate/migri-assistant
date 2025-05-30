@@ -181,7 +181,4 @@ chroma_db/
 
 # Web scraping results
 results.json
-crawled_content/
-parsed_content/
-content/crawled/
-content/parsed/
+content/
