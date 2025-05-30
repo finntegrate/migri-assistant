@@ -61,5 +61,20 @@ sites:
     markdown_config:
       ignore_images: true
     crawler_config:
-      delay_between_requests: 2.0
-      max_concurrent: 2
+      delay_between_requests: 1.0
+      max_concurrent: 4
+  
+  # Example configuration for DVV website
+  dvv:
+    site_name: "dvv"
+    base_url: "https://dvv.fi/"
+    title_selector: "//h1 | //title"
+    content_selectors:
+      - '//section[@id="content"]'
+    fallback_to_body: true
+    description: "DVV (Digital and population data services agency) website"
+    markdown_config:
+      ignore_images: true
+    crawler_config:
+      delay_between_requests: 1.0
+      max_concurrent: 4
