@@ -258,11 +258,11 @@ def parse(
 
 @app.command()
 def vectorize(
-    domain: str | None = typer.Option(
+    site: str | None = typer.Option(
         None,
-        "--domain",
-        "-D",
-        help="Domain to filter by (e.g. 'migri.fi'). If not provided, all domains are processed.",
+        "--site",
+        "-s",
+        help="Site to vectorize (e.g. 'migri'). If not provided, all sites are processed.",
     ),
     embedding_model: str = typer.Option(
         "all-MiniLM-L6-v2",
@@ -289,18 +289,31 @@ def vectorize(
     This command reads parsed Markdown files with frontmatter, generates embeddings,
     and stores them in ChromaDB with associated metadata from the original source.
 
-    Example:
+    Examples:
+        $ python -m tapio.cli vectorize --site migri
         $ python -m tapio.cli vectorize
     """
     # Set log level based on verbose flag
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    input_dir = DEFAULT_CONTENT_DIR
     db_dir = DEFAULT_DIRS["CHROMA_DIR"]
     collection_name = DEFAULT_CHROMA_COLLECTION
 
-    typer.echo(f"🧠 Starting vectorization of parsed content from {input_dir}")
+    # Determine input directory based on site parameter
+    if site is not None:
+        # Process a specific site
+        input_dir = os.path.join(DEFAULT_CONTENT_DIR, site, DEFAULT_DIRS["PARSED_DIR"])
+        if not os.path.exists(input_dir):
+            typer.echo(f"❌ No parsed content found for site: {site}")
+            typer.echo(f"Expected directory: {input_dir}")
+            raise typer.Exit(code=1)
+        typer.echo(f"🧠 Starting vectorization of parsed content for site '{site}' from {input_dir}")
+    else:
+        # Process all sites
+        input_dir = DEFAULT_CONTENT_DIR
+        typer.echo(f"🧠 Starting vectorization of parsed content from all sites in {input_dir}")
+
     typer.echo(f"💾 Vector database will be stored in: {db_dir}")
     typer.echo(f"🔤 Using embedding model: {embedding_model}")
     typer.echo(f"📑 Using collection name: {collection_name}")
@@ -315,13 +328,22 @@ def vectorize(
             chunk_overlap=200,
         )
 
-        # Process all files in the directory
+        # Process files in the directory
         typer.echo("⚙️ Processing markdown files...")
-        count = vectorizer.process_directory(
-            input_dir=input_dir,
-            domain_filter=domain,
-            batch_size=batch_size,
-        )
+        if site is not None:
+            # When processing a specific site, don't apply site filter since we're already in the site's directory
+            count = vectorizer.process_directory(
+                input_dir=input_dir,
+                site_filter=None,
+                batch_size=batch_size,
+            )
+        else:
+            # When processing all sites, we can optionally filter by site (not currently used)
+            count = vectorizer.process_directory(
+                input_dir=input_dir,
+                site_filter=None,
+                batch_size=batch_size,
+            )
 
         # Output information
         typer.echo(f"✅ Vectorization completed! Processed {count} files.")

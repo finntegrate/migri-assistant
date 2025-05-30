@@ -42,13 +42,13 @@ def read_markdown_file(file_path: str) -> tuple[dict, str]:
         return {}, ""
 
 
-def find_markdown_files(directory: str, domain_filter: str | None = None) -> list[str]:
+def find_markdown_files(directory: str, site_filter: str | None = None) -> list[str]:
     """
-    Find all markdown files in a directory, optionally filtering by domain.
+    Find all markdown files in a directory, optionally filtering by site.
 
     Args:
         directory: Directory to search for markdown files
-        domain_filter: Optional domain name to filter by (e.g. 'migri.fi')
+        site_filter: Optional site name to filter by (e.g. 'migri')
 
     Returns:
         List of paths to markdown files
@@ -61,16 +61,25 @@ def find_markdown_files(directory: str, domain_filter: str | None = None) -> lis
                 if file.endswith(".md"):
                     file_path = os.path.join(root, file)
 
-                    # Apply domain filter if specified
-                    if domain_filter:
-                        # Read just the metadata to check domain
+                    # Apply site filter if specified
+                    if site_filter:
+                        # Check if the file is in the specified site's directory
                         try:
-                            with open(file_path, encoding="utf-8") as f:
-                                post = frontmatter.load(f)
-                                if "domain" in post.metadata and domain_filter in str(post.metadata["domain"]):
-                                    markdown_files.append(file_path)
-                        except Exception:
-                            # Skip files that can't be parsed
+                            # Convert to Path for easier manipulation
+                            from pathlib import Path
+
+                            root_path = Path(root)
+                            directory_path = Path(directory)
+
+                            # Get relative path from the base directory
+                            relative_path = root_path.relative_to(directory_path)
+                            path_parts = relative_path.parts
+
+                            # Check if the first part of the path is the site name
+                            if len(path_parts) > 0 and path_parts[0] == site_filter:
+                                markdown_files.append(file_path)
+                        except (ValueError, IndexError):
+                            # Skip files that don't match the site structure
                             pass
                     else:
                         markdown_files.append(file_path)

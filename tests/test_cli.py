@@ -1,5 +1,6 @@
 """Tests for the CLI module."""
 
+import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -350,7 +351,7 @@ class TestCli:
         # Check that process_directory was called correctly
         mock_vectorizer_instance.process_directory.assert_called_once_with(
             input_dir=DEFAULT_CONTENT_DIR,
-            domain_filter=None,
+            site_filter=None,
             batch_size=20,
         )
 
@@ -362,23 +363,26 @@ class TestCli:
         assert "Processed 5 files" in result.stdout
 
     @patch("tapio.cli.MarkdownVectorizer")
-    def test_vectorize_command_with_domain(self, mock_vectorizer, runner):
-        """Test the vectorize command with domain filter."""
+    def test_vectorize_command_with_site(self, mock_vectorizer, runner):
+        """Test the vectorize command with site filter."""
         # Set up mock
         mock_vectorizer_instance = MagicMock()
         mock_vectorizer_instance.process_directory.return_value = 3
         mock_vectorizer.return_value = mock_vectorizer_instance
 
-        # Run the command with domain filter
-        result = runner.invoke(app, ["vectorize", "--domain", "example.com"])
+        # Mock os.path.exists to return True for the site directory
+        with patch("tapio.cli.os.path.exists", return_value=True):
+            # Run the command with site filter
+            result = runner.invoke(app, ["vectorize", "--site", "migri"])
 
         # Check that the command ran successfully
         assert result.exit_code == 0
 
-        # Check that process_directory was called with the domain filter
+        # Check that process_directory was called with the site filter
+        expected_input_dir = os.path.join(DEFAULT_CONTENT_DIR, "migri", DEFAULT_DIRS["PARSED_DIR"])
         mock_vectorizer_instance.process_directory.assert_called_once_with(
-            input_dir=DEFAULT_CONTENT_DIR,
-            domain_filter="example.com",
+            input_dir=expected_input_dir,
+            site_filter=None,
             batch_size=20,
         )
 
@@ -869,3 +873,21 @@ class TestCli:
         # Check expected output in stdout
         assert "No site specified, parsing all available sites with crawled content" in result.stdout
         assert "Error during parsing: Test parsing error" in result.stdout
+
+    @patch("tapio.cli.MarkdownVectorizer")
+    def test_vectorize_command_with_nonexistent_site(self, mock_vectorizer, runner):
+        """Test the vectorize command with a non-existent site."""
+        # Mock os.path.exists to return False for the site directory
+        with patch("tapio.cli.os.path.exists", return_value=False):
+            # Run the command with non-existent site
+            result = runner.invoke(app, ["vectorize", "--site", "nonexistent"])
+
+        # Check that the command exited with error code
+        assert result.exit_code == 1
+
+        # Check expected output in stdout
+        assert "No parsed content found for site: nonexistent" in result.stdout
+        assert "content/nonexistent/parsed" in result.stdout
+
+        # Verify that vectorizer was not called
+        mock_vectorizer.assert_not_called()

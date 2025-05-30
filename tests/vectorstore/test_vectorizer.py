@@ -75,12 +75,12 @@ class TestMarkdownVectorizer:
         # Process directory
         processed_count = vectorizer.process_directory(
             input_dir="test_dir",
-            domain_filter="example.com",
+            site_filter="migri",
             batch_size=2,
         )
 
         # Verify find_markdown_files was called correctly
-        mock_find_files.assert_called_once_with("test_dir", "example.com")
+        mock_find_files.assert_called_once_with("test_dir", "migri")
 
         # Verify _process_batch was called correctly for each batch
         assert vectorizer._process_batch.call_count == 2

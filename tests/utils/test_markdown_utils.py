@@ -56,7 +56,7 @@ This is test content.
         assert content == ""
 
     def test_find_markdown_files_no_filter(self):
-        """Test finding markdown files without domain filter."""
+        """Test finding markdown files without site filter."""
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create some test files
             os.makedirs(os.path.join(temp_dir, "subdir"), exist_ok=True)
@@ -73,33 +73,36 @@ This is test content.
             assert any(f.endswith(os.path.join("subdir", "file3.md")) for f in markdown_files)
             assert not any(f.endswith("file2.txt") for f in markdown_files)
 
-    def test_find_markdown_files_with_domain_filter(self):
-        """Test finding markdown files with domain filter."""
+    def test_find_markdown_files_with_site_filter(self):
+        """Test finding markdown files with site filter."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create a test file with metadata that matches the domain filter
-            file1_path = os.path.join(temp_dir, "file1.md")
+            # Create site directory structure
+            migri_dir = os.path.join(temp_dir, "migri", "parsed")
+            kela_dir = os.path.join(temp_dir, "kela", "parsed")
+            os.makedirs(migri_dir, exist_ok=True)
+            os.makedirs(kela_dir, exist_ok=True)
+
+            # Create test files in different site directories
+            file1_path = os.path.join(migri_dir, "file1.md")
             with open(file1_path, "w") as f:
                 f.write("""---
-domain: migri.fi
-title: Test Document
+title: Migri Document
 ---
 # Test Content
 """)
 
-            # Create a test file with metadata that doesn't match the domain filter
-            file2_path = os.path.join(temp_dir, "file2.md")
+            file2_path = os.path.join(kela_dir, "file2.md")
             with open(file2_path, "w") as f:
                 f.write("""---
-domain: other.com
-title: Other Document
+title: Kela Document
 ---
 # Other Content
 """)
 
-            # Find markdown files with domain filter
-            markdown_files = find_markdown_files(temp_dir, domain_filter="migri.fi")
+            # Find markdown files with site filter
+            markdown_files = find_markdown_files(temp_dir, site_filter="migri")
 
-            # Check that only the file with the matching domain was found
+            # Check that only the file in the migri site directory was found
             assert len(markdown_files) == 1
             assert any(f.endswith("file1.md") for f in markdown_files)
             assert not any(f.endswith("file2.md") for f in markdown_files)
@@ -107,32 +110,36 @@ title: Other Document
     def test_find_markdown_files_with_unparseable_file(self):
         """Test finding markdown files with one that can't be parsed."""
         with tempfile.TemporaryDirectory() as temp_dir:
+            # Create site directory structure
+            migri_dir = os.path.join(temp_dir, "migri", "parsed")
+            os.makedirs(migri_dir, exist_ok=True)
+
             # Create a valid file
-            file1_path = os.path.join(temp_dir, "file1.md")
+            file1_path = os.path.join(migri_dir, "file1.md")
             with open(file1_path, "w") as f:
                 f.write("""---
-domain: migri.fi
 title: Test Document
 ---
 # Test Content
 """)
 
-            # Create an invalid file (invalid YAML frontmatter)
-            file2_path = os.path.join(temp_dir, "file2.md")
+            # Create an invalid file (invalid YAML frontmatter) - but it should still be found since we
+            # filter by directory structure
+            file2_path = os.path.join(migri_dir, "file2.md")
             with open(file2_path, "w") as f:
                 f.write("""---
-domain: migri.fi
 title: - [Invalid YAML
 ---
 # Invalid Content
 """)
 
-            # Find markdown files with domain filter
-            markdown_files = find_markdown_files(temp_dir, domain_filter="migri.fi")
+            # Find markdown files with site filter
+            markdown_files = find_markdown_files(temp_dir, site_filter="migri")
 
-            # Check that only the valid file was found
-            assert len(markdown_files) == 1
+            # Check that both files were found (since we filter by directory structure, not content)
+            assert len(markdown_files) == 2
             assert any(f.endswith("file1.md") for f in markdown_files)
+            assert any(f.endswith("file2.md") for f in markdown_files)
 
     def test_find_markdown_files_error(self):
         """Test error handling when finding markdown files."""
