@@ -434,7 +434,7 @@ def info(
 @app.command()
 def tapio_app(
     model_name: str = typer.Option(
-        "llama3.2",
+        "llama3.2:latest",
         "--model-name",
         "-m",
         help="Ollama model to use for LLM inference",
@@ -454,8 +454,7 @@ def tapio_app(
     """Launch the Tapio web interface for RAG-powered chatbot."""
     try:
         # Import the main function from the gradio_app module
-        # TODO: Rename module from gradio_app to tapio_app in future PR
-        from tapio.gradio_app import main as launch_gradio
+        from tapio.app import main as launch_app
 
         collection_name = DEFAULT_CHROMA_COLLECTION
         db_dir = DEFAULT_DIRS["CHROMA_DIR"]
@@ -467,7 +466,7 @@ def tapio_app(
             typer.echo("🔗 Creating a shareable link")
 
         # Launch the Gradio app with CLI parameters
-        launch_gradio(
+        launch_app(
             collection_name=collection_name,
             persist_directory=db_dir,
             model_name=model_name,

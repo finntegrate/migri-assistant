@@ -36,24 +36,46 @@ class LLMService:
             bool: True if the model is available, False otherwise
         """
         try:
-            models = ollama.list()
-            if "models" not in models:
+            models_response = ollama.list()
+
+            if not hasattr(models_response, "models") or not models_response.models:
                 logger.warning("No models found in Ollama")
                 return False
 
             # Check if the model exists - allow for model name variations like llama3.2:latest
             model_exists = False
-            available_models = [model.get("name", "") for model in models.get("models", [])]
+
+            # Extract model names from the Model objects
+            available_models = []
+            for model_obj in models_response.models:
+                # Each model object has a 'model' attribute with the name
+                model_name = model_obj.model
+                if model_name:  # Ensure we have a valid model name
+                    available_models.append(model_name)
 
             # Log available models
             logger.info(f"Available Ollama models: {', '.join(available_models)}")
 
-            # Check for exact match or name:latest pattern
+            # Check for exact match or base name match (handle :tag variations)
             for model_name in available_models:
-                if model_name == self.model_name or model_name.startswith(f"{self.model_name}:"):
+                # Exact match
+                if model_name == self.model_name:
                     model_exists = True
-                    logger.info(f"Found matching model: {model_name}")
+                    logger.info(f"Found exact matching model: {model_name}")
                     break
+                # If user provided base name (no tag), match any variant with tags
+                elif ":" not in self.model_name and model_name.startswith(f"{self.model_name}:"):
+                    model_exists = True
+                    logger.info(f"Found matching model: {model_name} for base name {self.model_name}")
+                    break
+                # If user provided name with tag, check if base names match
+                elif ":" in self.model_name and ":" in model_name:
+                    user_base = self.model_name.split(":")[0]
+                    model_base = model_name.split(":")[0]
+                    if user_base == model_base:
+                        model_exists = True
+                        logger.info(f"Found matching model: {model_name} for requested {self.model_name}")
+                        break
 
             if not model_exists:
                 logger.warning(
