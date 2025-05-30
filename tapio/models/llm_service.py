@@ -36,14 +36,22 @@ class LLMService:
             bool: True if the model is available, False otherwise
         """
         try:
-            models = ollama.list()
-            if "models" not in models:
+            models_response = ollama.list()
+
+            if not hasattr(models_response, "models") or not models_response.models:
                 logger.warning("No models found in Ollama")
                 return False
 
             # Check if the model exists - allow for model name variations like llama3.2:latest
             model_exists = False
-            available_models = [model.get("name", "") for model in models.get("models", [])]
+
+            # Extract model names from the Model objects
+            available_models = []
+            for model_obj in models_response.models:
+                # Each model object has a 'model' attribute with the name
+                model_name = model_obj.model
+                if model_name:  # Ensure we have a valid model name
+                    available_models.append(model_name)
 
             # Log available models
             logger.info(f"Available Ollama models: {', '.join(available_models)}")
