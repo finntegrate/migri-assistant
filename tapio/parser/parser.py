@@ -626,26 +626,6 @@ class Parser:
         self.logger.info(f"Saved markdown to {output_path}")
         return output_path
 
-    def _is_file_in_domain_dir(self, file_path: str | Path) -> bool:
-        """
-        Check if a file is within the input directory.
-
-        This is a utility method used internally to verify file locations.
-
-        Args:
-            file_path: Path to the file to check
-
-        Returns:
-            True if the file is within the input directory, False otherwise
-        """
-        file_path_str = str(file_path)
-
-        try:
-            rel_path = os.path.relpath(file_path_str, self.input_dir)
-            return not rel_path.startswith("..")
-        except ValueError:
-            return False
-
     def parse_all(self) -> list[dict[str, Any]]:
         """
         Parse all HTML files in the configured site's directory.
