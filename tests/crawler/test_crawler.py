@@ -1,5 +1,6 @@
 """Test cases for the async BaseCrawler implementation."""
 
+import asyncio
 import os
 from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 
@@ -271,6 +272,286 @@ class TestBaseCrawler:
         results = []
         await crawler._crawl_url(mock_client, "https://example.com/doc.pdf", 0, results)
         assert len(results) == 0
+
+    @pytest.mark.asyncio
+    async def test_crawl_url_semaphore_deadlock_prevention(self):
+        """Test that semaphore is properly released before processing child links to prevent deadlock."""
+        crawler = BaseCrawler(
+            start_urls=["https://example.com"],
+            output_dir=self.output_dir,
+            max_concurrent=2,  # Low limit to test semaphore behavior
+            depth=2,
+        )
+
+        # Track semaphore acquire/release calls using patches
+        semaphore_calls: list[str] = []
+
+        # Mock the semaphore with proper tracking
+        original_semaphore = crawler.semaphore
+
+        class MockSemaphore:
+            def __init__(self, original: asyncio.Semaphore):
+                self.original = original
+                self._call_count = 0
+
+            async def __aenter__(self):
+                self._call_count += 1
+                semaphore_calls.append(f"acquire_{self._call_count}")
+                return await self.original.__aenter__()
+
+            async def __aexit__(self, exc_type, exc_val, exc_tb):
+                semaphore_calls.append(f"release_{self._call_count}")
+                return await self.original.__aexit__(exc_type, exc_val, exc_tb)
+
+        # Patch the semaphore property
+        with patch.object(type(crawler), "semaphore", MockSemaphore(original_semaphore)):
+            # Mock responses for parent and child pages
+            parent_html = """
+            <html>
+                <body>
+                    <h1>Parent Page</h1>
+                    <a href="/child1">Child 1</a>
+                    <a href="/child2">Child 2</a>
+                </body>
+            </html>
+            """
+
+            child_html = """
+            <html>
+                <body>
+                    <h1>Child Page</h1>
+                    <a href="/grandchild">Grandchild</a>
+                </body>
+            </html>
+            """
+
+            def mock_get_side_effect(url):
+                mock_response = MagicMock()
+                mock_response.headers = {"content-type": "text/html; charset=utf-8"}
+                mock_response.raise_for_status = MagicMock()
+
+                if url == "https://example.com":
+                    mock_response.text = parent_html
+                else:
+                    mock_response.text = child_html
+
+                return mock_response
+
+            mock_client = AsyncMock()
+            mock_client.get = AsyncMock(side_effect=mock_get_side_effect)
+
+            with patch.object(crawler, "_save_html_content", return_value="/fake/path.html"):
+                results: list = []
+                await crawler._crawl_url(mock_client, "https://example.com", 0, results)
+
+                # Verify that semaphore was acquired and released properly
+                assert len(semaphore_calls) > 0
+                # Should have acquire/release pairs for each URL processed
+                acquire_count = len([call for call in semaphore_calls if call.startswith("acquire")])
+                release_count = len([call for call in semaphore_calls if call.startswith("release")])
+                assert acquire_count == release_count, "Semaphore acquire/release mismatch"
+
+                # Should have processed multiple URLs (parent + children)
+                assert len(results) > 1, "Should have crawled child links"
+
+    @pytest.mark.asyncio
+    async def test_crawl_concurrent_requests_respect_semaphore_limit(self):
+        """Test that concurrent requests don't exceed the semaphore limit."""
+        max_concurrent = 2
+        crawler = BaseCrawler(
+            start_urls=["https://example.com"],
+            output_dir=self.output_dir,
+            max_concurrent=max_concurrent,
+            depth=1,
+        )
+
+        # Track concurrent requests
+        concurrent_requests: list[str] = []
+        max_concurrent_seen = 0
+
+        async def mock_get_with_tracking(url):
+            concurrent_requests.append(url)
+            nonlocal max_concurrent_seen
+            max_concurrent_seen = max(max_concurrent_seen, len(concurrent_requests))
+
+            # Simulate request duration
+            await asyncio.sleep(0.1)
+
+            mock_response = MagicMock()
+            mock_response.text = f"""
+            <html>
+                <body>
+                    <h1>Page {url}</h1>
+                    <a href="/child1">Child 1</a>
+                    <a href="/child2">Child 2</a>
+                </body>
+            </html>
+            """
+            mock_response.headers = {"content-type": "text/html; charset=utf-8"}
+            mock_response.raise_for_status = MagicMock()
+
+            concurrent_requests.remove(url)
+            return mock_response
+
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(side_effect=mock_get_with_tracking)
+
+        with patch.object(crawler, "_save_html_content", return_value="/fake/path.html"):
+            results: list = []
+            await crawler._crawl_url(mock_client, "https://example.com", 0, results)
+
+            # Verify that we never exceeded the semaphore limit
+            assert max_concurrent_seen <= max_concurrent, (
+                f"Exceeded max concurrent limit: {max_concurrent_seen} > {max_concurrent}"
+            )
+
+    @pytest.mark.asyncio
+    async def test_crawl_multi_level_depth_without_deadlock(self):
+        """Test crawling multiple levels deep without causing deadlock."""
+        crawler = BaseCrawler(
+            start_urls=["https://example.com"],
+            output_dir=self.output_dir,
+            max_concurrent=2,
+            depth=2,  # Test 2 levels deep (reduced from 3)
+        )
+
+        # Mock different HTML for each level with fewer links to avoid explosion
+        def create_mock_response(url, depth):
+            mock_response = MagicMock()
+            mock_response.headers = {"content-type": "text/html; charset=utf-8"}
+            mock_response.raise_for_status = MagicMock()
+
+            if depth == 0:  # Root page
+                mock_response.text = """
+                <html>
+                    <body>
+                        <h1>Root Page</h1>
+                        <a href="/page1">Page 1</a>
+                    </body>
+                </html>
+                """
+            elif depth == 1:  # Level 1 pages
+                mock_response.text = """
+                <html>
+                    <body>
+                        <h1>Level 1 Page</h1>
+                        <a href="/page2">Page 2</a>
+                    </body>
+                </html>
+                """
+            else:  # Level 2 and deeper - no more links
+                mock_response.text = """
+                <html>
+                    <body>
+                        <h1>Leaf Page</h1>
+                    </body>
+                </html>
+                """
+            return mock_response
+
+        # Track which URLs are requested
+        requested_urls: list[str] = []
+
+        def mock_get_side_effect(url):
+            requested_urls.append(url)
+
+            # Determine depth based on URL pattern
+            if url == "https://example.com":
+                depth = 0
+            elif url == "https://example.com/page1":
+                depth = 1
+            elif url == "https://example.com/page2":
+                depth = 2
+            else:
+                depth = 3  # Should not reach this with depth=2
+
+            return create_mock_response(url, depth)
+
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(side_effect=mock_get_side_effect)
+
+        with patch.object(crawler, "_save_html_content", return_value="/fake/path.html"):
+            results: list = []
+
+            # This should complete without hanging (no deadlock)
+            await asyncio.wait_for(
+                crawler._crawl_url(mock_client, "https://example.com", 0, results),
+                timeout=5.0,  # Should complete well within 5 seconds if no deadlock
+            )
+
+            # Verify we crawled multiple levels
+            depths_crawled = {result["depth"] for result in results}
+            assert len(depths_crawled) > 1, "Should have crawled multiple depth levels"
+            assert max(depths_crawled) <= 2, "Should not exceed max depth"
+            assert len(results) >= 2, "Should have crawled multiple pages"
+
+            # Verify specific URLs were requested
+            expected_urls = ["https://example.com", "https://example.com/page1", "https://example.com/page2"]
+            for expected_url in expected_urls:
+                assert expected_url in requested_urls, f"Expected URL {expected_url} was not requested"
+
+    @pytest.mark.asyncio
+    async def test_crawl_links_processed_outside_semaphore_context(self):
+        """Test that child links are processed outside the semaphore context to prevent deadlock."""
+        crawler = BaseCrawler(
+            start_urls=["https://example.com"],
+            output_dir=self.output_dir,
+            max_concurrent=1,  # Force sequential processing
+            depth=1,
+        )
+
+        # Track when HTTP requests are made vs when child links are processed
+        processing_events: list[str] = []
+
+        # Mock the HTTP client to track request timing
+        async def mock_get_with_tracking(url):
+            processing_events.append(f"http_request_start_{url}")
+
+            mock_response = MagicMock()
+            mock_response.headers = {"content-type": "text/html; charset=utf-8"}
+            mock_response.raise_for_status = MagicMock()
+
+            if url == "https://example.com":
+                mock_response.text = """
+                <html>
+                    <body>
+                        <h1>Parent Page</h1>
+                        <a href="/child1">Child 1</a>
+                    </body>
+                </html>
+                """
+            else:
+                mock_response.text = "<html><body><h1>Child</h1></body></html>"
+
+            processing_events.append(f"http_request_end_{url}")
+            return mock_response
+
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(side_effect=mock_get_with_tracking)
+
+        with patch.object(crawler, "_save_html_content", return_value="/fake/path.html"):
+            results: list = []
+            await crawler._crawl_url(mock_client, "https://example.com", 0, results)
+
+            # Verify the request processing order
+            parent_end_idx = next(
+                i for i, event in enumerate(processing_events) if event == "http_request_end_https://example.com"
+            )
+            child_start_idx = next(
+                (
+                    i
+                    for i, event in enumerate(processing_events)
+                    if event.startswith("http_request_start_https://example.com/child")
+                ),
+                -1,
+            )
+
+            # Child request should start AFTER parent request completes
+            # This indicates semaphore was released before processing child links
+            if child_start_idx != -1:
+                assert child_start_idx > parent_end_idx, (
+                    "Child links should be processed after parent request completes"
+                )
 
     @pytest.mark.asyncio
     async def test_crawl_full_integration(self):

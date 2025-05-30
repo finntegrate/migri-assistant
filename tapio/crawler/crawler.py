@@ -223,27 +223,27 @@ class BaseCrawler:
                 # Save URL mappings periodically
                 self._save_url_mappings()
 
-                # Extract and follow links if we haven't reached max depth
+                # Extract links for following if we haven't reached max depth
+                links_to_follow = []
                 if current_depth < self.max_depth:
                     links = self._extract_links(soup, url)
-
-                    # Create tasks for following links
-                    link_tasks = [
-                        self._crawl_url(client, link, current_depth + 1, results)
-                        for link in links
-                        if link not in self.visited_urls
-                    ]
-
-                    # Process link tasks concurrently
-                    if link_tasks:
-                        await asyncio.gather(*link_tasks, return_exceptions=True)
+                    links_to_follow = [link for link in links if link not in self.visited_urls]
 
             except httpx.HTTPStatusError as e:
                 logging.warning(f"HTTP error for {url}: {e.response.status_code}")
+                return
             except httpx.RequestError as e:
                 logging.warning(f"Request error for {url}: {str(e)}")
+                return
             except Exception as e:
                 logging.error(f"Error processing {url}: {str(e)}")
+                return
+
+        # Process child links OUTSIDE the semaphore context to avoid deadlock
+        if links_to_follow:
+            link_tasks = [self._crawl_url(client, link, current_depth + 1, results) for link in links_to_follow]
+            # Process link tasks concurrently
+            await asyncio.gather(*link_tasks, return_exceptions=True)
 
     def _is_allowed_domain(self, url: str) -> bool:
         """
