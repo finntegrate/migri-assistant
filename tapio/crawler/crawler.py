@@ -10,7 +10,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 from tapio.config.config_models import SiteConfig
-from tapio.config.settings import DEFAULT_CRAWLER_TIMEOUT
+from tapio.config.settings import DEFAULT_CONTENT_DIR, DEFAULT_CRAWLER_TIMEOUT, DEFAULT_DIRS
 
 
 class UrlMappingData(TypedDict):
@@ -70,8 +70,8 @@ class BaseCrawler:
         # Set reasonable defaults for other values
         self.timeout = DEFAULT_CRAWLER_TIMEOUT
 
-        # Create output directory using site's base_dir
-        self.output_dir = os.path.join(site_config.base_dir, "crawled")
+        # Create output directory using centralized settings
+        self.output_dir = os.path.join(DEFAULT_CONTENT_DIR, self.site_name, DEFAULT_DIRS["CRAWLED_DIR"])
         os.makedirs(self.output_dir, exist_ok=True)
 
         # Track visited URLs to avoid duplicates
@@ -286,7 +286,6 @@ class BaseCrawler:
             The absolute path for saving the URL content.
         """
         parsed_url = urlparse(url)
-        domain = parsed_url.netloc
         path = parsed_url.path
 
         # Handle empty path or just "/"
@@ -306,8 +305,8 @@ class BaseCrawler:
             else:
                 path = path + "_" + safe_query + ".html"
 
-        # Create full path with domain as a subdirectory
-        full_path = os.path.join(self.output_dir, domain, path.lstrip("/"))
+        # Create full path without domain subdirectory
+        full_path = os.path.join(self.output_dir, path.lstrip("/"))
 
         # Ensure the path stays within output_dir (security check for path traversal)
         abs_full_path = os.path.abspath(full_path)

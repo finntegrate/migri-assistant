@@ -5,9 +5,11 @@ components of the migri-assistant application, including default directories
 for storing crawled and parsed content.
 """
 
+DEFAULT_CONTENT_DIR = "content"
+
 # Default directory paths
 DEFAULT_DIRS = {
-    "CRAWLED_DIR": "content/crawled",
+    "CRAWLED_DIR": "crawled",
     "PARSED_DIR": "content/parsed",
     "CHROMA_DIR": "chroma_db",
 }
