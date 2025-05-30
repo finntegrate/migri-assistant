@@ -9,6 +9,9 @@ from tapio.crawler.runner import CrawlerRunner
 from tapio.parser import Parser
 from tapio.vectorstore.vectorizer import MarkdownVectorizer
 
+# Constants
+DEFAULT_CRAWL_DEPTH = 1
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -29,11 +32,11 @@ app = typer.Typer(help="Tapio Assistant CLI - Web crawling and parsing tool")
 @app.command()
 def crawl(
     site: str = typer.Argument(..., help="Site configuration to use for crawling (e.g., 'migri')"),
-    depth: int = typer.Option(
-        1,
+    depth: int | None = typer.Option(
+        None,
         "--depth",
         "-d",
-        help="Maximum link-following depth (1 is just the provided URL)",
+        help=f"Maximum link-following depth (default: {DEFAULT_CRAWL_DEPTH} - just the provided URL)",
     ),
     config_path: str | None = typer.Option(
         None,
@@ -83,7 +86,7 @@ def crawl(
     url = site_config.base_url
 
     # Override depth if provided via CLI (update the site_config's crawler_config)
-    if depth != 1:  # Only override if user provided a non-default value
+    if depth is not None:  # User provided an explicit value
         site_config.crawler_config.max_depth = depth
 
     # Construct the actual output directory path
