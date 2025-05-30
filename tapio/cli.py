@@ -327,20 +327,12 @@ def vectorize(
 
         # Process files in the directory
         typer.echo("⚙️ Processing markdown files...")
-        if site is not None:
-            # When processing a specific site, don't apply site filter since we're already in the site's directory
-            count = vectorizer.process_directory(
-                input_dir=input_dir,
-                site_filter=None,
-                batch_size=batch_size,
-            )
-        else:
-            # When processing all sites, we can optionally filter by site (not currently used)
-            count = vectorizer.process_directory(
-                input_dir=input_dir,
-                site_filter=None,
-                batch_size=batch_size,
-            )
+        # Process files without site filter (already handled by input_dir)
+        count = vectorizer.process_directory(
+            input_dir=input_dir,
+            site_filter=None,
+            batch_size=batch_size,
+        )
 
         # Output information
         typer.echo(f"✅ Vectorization completed! Processed {count} files.")
