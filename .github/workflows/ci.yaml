@@ -45,6 +45,9 @@ jobs:
       - name: Run type checking with Mypy
         run: uv run mypy tapio
 
+      - name: Run Pyrefly code check
+        run: uv run pyrefly check
+
       - name: Test with pytest and coverage
         run: uv run pytest --cov=tapio --cov-report=xml --cov-report=term
 

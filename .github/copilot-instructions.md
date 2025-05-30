@@ -63,6 +63,24 @@ uv run pytest --cov=tapio.utils tests/utils/
 
 Aim for at least 80% coverage for new code. The HTML coverage report can be found in the `htmlcov` directory.
 
+## Code Analysis
+
+We use Pyrefly for static code analysis to identify potential bugs.
+
+You can run the code analysis checker with the following command:
+
+```shell
+uv run pyrefly check
+```
+
+Pyrefly will analyze your code for:
+
+- Potential bugs
+- Code quality issues
+- Type safety concerns
+
+Configuration for Pyrefly is stored in `pyrefly.toml`. Please address any issues reported by Pyrefly or provide justification for exceptions if needed.
+
 ## Ollama
 
 We use Ollama for local LLM inference.

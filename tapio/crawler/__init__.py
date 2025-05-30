@@ -7,6 +7,6 @@ HTML content without parsing or processing it.
 """
 
 from tapio.crawler.crawler import BaseCrawler
-from tapio.crawler.runner import ScrapyRunner
+from tapio.crawler.runner import CrawlerRunner
 
-__all__ = ["BaseCrawler", "ScrapyRunner"]
+__all__ = ["BaseCrawler", "CrawlerRunner"]

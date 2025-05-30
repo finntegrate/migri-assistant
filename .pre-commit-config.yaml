@@ -60,3 +60,11 @@ repos:
     rev: v0.6.0
     hooks:
       - id: keep-sorted
+  - repo: local
+    hooks:
+      - id: pyrefly
+        name: Pyrefly Code Check
+        entry: uv run pyrefly check
+        language: system
+        types: [python]
+        pass_filenames: false
