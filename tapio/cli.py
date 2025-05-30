@@ -1,12 +1,11 @@
 import logging
 import os
-from urllib.parse import urlparse
 
 import typer
 
 from tapio.config import ConfigManager
 from tapio.config.settings import DEFAULT_CHROMA_COLLECTION, DEFAULT_DIRS
-from tapio.crawler.runner import CrawlerRunner, CrawlerSettings
+from tapio.crawler.runner import CrawlerRunner
 from tapio.parser import Parser
 from tapio.vectorstore.vectorizer import MarkdownVectorizer
 
@@ -41,12 +40,6 @@ def crawl(
         "--config",
         "-c",
         help="Path to custom parser configurations file",
-    ),
-    allowed_domains: list[str] | None = typer.Option(
-        None,
-        "--domain",
-        "-D",
-        help="Domains to restrict crawling to (defaults to site's domain)",
     ),
     verbose: bool = typer.Option(
         False,
@@ -89,27 +82,15 @@ def crawl(
     # Get the base URL from the site configuration
     url = site_config.base_url
 
-    # Extract domain from URL if allowed_domains is not provided
-    if allowed_domains is None:
-        # Convert HttpUrl to string for urlparse
-        url_str = str(url)
-        parsed_url = urlparse(url_str)
-        allowed_domains = [parsed_url.netloc]
+    # Override depth if provided via CLI (update the site_config's crawler_config)
+    if depth != 1:  # Only override if user provided a non-default value
+        site_config.crawler_config.depth = depth
 
-    # Get crawler settings from site configuration
-    crawler_config = site_config.crawler_config
-
-    # Create properly typed custom_settings
-    custom_settings: CrawlerSettings = {
-        "delay_between_requests": crawler_config.delay_between_requests,
-        "max_concurrent": crawler_config.max_concurrent,
-    }
-
-    typer.echo(f"🕸️ Starting web crawler for {site} ({url}) with depth {depth}")
-    typer.echo(f"💾 Saving HTML content to: {DEFAULT_DIRS['CRAWLED_DIR']}")
+    typer.echo(f"🕸️ Starting web crawler for {site} ({url}) with depth {site_config.crawler_config.depth}")
+    typer.echo(f"💾 Saving HTML content to: {site_config.base_dir}")
     typer.echo(
-        f"⏱️ Using {crawler_config.delay_between_requests}s delay between requests "
-        f"and max {crawler_config.max_concurrent} concurrent requests",
+        f"⏱️ Using {site_config.crawler_config.delay_between_requests}s delay between requests "
+        f"and max {site_config.crawler_config.max_concurrent} concurrent requests",
     )
 
     try:
@@ -118,23 +99,17 @@ def crawl(
 
         typer.echo("⚠️ Press Ctrl+C at any time to interrupt crawling.")
 
-        # Start crawling
-        results = runner.run(
-            start_urls=[str(url)],  # Convert HttpUrl to string
-            depth=depth,
-            allowed_domains=allowed_domains,
-            output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
-            custom_settings=custom_settings,
-        )
+        # Start crawling with simplified interface
+        results = runner.run(site, site_config)
 
         # Output information
         typer.echo(f"✅ Crawling completed! Processed {len(results)} pages.")
-        typer.echo(f"💾 Content saved as HTML files in {DEFAULT_DIRS['CRAWLED_DIR']}")
+        typer.echo(f"💾 Content saved as HTML files in {site_config.base_dir}")
 
     except KeyboardInterrupt:
         typer.echo("\n🛑 Crawling interrupted by user")
         typer.echo("✅ Partial results have been saved")
-        typer.echo(f"💾 Crawled content saved to {DEFAULT_DIRS['CRAWLED_DIR']}")
+        typer.echo(f"💾 Crawled content saved to {site_config.base_dir}")
     except Exception as e:
         typer.echo(f"❌ Error during crawling: {str(e)}", err=True)
         raise typer.Exit(code=1)

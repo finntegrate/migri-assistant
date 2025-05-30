@@ -9,7 +9,7 @@ from urllib.parse import urljoin, urlparse
 import httpx
 from bs4 import BeautifulSoup
 
-from tapio.config.settings import DEFAULT_DIRS
+from tapio.config.config_models import SiteConfig
 
 
 class UrlMappingData(TypedDict):
@@ -40,50 +40,37 @@ class BaseCrawler:
 
     def __init__(
         self,
-        start_urls: str | list[str] | None = None,
-        allowed_domains: list[str] | None = None,
-        depth: int = 1,
-        output_dir: str = DEFAULT_DIRS["CRAWLED_DIR"],
-        timeout: int = 30,
-        max_concurrent: int = 10,
-        delay_between_requests: float = 1.0,
+        site_name: str,
+        site_config: SiteConfig,
     ) -> None:
         """
-        Initialize the crawler with configuration parameters.
+        Initialize the crawler with site configuration.
 
         Args:
-            start_urls: URL or list of URLs to start crawling from.
-            allowed_domains: List of domains to restrict crawling to.
-                If None, domains are extracted from start_urls.
-            depth: How many links deep to follow from the starting URLs.
-            output_dir: Directory to save crawled HTML files.
-            timeout: HTTP request timeout in seconds.
-            max_concurrent: Maximum number of concurrent requests.
-            delay_between_requests: Delay in seconds between requests to avoid rate limiting.
+            site_name: Name/identifier of the site being crawled.
+            site_config: Site configuration containing all crawler settings.
         """
-        # Convert single URL to list if needed
-        if isinstance(start_urls, str):
-            self.start_urls = [start_urls]
-        else:
-            self.start_urls = start_urls or []
+        self.site_name = site_name
+        self.site_config = site_config
 
-        # Extract allowed domains from start URLs if not provided
-        if allowed_domains is None:
-            self.allowed_domains: list[str] = []
-            for url in self.start_urls:
-                netloc = urlparse(url).netloc
-                if netloc and netloc not in self.allowed_domains:
-                    self.allowed_domains.append(netloc)
-        else:
-            self.allowed_domains = allowed_domains
+        # Extract configuration values from site_config
+        base_url_str = str(site_config.base_url)
+        self.start_urls = [base_url_str]
 
-        self.max_depth = int(depth)
-        self.output_dir = output_dir
-        self.timeout = timeout
-        self.max_concurrent = max_concurrent
-        self.delay_between_requests = delay_between_requests
+        # Extract domain from base_url for allowed_domains
+        parsed_url = urlparse(base_url_str)
+        self.allowed_domains = [parsed_url.netloc] if parsed_url.netloc else []
 
-        # Create output directory if it doesn't exist
+        # Use crawler config values
+        self.max_depth = site_config.crawler_config.depth
+        self.delay_between_requests = site_config.crawler_config.delay_between_requests
+        self.max_concurrent = site_config.crawler_config.max_concurrent
+
+        # Set reasonable defaults for other values
+        self.timeout = 30
+
+        # Create output directory using site's base_dir
+        self.output_dir = os.path.join(site_config.base_dir, "crawled")
         os.makedirs(self.output_dir, exist_ok=True)
 
         # Track visited URLs to avoid duplicates
@@ -108,8 +95,9 @@ class BaseCrawler:
                 logging.error(f"Error loading URL mappings: {str(e)}")
 
         logging.info(
-            f"Starting crawler with max depth {self.max_depth} for URLs: {self.start_urls}",
+            f"Starting crawler for site '{site_name}' with max depth {self.max_depth}",
         )
+        logging.info(f"Base URL: {base_url_str}")
         logging.info(f"Allowed domains: {self.allowed_domains}")
         logging.info(f"Output directory: {self.output_dir}")
 

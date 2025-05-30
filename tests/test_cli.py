@@ -46,10 +46,12 @@ class TestCli:
         mock_config_instance = MagicMock()
         mock_site_config = MagicMock()
         mock_site_config.base_url = "https://example.com"
+        mock_site_config.base_dir = "example.com"  # This should be just the domain
         # Mock the crawler_config with appropriate default values
         mock_crawler_config = MagicMock()
         mock_crawler_config.delay_between_requests = 1.0
         mock_crawler_config.max_concurrent = 5
+        mock_crawler_config.depth = 1  # Add depth attribute
         mock_site_config.crawler_config = mock_crawler_config
         mock_config_instance.get_site_config.return_value = mock_site_config
         mock_config_instance.list_available_sites.return_value = ["migri"]
@@ -78,17 +80,11 @@ class TestCli:
         # Check that the runner was initialized correctly
         mock_crawler_runner.assert_called_once()
 
-        # Check that run was called with the correct arguments
-        mock_runner_instance.run.assert_called_once_with(
-            start_urls=["https://example.com"],  # URL from site config
-            depth=2,
-            allowed_domains=["example.com"],  # Domain extracted from URL
-            output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
-            custom_settings={
-                "delay_between_requests": 1.0,
-                "max_concurrent": 5,
-            },
-        )
+        # Check that run was called with the new interface
+        mock_runner_instance.run.assert_called_once_with("migri", mock_site_config)
+
+        # Check that depth was overridden
+        assert mock_site_config.crawler_config.depth == 2
 
         # Check expected output in stdout
         assert "Starting web crawler" in result.stdout
@@ -103,10 +99,12 @@ class TestCli:
         mock_config_instance = MagicMock()
         mock_site_config = MagicMock()
         mock_site_config.base_url = "https://example.com"
+        mock_site_config.base_dir = "example.com"
         # Mock the crawler_config
         mock_crawler_config = MagicMock()
         mock_crawler_config.delay_between_requests = 1.0
         mock_crawler_config.max_concurrent = 5
+        mock_crawler_config.depth = 1
         mock_site_config.crawler_config = mock_crawler_config
         mock_config_instance.get_site_config.return_value = mock_site_config
         mock_config_instance.list_available_sites.return_value = ["migri"]
@@ -136,10 +134,12 @@ class TestCli:
         mock_config_instance = MagicMock()
         mock_site_config = MagicMock()
         mock_site_config.base_url = "https://example.com"
+        mock_site_config.base_dir = "example.com"
         # Mock the crawler_config
         mock_crawler_config = MagicMock()
         mock_crawler_config.delay_between_requests = 1.0
         mock_crawler_config.max_concurrent = 5
+        mock_crawler_config.depth = 1
         mock_site_config.crawler_config = mock_crawler_config
         mock_config_instance.get_site_config.return_value = mock_site_config
         mock_config_instance.list_available_sites.return_value = ["migri"]
