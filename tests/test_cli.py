@@ -224,36 +224,6 @@ class TestCli:
         assert "Processed 3 files" in result.stdout
 
     @patch("tapio.cli.ConfigManager")
-    @patch("tapio.cli.Parser")
-    def test_parse_command_with_domain(self, mock_parser, mock_config_manager, runner):
-        """Test the parse command with a domain filter."""
-        # Set up mock parser
-        mock_parser_instance = MagicMock()
-        mock_parser_instance.parse_all.return_value = ["file1", "file2"]
-        mock_parser.return_value = mock_parser_instance
-
-        # Set up mock config manager
-        mock_config_instance = MagicMock()
-        mock_config_instance.list_available_sites.return_value = ["migri"]
-        mock_config_manager.return_value = mock_config_instance
-
-        # Run the command with domain filter
-        result = runner.invoke(app, ["parse", "--domain", "example.com", "--site", "migri"])
-
-        # Check that the command ran successfully
-        assert result.exit_code == 0
-
-        # Check that parse_all was called correctly (domain is now handled internally)
-        mock_parser_instance.parse_all.assert_called_once_with()
-
-        # Check that list_available_sites was called
-        mock_config_instance.list_available_sites.assert_called_once()
-
-        # Check expected output in stdout
-        assert "Starting HTML parsing" in result.stdout
-        assert "Processed 2 files" in result.stdout
-
-    @patch("tapio.cli.ConfigManager")
     def test_parse_command_unsupported_site(self, mock_config_manager, runner):
         """Test the parse command with an unsupported site."""
         # Set up mock config manager

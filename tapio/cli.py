@@ -120,12 +120,6 @@ def crawl(
 
 @app.command()
 def parse(
-    domain: str | None = typer.Option(
-        None,
-        "--domain",
-        "-d",
-        help="Domain to parse (e.g. 'migri.fi'). If not provided, all domains are parsed.",
-    ),
     site: str | None = typer.Option(
         None,
         "--site",
@@ -157,9 +151,7 @@ def parse(
 
     Examples:
         $ python -m tapio.cli parse --site migri
-
-        # With optional parameters (rarely needed)
-        $ python -m tapio.cli parse --site te_palvelut --domain te-palvelut.fi
+        $ python -m tapio.cli parse --site te_palvelut
         $ python -m tapio.cli parse --site kela --config custom_configs.yaml
     """
     # Set log level based on verbose flag
