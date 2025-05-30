@@ -10,6 +10,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 from tapio.config.config_models import SiteConfig
+from tapio.config.settings import DEFAULT_CRAWLER_TIMEOUT
 
 
 class UrlMappingData(TypedDict):
@@ -67,7 +68,7 @@ class BaseCrawler:
         self.max_concurrent = site_config.crawler_config.max_concurrent
 
         # Set reasonable defaults for other values
-        self.timeout = 30
+        self.timeout = DEFAULT_CRAWLER_TIMEOUT
 
         # Create output directory using site's base_dir
         self.output_dir = os.path.join(site_config.base_dir, "crawled")
