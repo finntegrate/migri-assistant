@@ -23,6 +23,31 @@ logging.getLogger("transformers").setLevel(
 )  # Suppress potential transformers warnings
 logging.getLogger("chromadb").setLevel(logging.WARNING)  # Reduce ChromaDB debug noise
 
+
+def find_sites_with_crawled_content(content_dir: str, crawled_subdir: str) -> list[str]:
+    """Find all sites that have crawled HTML content.
+
+    :param content_dir: The root content directory to search in
+    :param crawled_subdir: The subdirectory name containing crawled files
+    :return: List of site names that have crawled HTML content
+    """
+    crawled_sites: list[str] = []
+    if not os.path.exists(content_dir):
+        return crawled_sites
+
+    for item in os.listdir(content_dir):
+        item_path = os.path.join(content_dir, item)
+        if os.path.isdir(item_path):
+            crawled_path = os.path.join(item_path, crawled_subdir)
+            if os.path.exists(crawled_path) and os.path.isdir(crawled_path):
+                # Check if the crawled directory contains any HTML files
+                has_html = any(f.endswith(".html") for root, _, files in os.walk(crawled_path) for f in files)
+                if has_html:
+                    crawled_sites.append(item)
+
+    return crawled_sites
+
+
 app = typer.Typer(help="Tapio Assistant CLI - Web crawling and parsing tool")
 
 
@@ -196,22 +221,7 @@ def parse(
                 raise typer.Exit(code=1)
 
             # Get site directories that contain crawled content
-            crawled_sites = []
-            for item in os.listdir(content_dir):
-                item_path = os.path.join(content_dir, item)
-                if os.path.isdir(item_path):
-                    # Check if this site directory has a crawled subdirectory with HTML files
-                    crawled_path = os.path.join(item_path, DEFAULT_DIRS["CRAWLED_DIR"])
-                    if os.path.exists(crawled_path) and os.path.isdir(crawled_path):
-                        # Check if the crawled directory contains any HTML files
-                        has_html = False
-                        for root, _, files in os.walk(crawled_path):
-                            if any(f.endswith(".html") for f in files):
-                                has_html = True
-                                break
-
-                        if has_html:
-                            crawled_sites.append(item)
+            crawled_sites = find_sites_with_crawled_content(content_dir, DEFAULT_DIRS["CRAWLED_DIR"])
 
             if not crawled_sites:
                 typer.echo("❌ No crawled content found to parse")

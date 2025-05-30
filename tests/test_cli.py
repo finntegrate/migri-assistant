@@ -1,12 +1,13 @@
 """Tests for the CLI module."""
 
 import os
+import tempfile
 from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
 
-from tapio.cli import app
+from tapio.cli import app, find_sites_with_crawled_content
 from tapio.config.settings import DEFAULT_CHROMA_COLLECTION, DEFAULT_CONTENT_DIR, DEFAULT_DIRS
 
 
@@ -889,3 +890,62 @@ class TestCli:
 
         # Verify that vectorizer was not called
         mock_vectorizer.assert_not_called()
+
+    def test_find_sites_with_crawled_content_empty_directory(self) -> None:
+        """Test find_sites_with_crawled_content with an empty directory."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = find_sites_with_crawled_content(temp_dir, "crawled")
+            assert result == []
+
+    def test_find_sites_with_crawled_content_nonexistent_directory(self) -> None:
+        """Test find_sites_with_crawled_content with a nonexistent directory."""
+        result = find_sites_with_crawled_content("/nonexistent/path", "crawled")
+        assert result == []
+
+    def test_find_sites_with_crawled_content_with_html_files(self) -> None:
+        """Test find_sites_with_crawled_content with sites containing HTML files."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create a site directory structure with HTML files
+            site1_dir = os.path.join(temp_dir, "site1")
+            site1_crawled = os.path.join(site1_dir, "crawled")
+            os.makedirs(site1_crawled)
+
+            # Create an HTML file
+            with open(os.path.join(site1_crawled, "page1.html"), "w") as f:
+                f.write("<html><body>Test content</body></html>")
+
+            # Create another site without HTML files
+            site2_dir = os.path.join(temp_dir, "site2")
+            site2_crawled = os.path.join(site2_dir, "crawled")
+            os.makedirs(site2_crawled)
+
+            # Create a non-HTML file
+            with open(os.path.join(site2_crawled, "data.txt"), "w") as f:
+                f.write("Not HTML content")
+
+            # Create a site without crawled directory
+            site3_dir = os.path.join(temp_dir, "site3")
+            os.makedirs(site3_dir)
+
+            result = find_sites_with_crawled_content(temp_dir, "crawled")
+
+            # Only site1 should be returned since it has HTML files
+            assert result == ["site1"]
+
+    def test_find_sites_with_crawled_content_nested_html_files(self) -> None:
+        """Test find_sites_with_crawled_content with HTML files in subdirectories."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create a site directory structure with nested HTML files
+            site_dir = os.path.join(temp_dir, "test_site")
+            crawled_dir = os.path.join(site_dir, "crawled")
+            nested_dir = os.path.join(crawled_dir, "subdomain")
+            os.makedirs(nested_dir)
+
+            # Create an HTML file in a subdirectory
+            with open(os.path.join(nested_dir, "nested_page.html"), "w") as f:
+                f.write("<html><body>Nested content</body></html>")
+
+            result = find_sites_with_crawled_content(temp_dir, "crawled")
+
+            # The site should be found even with nested HTML files
+            assert result == ["test_site"]
