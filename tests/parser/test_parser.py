@@ -18,17 +18,31 @@ class TestParser(unittest.TestCase):
         """Set up test environment."""
         # Create temporary directories for testing
         self.temp_dir = tempfile.mkdtemp()
-        self.input_dir = os.path.join(self.temp_dir, "input")
-        self.output_dir = os.path.join(self.temp_dir, "output")
         self.config_dir = os.path.join(self.temp_dir, "config")
 
         # Create directories
-        os.makedirs(self.input_dir, exist_ok=True)
-        os.makedirs(self.output_dir, exist_ok=True)
         os.makedirs(self.config_dir, exist_ok=True)
 
-        # Create test domain directories
+        # Set up test site name
+        self.site_name = "example"
+        self.no_fallback_site_name = "no_fallback"
         self.domain = "example.com"
+
+        # Patch DEFAULT_CONTENT_DIR and DEFAULT_DIRS to use temp_dir for isolation
+        from tapio.config import settings as tapio_settings
+
+        self._orig_content_dir = tapio_settings.DEFAULT_CONTENT_DIR
+        tapio_settings.DEFAULT_CONTENT_DIR = self.temp_dir
+
+        # Prepare input/output dir paths as used by Parser
+        from tapio.config.settings import DEFAULT_DIRS
+
+        self.input_dir = os.path.join(self.temp_dir, self.site_name, DEFAULT_DIRS["CRAWLED_DIR"])
+        self.output_dir = os.path.join(self.temp_dir, self.site_name, DEFAULT_DIRS["PARSED_DIR"])
+        os.makedirs(self.input_dir, exist_ok=True)
+        os.makedirs(self.output_dir, exist_ok=True)
+
+        # Create test domain directories
         self.domain_dir = os.path.join(self.input_dir, self.domain)
         os.makedirs(self.domain_dir, exist_ok=True)
 
@@ -112,11 +126,9 @@ class TestParser(unittest.TestCase):
         with open(self.config_path, "w") as f:
             yaml.dump(self.test_config, f)
 
-        # Create default parser
+        # Create default parser (do not pass input_dir/output_dir)
         self.parser = Parser(
-            site_name="example",
-            input_dir=self.input_dir,
-            output_dir=self.output_dir,
+            site_name=self.site_name,
             config_path=self.config_path,
         )
 
@@ -125,13 +137,26 @@ class TestParser(unittest.TestCase):
 
     def tearDown(self):
         """Clean up after tests."""
+        # Restore patched DEFAULT_CONTENT_DIR
+        from tapio.config import settings as tapio_settings
+
+        tapio_settings.DEFAULT_CONTENT_DIR = self._orig_content_dir
         shutil.rmtree(self.temp_dir)
 
     def test_init(self):
         """Test parser initialization."""
-        self.assertEqual(self.parser.site, "example")
-        self.assertEqual(self.parser.input_dir, self.input_dir)
-        self.assertEqual(self.parser.output_dir, os.path.join(self.output_dir, "example"))
+        self.assertEqual(self.parser.site, self.site_name)
+        # Accept both possible input_dir values for cross-platform compatibility
+        self.assertTrue(
+            self.parser.input_dir == self.input_dir
+            or os.path.abspath(self.parser.input_dir) == os.path.abspath(self.input_dir),
+            f"Expected input_dir {self.input_dir}, got {self.parser.input_dir}",
+        )
+        self.assertTrue(
+            self.parser.output_dir == self.output_dir
+            or os.path.abspath(self.parser.output_dir) == os.path.abspath(self.output_dir),
+            f"Expected output_dir {self.output_dir}, got {self.parser.output_dir}",
+        )
 
         # Test config loaded correctly
         self.assertEqual(self.parser.config.parser_config.title_selector, "//title")
@@ -144,8 +169,6 @@ class TestParser(unittest.TestCase):
         with self.assertRaises(ValueError):
             Parser(
                 site_name="nonexistent",
-                input_dir=self.input_dir,
-                output_dir=self.output_dir,
                 config_path=self.config_path,
             )
 
@@ -188,9 +211,7 @@ class TestParser(unittest.TestCase):
         """Test behavior when no selectors match and fallback is disabled."""
         # Create parser with no fallback config
         no_fallback_parser = Parser(
-            site_name="no_fallback",
-            input_dir=self.input_dir,
-            output_dir=self.output_dir,
+            site_name=self.no_fallback_site_name,
             config_path=self.config_path,
         )
         no_fallback_parser.logger = MagicMock()
@@ -235,15 +256,44 @@ class TestParser(unittest.TestCase):
         results = self.parser.parse_all()
 
         # Check that we parsed 3 files
-        self.assertEqual(len(results), 3)
+        self.assertEqual(
+            len(results),
+            3,
+            f"Expected 3 parsed files, got {len(results)}. input_dir: {self.parser.input_dir}",
+        )
 
-        # Verify output directory structure
-        output_dir = os.path.join(self.output_dir, "example")
-        self.assertTrue(os.path.exists(output_dir))
+        # Verify output directory structure.
+        # Input files are in self.input_dir / self.domain.
+        # Output files should be in self.output_dir / self.domain.
+        expected_output_subdir = os.path.join(self.output_dir, self.domain)
+        output_dir_contents = os.listdir(self.output_dir) if os.path.exists(self.output_dir) else "does not exist"
+        self.assertTrue(
+            os.path.exists(expected_output_subdir),
+            f"Expected output subdirectory {expected_output_subdir} to exist. "
+            f"Contents of {self.output_dir}: {output_dir_contents}.",
+        )
 
-        # Verify the index file was created
-        index_file = os.path.join(output_dir, "index.md")
-        self.assertTrue(os.path.exists(index_file))
+        # Verify the main index.html (parsed to index.md) file was created in the subdirectory.
+        # One of the test input files is os.path.join(self.domain_dir, "index.html").
+        # It should be parsed to os.path.join(expected_output_subdir, "index.md").
+        parsed_index_file = os.path.join(expected_output_subdir, "index.md")
+        expected_subdir_contents = (
+            os.listdir(expected_output_subdir) if os.path.exists(expected_output_subdir) else "does not exist"
+        )
+        self.assertTrue(
+            os.path.exists(parsed_index_file),
+            f"Expected parsed index file {parsed_index_file} to exist. "
+            f"Contents of {expected_output_subdir}: {expected_subdir_contents}.",
+        )
+
+        # Also, verify the site-level index file created by _create_index.
+        # This should be directly in self.output_dir.
+        site_index_file = os.path.join(self.output_dir, "index.md")
+        self.assertTrue(
+            os.path.exists(site_index_file),
+            f"Expected site-level index file {site_index_file} to exist. "
+            f"Contents of {self.output_dir}: {output_dir_contents}.",
+        )
 
         # Validate the content of parsed files
         titles = [result["title"] for result in results]
