@@ -32,8 +32,8 @@ app = typer.Typer(help="Tapio Assistant CLI - Web crawling and parsing tool")
 @app.command()
 def crawl(
     site: str = typer.Argument(..., help="Site configuration to use for crawling (e.g., 'migri')"),
-    depth: int | None = typer.Option(
-        None,
+    depth: int = typer.Option(
+        DEFAULT_CRAWL_DEPTH,
         "--depth",
         "-d",
         help=f"Maximum link-following depth (default: {DEFAULT_CRAWL_DEPTH} - just the provided URL)",
@@ -85,9 +85,8 @@ def crawl(
     # Get the base URL from the site configuration
     url = site_config.base_url
 
-    # Override depth if provided via CLI (update the site_config's crawler_config)
-    if depth is not None:  # User provided an explicit value
-        site_config.crawler_config.max_depth = depth
+    # Always override depth with CLI value (user can explicitly set any depth)
+    site_config.crawler_config.max_depth = depth
 
     # Construct the actual output directory path
     crawled_dir = os.path.join(DEFAULT_CONTENT_DIR, site, DEFAULT_DIRS["CRAWLED_DIR"])
