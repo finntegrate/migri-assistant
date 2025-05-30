@@ -83,22 +83,26 @@ class TestParser(unittest.TestCase):
                 "example": {
                     "base_url": f"https://{self.domain}",
                     "base_dir": self.domain,
-                    "title_selector": "//title",
-                    "content_selectors": [
-                        '//div[@id="main-content"]',
-                        '//div[@class="content"]',
-                        "//main",
-                    ],
-                    "fallback_to_body": True,
                     "description": "Example Website for Testing",
-                    "markdown_config": {"ignore_links": False, "body_width": 0},
+                    "parser_config": {
+                        "title_selector": "//title",
+                        "content_selectors": [
+                            '//div[@id="main-content"]',
+                            '//div[@class="content"]',
+                            "//main",
+                        ],
+                        "fallback_to_body": True,
+                        "markdown_config": {"ignore_links": False, "body_width": 0},
+                    },
                 },
                 "no_fallback": {
                     "base_url": f"https://{self.domain}",
                     "base_dir": self.domain,
-                    "title_selector": "//h1",
-                    "content_selectors": ['//div[@id="does-not-exist"]'],
-                    "fallback_to_body": False,
+                    "parser_config": {
+                        "title_selector": "//h1",
+                        "content_selectors": ['//div[@id="does-not-exist"]'],
+                        "fallback_to_body": False,
+                    },
                 },
             },
         }
@@ -130,9 +134,9 @@ class TestParser(unittest.TestCase):
         self.assertEqual(self.parser.output_dir, os.path.join(self.output_dir, "example"))
 
         # Test config loaded correctly
-        self.assertEqual(self.parser.config.title_selector, "//title")
-        self.assertEqual(len(self.parser.config.content_selectors), 3)
-        self.assertTrue(self.parser.config.fallback_to_body)
+        self.assertEqual(self.parser.config.parser_config.title_selector, "//title")
+        self.assertEqual(len(self.parser.config.parser_config.content_selectors), 3)
+        self.assertTrue(self.parser.config.parser_config.fallback_to_body)
         self.assertEqual(self.parser.config.description, "Example Website for Testing")
 
     def test_init_with_invalid_site(self):

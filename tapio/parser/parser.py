@@ -17,7 +17,7 @@ import yaml
 from lxml import html
 
 from tapio.config import ConfigManager
-from tapio.config.config_models import SiteParserConfig
+from tapio.config.config_models import SiteConfig
 from tapio.config.settings import DEFAULT_DIRS
 
 
@@ -225,11 +225,11 @@ class Parser:
             tree = html.fromstring(html_content)
 
             # Extract the title using the configured selector
-            title_elements = tree.xpath(self.config.title_selector)
+            title_elements = tree.xpath(self.config.parser_config.title_selector)
             title = title_elements[0].text if title_elements else "Untitled"
 
             # Find content using the configured selectors
-            content_section = self.config.get_content_selector(tree)
+            content_section = self.config.parser_config.get_content_selector(tree)
 
             # Prepare HTML content for conversion
             if content_section is not None:
@@ -240,7 +240,7 @@ class Parser:
                     pretty_print=True,
                 )
                 self.logger.info("Successfully extracted content section")
-            elif self.config.fallback_to_body:
+            elif self.config.parser_config.fallback_to_body:
                 # If no content section found and fallback is enabled, use the body
                 body = tree.xpath("//body")
                 content_html = html.tostring(body[0], encoding="unicode", pretty_print=True) if body else html_content
@@ -347,7 +347,7 @@ class Parser:
             Markdown formatted text
         """
         # Configure html2text with site-specific settings
-        config = self.config.markdown_config
+        config = self.config.parser_config.markdown_config
         text_maker = html2text.HTML2Text()
         text_maker.ignore_links = config.ignore_links
         text_maker.body_width = config.body_width
@@ -770,7 +770,7 @@ class Parser:
         cls,
         site: str,
         config_path: str | None = None,
-    ) -> SiteParserConfig | None:
+    ) -> SiteConfig | None:
         """
         Get detailed information about a specific site configuration.
 

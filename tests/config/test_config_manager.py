@@ -7,7 +7,7 @@ import yaml
 from pydantic import ValidationError
 
 from tapio.config import ConfigManager
-from tapio.config.config_models import SiteParserConfig
+from tapio.config.config_models import SiteConfig
 
 
 class TestConfigManager:
@@ -19,10 +19,10 @@ class TestConfigManager:
         return """
             sites:
               test_site:
-                site_name: "test"
                 base_url: "https://example.com"
-                content_selectors:
-                  - "//main"
+                parser_config:
+                  content_selectors:
+                    - "//main"
         """
 
     @pytest.fixture
@@ -31,20 +31,23 @@ class TestConfigManager:
         return """
             sites:
               site1:
-                site_name: "Site 1"
                 base_url: "https://site1.com"
-                content_selectors:
-                  - "//main"
+                description: "Site 1"
+                parser_config:
+                  content_selectors:
+                    - "//main"
               site2:
-                site_name: "Site 2"
                 base_url: "https://site2.com"
-                content_selectors:
-                  - "//main"
+                description: "Site 2"
+                parser_config:
+                  content_selectors:
+                    - "//main"
               site3:
-                site_name: "Site 3"
                 base_url: "https://site3.com"
-                content_selectors:
-                  - "//main"
+                description: "Site 3"
+                parser_config:
+                  content_selectors:
+                    - "//main"
         """
 
     @pytest.fixture
@@ -53,22 +56,22 @@ class TestConfigManager:
         return """
             sites:
               site1:
-                site_name: "Site 1"
                 base_url: "https://site1.com"
-                content_selectors:
-                  - "//main"
                 description: "First site description"
+                parser_config:
+                  content_selectors:
+                    - "//main"
               site2:
-                site_name: "Site 2"
                 base_url: "https://site2.com"
-                content_selectors:
-                  - "//main"
                 description: "Second site description"
+                parser_config:
+                  content_selectors:
+                    - "//main"
               site3:
-                site_name: "Site 3"
                 base_url: "https://site3.com"
-                content_selectors:
-                  - "//main"
+                parser_config:
+                  content_selectors:
+                    - "//main"
         """
 
     @pytest.fixture
@@ -77,10 +80,10 @@ class TestConfigManager:
         return """
             sites:
               invalid_url_site:
-                site_name: "invalid"
                 base_url: "invalid-url"
-                content_selectors:
-                  - "//main"
+                parser_config:
+                  content_selectors:
+                    - "//main"
         """
 
     def test_init_default_path(self, basic_config_yaml):
@@ -156,9 +159,9 @@ class TestConfigManager:
         ):
             config_manager = ConfigManager()
             site_config = config_manager.get_site_config("test_site")
-            assert isinstance(site_config, SiteParserConfig)
+            assert isinstance(site_config, SiteConfig)
             assert str(site_config.base_url) == "https://example.com/"
-            assert "//main" in site_config.content_selectors
+            assert "//main" in site_config.parser_config.content_selectors
 
     def test_get_nonexistent_site_config(self, basic_config_yaml):
         """Test retrieving a non-existent site configuration."""

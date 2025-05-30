@@ -40,24 +40,47 @@ class CrawlerConfig(BaseModel):
     max_concurrent: Annotated[int, Field(ge=1, le=50, description="Maximum number of concurrent requests")] = 5
 
 
-class SiteParserConfig(BaseModel):
-    """Configuration for site-specific HTML parsing.
+class ParserConfig(BaseModel):
+    """Configuration settings for HTML content parsing.
 
-    Defines how content is extracted from HTML pages, including the selectors
-    used to identify important page elements and conversion settings.
+    Defines parser-specific settings such as content selectors, title selectors,
+    and HTML-to-Markdown conversion options.
     """
 
-    base_url: HttpUrl
-    # Note: In Pydantic v2, default HttpUrl values need to be provided using model_config
-    # or Field validators; using literal default values can cause type errors
     title_selector: str = "//title"
     content_selectors: list[str] = Field(
-        ...,
+        default_factory=lambda: ["//main", "//article", "//body"],
         description="Priority-ordered list of XPath selectors to find content",
     )
     fallback_to_body: bool = True
-    description: str | None = None
     markdown_config: HtmlToMarkdownConfig = Field(default_factory=HtmlToMarkdownConfig)
+
+    def get_content_selector(self, tree: Any) -> Any | None:
+        """Find the first matching content element using the configured selectors.
+
+        Args:
+            tree: An lxml HTML tree to search
+
+        Returns:
+            The first matching element or None if no match is found
+        """
+        for selector in self.content_selectors:
+            elements = tree.xpath(selector)
+            if elements:
+                return elements[0]
+        return None
+
+
+class SiteConfig(BaseModel):
+    """Configuration for site-specific operations.
+
+    Defines the overall configuration for a site, including base URL, description,
+    and references to both parser and crawler configurations.
+    """
+
+    base_url: HttpUrl
+    description: str | None = None
+    parser_config: ParserConfig = Field(default_factory=ParserConfig)
     crawler_config: CrawlerConfig = Field(default_factory=CrawlerConfig)
 
     @property
@@ -86,14 +109,10 @@ class SiteParserConfig(BaseModel):
         Returns:
             The first matching element or None if no match is found
         """
-        for selector in self.content_selectors:
-            elements = tree.xpath(selector)
-            if elements:
-                return elements[0]
-        return None
+        return self.parser_config.get_content_selector(tree)
 
 
 class ParserConfigRegistry(BaseModel):
     """Registry of all site parser configurations."""
 
-    sites: dict[str, SiteParserConfig]
+    sites: dict[str, SiteConfig]

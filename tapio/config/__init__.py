@@ -8,12 +8,12 @@ from tapio.config.config_manager import ConfigManager
 from tapio.config.config_models import (
     HtmlToMarkdownConfig,
     ParserConfigRegistry,
-    SiteParserConfig,
+    SiteConfig,
 )
 
 __all__ = [
     "ConfigManager",
     "HtmlToMarkdownConfig",
     "ParserConfigRegistry",
-    "SiteParserConfig",
+    "SiteConfig",
 ]

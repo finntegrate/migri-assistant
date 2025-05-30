@@ -9,7 +9,7 @@ import os
 
 import yaml
 
-from tapio.config.config_models import ParserConfigRegistry, SiteParserConfig
+from tapio.config.config_models import ParserConfigRegistry, SiteConfig
 
 
 class ConfigManager:
@@ -66,7 +66,7 @@ class ConfigManager:
             self.logger.error(f"Invalid configuration: {e}")
             raise
 
-    def get_site_config(self, site: str) -> SiteParserConfig:
+    def get_site_config(self, site: str) -> SiteConfig:
         """
         Get configuration for a specific site.
 

@@ -545,9 +545,13 @@ class TestCli:
         # Mock site config
         mock_site_config = MagicMock()
         mock_site_config.description = "Finnish Immigration Service"
-        mock_site_config.title_selector = "h1"
-        mock_site_config.content_selectors = ["main", "article"]
-        mock_site_config.fallback_to_body = True
+
+        # Mock parser config within site config
+        mock_parser_config = MagicMock()
+        mock_parser_config.title_selector = "h1"
+        mock_parser_config.content_selectors = ["main", "article"]
+        mock_parser_config.fallback_to_body = True
+        mock_site_config.parser_config = mock_parser_config
 
         mock_config_instance.get_site_config.return_value = mock_site_config
         mock_config_manager.return_value = mock_config_instance
