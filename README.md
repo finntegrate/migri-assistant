@@ -97,38 +97,42 @@ Site configurations define how to crawl and parse specific websites. They're sto
 sites:
   migri:
     base_url: "https://migri.fi"                # Used for crawling and converting relative links
-    title_selector: "//title"                   # XPath for page titles
-    content_selectors:                          # Priority-ordered content extraction
-      - '//div[@id="main-content"]'
-      - "//main"
-      - "//article"
-      - '//div[@class="content"]'
-    fallback_to_body: true                      # Use <body> if selectors fail
     description: "Finnish Immigration Service website"
-    markdown_config:                            # HTML-to-Markdown options
-      ignore_links: false
-      body_width: 0                             # No text wrapping
-      protect_links: true
-      unicode_snob: true
-      ignore_images: false
-      ignore_tables: false
-    crawler_config:                             # Crawling behavior
-      delay_between_requests: 1.0               # Seconds between requests
-      max_concurrent: 3                         # Concurrent request limit
+    crawler_config:                            # Crawling behavior
+      delay_between_requests: 1.0              # Seconds between requests
+      max_concurrent: 3                        # Concurrent request limit
+    parser_config:                              # Parser-specific configuration
+      title_selector: "//title"                # XPath for page titles
+      content_selectors:                       # Priority-ordered content extraction
+        - '//div[@id="main-content"]'
+        - "//main"
+        - "//article"
+        - '//div[@class="content"]'
+      fallback_to_body: true                   # Use <body> if selectors fail
+      markdown_config:                         # HTML-to-Markdown options
+        ignore_links: false
+        body_width: 0                          # No text wrapping
+        protect_links: true
+        unicode_snob: true
+        ignore_images: false
+        ignore_tables: false
 ```
 
 ### Required vs Optional Fields
 
 **Required:**
 - `base_url` - Base URL for the site (used for crawling and link resolution)
-- `content_selectors` - At least one XPath selector for content extraction
 
 **Optional (with defaults):**
-- `title_selector` - Page title XPath (default: "//title")
-- `fallback_to_body` - Use full body content if selectors fail (default: true)
 - `description` - Human-readable description
-- `markdown_config` - HTML conversion settings (uses defaults if omitted)
+- `parser_config` - Parser-specific settings (uses defaults if omitted)
+  - `title_selector` - Page title XPath (default: "//title")
+  - `content_selectors` - XPath selectors for content extraction (default: ["//main", "//article", "//body"])
+  - `fallback_to_body` - Use full body content if selectors fail (default: true)
+  - `markdown_config` - HTML conversion settings (uses defaults if omitted)
 - `crawler_config` - Crawling behavior settings (uses defaults if omitted)
+  - `delay_between_requests` - Delay between requests in seconds (default: 1.0)
+  - `max_concurrent` - Maximum concurrent requests (default: 5)
 
 ### Adding New Sites
 
@@ -140,9 +144,10 @@ sites:
 sites:
   my_site:
     base_url: "https://example.com"
-    content_selectors:
-      - '//div[@class="main-content"]'
     description: "Example site configuration"
+    parser_config:
+      content_selectors:
+        - '//div[@class="main-content"]'
 ```
 
 4. Use with commands:

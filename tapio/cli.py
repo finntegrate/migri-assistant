@@ -412,9 +412,9 @@ def info(
             typer.echo(f"  Base directory: {config.base_dir}")
             typer.echo(f"  Description: {config.description}")
             typer.echo("  Content selectors:")
-            for selector in config.content_selectors:
+            for selector in config.parser_config.content_selectors:
                 typer.echo(f"    - {selector}")
-            typer.echo(f"  Fallback to body: {config.fallback_to_body}")
+            typer.echo(f"  Fallback to body: {config.parser_config.fallback_to_body}")
         except ValueError:
             typer.echo(f"Error: Site configuration '{show_site_config}' not found")
         return
@@ -529,11 +529,11 @@ def list_sites(
                     site_config = config_manager.get_site_config(site_name)
                     typer.echo(f"\n📄 {site_name}:")
                     typer.echo(f"  Description: {site_config.description or 'No description'}")
-                    typer.echo(f"  Title selector: {site_config.title_selector}")
+                    typer.echo(f"  Title selector: {site_config.parser_config.title_selector}")
                     typer.echo("  Content selectors:")
-                    for selector in site_config.content_selectors:
+                    for selector in site_config.parser_config.content_selectors:
                         typer.echo(f"    - {selector}")
-                    typer.echo(f"  Fallback to body: {site_config.fallback_to_body}")
+                    typer.echo(f"  Fallback to body: {site_config.parser_config.fallback_to_body}")
                     typer.echo("  Crawler configuration:")
                     typer.echo(f"    - Delay between requests: {site_config.crawler_config.delay_between_requests}s")
                     typer.echo(f"    - Max concurrent requests: {site_config.crawler_config.max_concurrent}")

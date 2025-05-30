@@ -8,7 +8,7 @@ from HTML files saved by the crawler module.
 from tapio.config.config_models import (
     HtmlToMarkdownConfig,
     ParserConfigRegistry,
-    SiteParserConfig,
+    SiteConfig,
 )
 from tapio.parser.parser import Parser
 
@@ -16,5 +16,5 @@ __all__ = [
     "HtmlToMarkdownConfig",
     "Parser",
     "ParserConfigRegistry",
-    "SiteParserConfig",
+    "SiteConfig",
 ]

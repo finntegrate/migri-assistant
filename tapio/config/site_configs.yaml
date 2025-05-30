@@ -2,21 +2,22 @@
 sites:
   migri:
     base_url: "https://migri.fi"
-    title_selector: "//title"
-    content_selectors:
-      - '//div[@id="main-content"]'
-      - "//main"
-      - "//article"
-      - '//div[@class="content"]'
-    fallback_to_body: true
     description: "Finnish Immigration Service website"
-    markdown_config:
-      ignore_links: false
-      body_width: 0
-      protect_links: true
-      unicode_snob: true
-      ignore_images: false
-      ignore_tables: false
+    parser_config:
+      title_selector: "//title"
+      content_selectors:
+        - '//div[@id="main-content"]'
+        - "//main"
+        - "//article"
+        - '//div[@class="content"]'
+      fallback_to_body: true
+      markdown_config:
+        ignore_links: false
+        body_width: 0
+        protect_links: true
+        unicode_snob: true
+        ignore_images: false
+        ignore_tables: false
     crawler_config:
       delay_between_requests: 1.0
       max_concurrent: 3
@@ -24,14 +25,15 @@ sites:
   # Example configuration for TE Services website
   te_palvelut:
     base_url: "https://toimistot.te-palvelut.fi"
-    title_selector: "//title"
-    content_selectors:
-      - '//div[@class="content-main"]'
-      - '//main[@role="main"]'
-    fallback_to_body: true
     description: "TE Services (Work and Economic Development) website"
-    markdown_config:
-      ignore_tables: false
+    parser_config:
+      title_selector: "//title"
+      content_selectors:
+        - '//div[@class="content-main"]'
+        - '//main[@role="main"]'
+      fallback_to_body: true
+      markdown_config:
+        ignore_tables: false
     crawler_config:
       delay_between_requests: 1.5
       max_concurrent: 3
@@ -39,13 +41,14 @@ sites:
   # Example configuration for Kela website
   kela:
     base_url: "https://www.kela.fi"
-    title_selector: "//h1 | //title"
-    content_selectors:
-      - '//div[@id="content-root"]'
-    fallback_to_body: true
     description: "Kela (Social Insurance Institution of Finland) website"
-    markdown_config:
-      ignore_images: true
+    parser_config:
+      title_selector: "//h1 | //title"
+      content_selectors:
+        - '//div[@id="content-root"]'
+      fallback_to_body: true
+      markdown_config:
+        ignore_images: true
     crawler_config:
       delay_between_requests: 1.2
       max_concurrent: 4
@@ -53,13 +56,14 @@ sites:
   # Example configuration for Vero website
   vero:
     base_url: "https://www.vero.fi/en/"
-    title_selector: "//h1 | //title"
-    content_selectors:
-      - '//main[@id="content-container"]'
-    fallback_to_body: true
     description: "Vero (Guidance about taxation in Finland) website"
-    markdown_config:
-      ignore_images: true
+    parser_config:
+      title_selector: "//h1 | //title"
+      content_selectors:
+        - '//main[@id="content-container"]'
+      fallback_to_body: true
+      markdown_config:
+        ignore_images: true
     crawler_config:
       delay_between_requests: 1.0
       max_concurrent: 4
