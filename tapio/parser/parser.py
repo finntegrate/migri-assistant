@@ -16,9 +16,11 @@ import html2text
 import yaml
 from lxml import html
 
-from tapio.config import ConfigManager
+from tapio.config import (
+    ConfigManager,
+    settings,
+)
 from tapio.config.config_models import SiteConfig
-from tapio.config.settings import DEFAULT_DIRS
 
 
 class DirectoryScope:
@@ -71,30 +73,27 @@ class Parser:
 
     def __init__(
         self,
-        site: str,
-        input_dir: str = DEFAULT_DIRS["CRAWLED_DIR"],
-        output_dir: str = DEFAULT_DIRS["PARSED_DIR"],
+        site_name: str,
         config_path: str | None = None,
     ):
         """
         Initialize the parser.
 
         Args:
-            site: Site to parse (must match a key in config)
-            input_dir: Directory containing HTML files to parse
-            output_dir: Directory to save parsed content
+            site_name: Site to parse (must match a key in config)
             config_path: Optional path to custom config file
         """
-        self.site = site
+        self.site = site_name
 
         # Use ConfigManager to load site configuration
         config_manager = ConfigManager(config_path)
-        self.config = config_manager.get_site_config(site)
+        self.config = config_manager.get_site_config(site_name)
 
         self.current_base_url: str | None = None  # Will store the base URL of the current document
 
-        self.input_dir = input_dir
-        self.output_dir = os.path.join(output_dir, self.site or "default")
+        # Use standard directory structure based on site name
+        self.input_dir = os.path.join(settings.DEFAULT_CONTENT_DIR, site_name, settings.DEFAULT_DIRS["CRAWLED_DIR"])
+        self.output_dir = os.path.join(settings.DEFAULT_CONTENT_DIR, site_name, settings.DEFAULT_DIRS["PARSED_DIR"])
 
         self.setup_logging()
         self.logger = logging.getLogger(__name__)
@@ -361,29 +360,23 @@ class Parser:
 
         return markdown_text
 
-    def _construct_base_url_from_path(self, file_path: str, input_dir: str | None = None) -> str:
+    def _construct_base_url_from_path(self, file_path: str) -> str:
         """
         Construct base URL from file path when no URL mapping exists.
 
         Args:
             file_path: Path to the HTML file
-            input_dir: Optional input directory to use for relative path calculation,
-                      defaults to self.input_dir if not provided
 
         Returns:
             Constructed base URL
         """
-        # Use provided input_dir or default to instance's input_dir
-        effective_input_dir = input_dir if input_dir is not None else self.input_dir
-
         try:
-            # Create the domain directory using the effective input directory
-            domain_dir = os.path.join(effective_input_dir, self.config.base_dir)
-            rel_path = os.path.relpath(file_path, domain_dir)
+            # Calculate relative path directly from the input directory
+            rel_path = os.path.relpath(file_path, self.input_dir)
 
             if rel_path.startswith(".."):
-                # File is outside domain directory
-                self.logger.info(f"File outside domain dir, using base URL: {self.config.base_url}")
+                # File is outside input directory
+                self.logger.info(f"File outside input dir, using base URL: {self.config.base_url}")
                 return str(self.config.base_url)
 
             # Normalize path and construct URL
@@ -400,73 +393,57 @@ class Parser:
             )  # noqa: E501
             return str(self.config.base_url)
 
-    def _extract_domain_from_path(self, file_path: str | Path, input_dir: str | None = None) -> str:
+    def _extract_domain_from_path(self, file_path: str | Path) -> str:
         """
-        Extract domain name from a file path.
+        Extract the first part of the path (typically a domain or language directory).
 
         Args:
             file_path: Path to the HTML file
-            input_dir: Optional input directory to use for relative path calculation,
-                      defaults to self.input_dir if not provided
 
         Returns:
-            Domain name extracted from the file path or "unknown" if not found
+            First directory name from the relative path or "unknown" if not found
         """
-        # Use provided input_dir or default to instance's input_dir
-        effective_input_dir = Path(input_dir if input_dir is not None else self.input_dir)
-
         try:
-            # Get the path relative to the effective input directory
-            rel_path = Path(file_path).relative_to(effective_input_dir)
-            domain_parts = rel_path.parts
-            if len(domain_parts) > 0:
-                domain = domain_parts[0]
+            # Get the path relative to the input directory
+            rel_path = Path(file_path).relative_to(Path(self.input_dir))
+            path_parts = rel_path.parts
+            if len(path_parts) > 0:
+                first_part = path_parts[0]
             else:
-                domain = "unknown"
-            return domain
+                first_part = "unknown"
+            return first_part
         except ValueError:
             return "unknown"
 
-    def _create_directory_scope(self, base_dir: str | None = None) -> DirectoryScope:
+    def _create_directory_scope(self) -> DirectoryScope:
         """
-        Create a directory scope for temporarily scoping operations to a subdirectory.
-
-        Args:
-            base_dir: Optional base directory to scope to, defaults to the site's
-                      configured base_dir
+        Create a directory scope for operations on the input directory.
 
         Returns:
             A DirectoryScope context manager that can be used in a with statement
         """
-        if base_dir is None:
-            base_dir = self.config.base_dir
-
-        scoped_path = os.path.join(self.input_dir, base_dir)
-        return DirectoryScope(self.input_dir, scoped_path)
+        # Return the input directory as the scoped directory
+        # Note: The original path structure from the input directory is preserved
+        # in the output through the _get_output_filename method, which maintains
+        # the same directory hierarchy (e.g., language directories, etc.)
+        return DirectoryScope(self.input_dir, self.input_dir)
 
     def _parse_file_with_context(
         self,
         html_file: str | Path,
-        scoped_dir: str,
     ) -> dict[str, Any] | None:
         """
-        Parse a single file with the provided directory context.
-
-        This method handles parsing a file with awareness of the scoped directory
-        to correctly resolve relative paths.
+        Parse a single file with URL context preservation.
 
         Args:
             html_file: Path to the HTML file to parse
-            scoped_dir: The scoped directory being used for this parse operation
 
         Returns:
             Dictionary containing information about the parsed file or None if parsing failed
         """
         try:
-            # Pass the scoped directory context to parse_file
-            # The method will handle URL resolution but we must not restore context
-            # since that would reset current_base_url to None
-            return self.parse_file(html_file, input_dir=scoped_dir, preserve_url_context=True)
+            # Parse the file with URL context preservation
+            return self.parse_file(html_file, preserve_url_context=True)
 
         except Exception as e:
             self.logger.error(f"Error parsing {html_file} with context: {str(e)}")
@@ -475,7 +452,6 @@ class Parser:
     def parse_file(
         self,
         html_file: str | Path,
-        input_dir: str | None = None,
         preserve_url_context: bool = False,
     ) -> dict[str, Any] | None:
         """
@@ -483,16 +459,12 @@ class Parser:
 
         Args:
             html_file: Path to the HTML file
-            input_dir: Optional input directory to use for path resolution,
-                      defaults to self.input_dir if not provided
             preserve_url_context: If True, don't restore original base_url after parsing,
                                  needed for batch processing
 
         Returns:
             Dictionary containing information about the parsed file
         """
-        # Use provided input_dir or default to instance's input_dir
-        effective_input_dir = input_dir if input_dir is not None else self.input_dir
 
         # Get the original URL of this file from URL mappings if available
         original_url = self._get_original_url(html_file)
@@ -521,7 +493,7 @@ class Parser:
             domain = self._extract_domain_from_path(html_file_path)
 
             # Generate a filename for the output markdown
-            output_filename = self._get_output_filename(html_file_path, effective_input_dir)
+            output_filename = self._get_output_filename(html_file_path)
 
             # Parse the HTML content
             title, content = self._parse_html(html_content)
@@ -577,28 +549,23 @@ class Parser:
 
         return metadata
 
-    def _get_output_filename(self, html_file_path: Path, input_dir: str | None = None) -> str:
+    def _get_output_filename(self, html_file_path: Path) -> str:
         """
         Generate an output filename for the parsed markdown file.
         Preserves the directory structure from the input directory.
 
         Args:
             html_file_path: Path to the source HTML file
-            input_dir: Optional input directory to use for relative path calculation,
-                      defaults to self.input_dir if not provided
 
         Returns:
             Output filename with path (without extension)
         """
-        # Use provided input_dir or default to instance's input_dir
-        effective_input_dir = Path(input_dir if input_dir is not None else self.input_dir)
-
         # Try to extract relative path from the file path
         try:
-            rel_path = html_file_path.relative_to(effective_input_dir)
+            rel_path = html_file_path.relative_to(Path(self.input_dir))
             parts = rel_path.parts
 
-            # If there are parts (domain and path), preserve the structure
+            # If there are multiple parts in the path, preserve the structure
             if len(parts) >= 2:
                 # Preserve the original directory structure but replace .html extension
                 rel_output_path = str(rel_path).replace(".html", "")
@@ -650,32 +617,6 @@ class Parser:
         self.logger.info(f"Saved markdown to {output_path}")
         return output_path
 
-    def _is_file_in_domain_dir(self, file_path: str | Path, input_dir: str | None = None) -> bool:
-        """
-        Check if a file is within the specified domain directory.
-
-        This is a utility method used internally to verify file locations.
-
-        Args:
-            file_path: Path to the file to check
-            input_dir: Optional input directory to use for relative path calculation,
-                      defaults to self.input_dir if not provided
-
-        Returns:
-            True if the file is within the domain directory, False otherwise
-        """
-        # Use provided input_dir or default to instance's input_dir
-        effective_input_dir = input_dir if input_dir is not None else self.input_dir
-
-        domain_dir = os.path.join(effective_input_dir, self.config.base_dir)
-        file_path_str = str(file_path)
-
-        try:
-            rel_path = os.path.relpath(file_path_str, domain_dir)
-            return not rel_path.startswith("..")
-        except ValueError:
-            return False
-
     def parse_all(self) -> list[dict[str, Any]]:
         """
         Parse all HTML files in the configured site's directory.
@@ -687,7 +628,7 @@ class Parser:
             List of dictionaries containing information about parsed files
         """
         self.logger.info(
-            f"Parsing HTML files for site '{self.site}' from directory '{self.config.base_dir}'",
+            f"Parsing HTML files for site '{self.site}' from directory '{self.input_dir}'",
         )
 
         # Create a directory scope for processing only files in the site's directory
@@ -706,10 +647,10 @@ class Parser:
 
             self.logger.info(f"Found {len(html_files)} HTML files to parse")
 
-            # Parse each file with the original input_dir context
+            # Parse each file with URL context preservation
             for html_file in html_files:
                 try:
-                    result = self._parse_file_with_context(html_file, scoped_dir)
+                    result = self._parse_file_with_context(html_file)
                     if result:
                         results.append(result)
                 except Exception as e:

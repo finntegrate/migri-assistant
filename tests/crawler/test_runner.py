@@ -2,8 +2,29 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from tapio.config.settings import DEFAULT_DIRS
+from tapio.config.config_models import CrawlerConfig, SiteConfig
 from tapio.crawler.runner import CrawlerRunner
+
+
+def create_test_site_config(
+    base_url: str = "https://example.com",
+    description: str | None = None,
+    depth: int = 1,
+    delay_between_requests: float = 1.0,
+    max_concurrent: int = 5,
+) -> SiteConfig:
+    """Create a test SiteConfig for testing purposes."""
+    from pydantic import HttpUrl
+
+    return SiteConfig(
+        base_url=HttpUrl(base_url),
+        description=description,
+        crawler_config=CrawlerConfig(
+            max_depth=depth,
+            delay_between_requests=delay_between_requests,
+            max_concurrent=max_concurrent,
+        ),
+    )
 
 
 class TestCrawlerRunner:
@@ -30,26 +51,14 @@ class TestCrawlerRunner:
         )
         mock_base_crawler.return_value = mock_crawler_instance
 
-        # Call the run method
-        start_urls = ["https://example.com"]
-        depth = 1
-        allowed_domains = ["example.com"]
-        output_dir = "test_output"
+        # Create test configuration
+        site_config = create_test_site_config()
 
-        results = self.runner.run(
-            start_urls=start_urls,
-            depth=depth,
-            allowed_domains=allowed_domains,
-            output_dir=output_dir,
-        )
+        # Call the run method
+        results = self.runner.run("test_site", site_config)
 
         # Verify BaseCrawler was instantiated with correct parameters
-        mock_base_crawler.assert_called_once_with(
-            start_urls=start_urls,
-            allowed_domains=allowed_domains,
-            depth=depth,
-            output_dir=output_dir,
-        )
+        mock_base_crawler.assert_called_once_with("test_site", site_config)
 
         # Verify crawler.crawl was called
         mock_crawler_instance.crawl.assert_called_once()
@@ -59,32 +68,27 @@ class TestCrawlerRunner:
         assert results[0]["url"] == "https://example.com"
 
     @patch("tapio.crawler.runner.BaseCrawler")
-    def test_run_with_custom_settings(self, mock_base_crawler):
-        """Test the run method with custom settings."""
+    def test_run_with_custom_config(self, mock_base_crawler):
+        """Test the run method with custom configuration settings."""
         # Mock BaseCrawler instance
         mock_crawler_instance = MagicMock()
         mock_crawler_instance.crawl = AsyncMock(return_value=[])
         mock_base_crawler.return_value = mock_crawler_instance
 
-        # Call the run method with custom settings
-        from tapio.crawler.runner import CrawlerSettings
-
-        custom_settings: CrawlerSettings = {"timeout": 60, "max_concurrent": 5}
-
-        self.runner.run(
-            start_urls=["https://example.com"],
-            custom_settings=custom_settings,
+        # Create test configuration with custom settings
+        site_config = create_test_site_config(
+            base_url="https://custom.example.com",
+            description="Custom test site",
+            depth=3,
+            delay_between_requests=2.0,
+            max_concurrent=10,
         )
 
-        # Verify BaseCrawler was instantiated with custom settings
-        mock_base_crawler.assert_called_once_with(
-            start_urls=["https://example.com"],
-            allowed_domains=None,
-            depth=1,
-            output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
-            timeout=60,
-            max_concurrent=5,
-        )
+        # Call the run method
+        self.runner.run("custom_site", site_config)
+
+        # Verify BaseCrawler was instantiated with the site config
+        mock_base_crawler.assert_called_once_with("custom_site", site_config)
 
     @patch("tapio.crawler.runner.BaseCrawler")
     @pytest.mark.asyncio
@@ -105,19 +109,14 @@ class TestCrawlerRunner:
         )
         mock_base_crawler.return_value = mock_crawler_instance
 
+        # Create test configuration
+        site_config = create_test_site_config(depth=2)
+
         # Call the async run method
-        results = await self.runner.run_async(
-            start_urls=["https://example.com"],
-            depth=2,
-        )
+        results = await self.runner.run_async("async_site", site_config)
 
         # Verify BaseCrawler was instantiated correctly
-        mock_base_crawler.assert_called_once_with(
-            start_urls=["https://example.com"],
-            allowed_domains=None,
-            depth=2,
-            output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
-        )
+        mock_base_crawler.assert_called_once_with("async_site", site_config)
 
         # Verify crawler.crawl was called
         mock_crawler_instance.crawl.assert_called_once()

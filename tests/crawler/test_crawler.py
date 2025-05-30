@@ -7,8 +7,27 @@ from unittest.mock import AsyncMock, MagicMock, mock_open, patch
 import httpx
 import pytest
 from bs4 import BeautifulSoup
+from pydantic import HttpUrl
 
+from tapio.config.config_models import CrawlerConfig, SiteConfig
 from tapio.crawler.crawler import BaseCrawler
+
+
+def create_test_site_config(
+    base_url: str = "https://example.com",
+    depth: int = 1,
+    delay_between_requests: float = 0.0,
+    max_concurrent: int = 5,
+) -> SiteConfig:
+    """Create a test SiteConfig for testing."""
+    return SiteConfig(
+        base_url=HttpUrl(base_url),
+        crawler_config=CrawlerConfig(
+            max_depth=depth,
+            delay_between_requests=delay_between_requests,
+            max_concurrent=max_concurrent,
+        ),
+    )
 
 
 class TestBaseCrawler:
@@ -28,66 +47,59 @@ class TestBaseCrawler:
 
     def test_init(self):
         """Test crawler initialization."""
-        # Test with a single URL
-        crawler = BaseCrawler(
-            start_urls="https://example.com",
+        site_config = create_test_site_config(
+            base_url="https://example.com",
             depth=2,
-            output_dir=self.output_dir,
         )
-        assert crawler.start_urls == ["https://example.com"]
+        crawler = BaseCrawler("test_site", site_config)
+
+        assert crawler.start_urls == ["https://example.com/"]  # URLs are normalized with trailing slash
         assert crawler.max_depth == 2
-        assert crawler.output_dir == self.output_dir
         assert crawler.allowed_domains == ["example.com"]
 
-        # Test with multiple URLs
-        crawler = BaseCrawler(
-            start_urls=["https://example.com", "https://test.com"],
+        # Test with different URL
+        site_config2 = create_test_site_config(
+            base_url="https://test.com",
             depth=1,
-            output_dir=self.output_dir,
         )
-        assert len(crawler.start_urls) == 2
-        assert crawler.allowed_domains == ["example.com", "test.com"]
+        crawler2 = BaseCrawler("test_site2", site_config2)
+        assert crawler2.start_urls == ["https://test.com/"]  # URLs are normalized with trailing slash
+        assert crawler2.allowed_domains == ["test.com"]
 
     def test_get_file_path_from_url(self):
         """Test URL to file path conversion."""
-        crawler = BaseCrawler(
-            start_urls="https://example.com",
-            output_dir=self.output_dir,
-        )
+        site_config = create_test_site_config("https://example.com")
+        crawler = BaseCrawler("test_site", site_config)
 
         # Test basic URL
         path = crawler._get_file_path_from_url("https://example.com")
-        expected = os.path.join(self.output_dir, "example.com", "index.html")
+        expected = os.path.join(crawler.output_dir, "example.com", "index.html")
         assert path == expected
 
         # Test URL with path
         path = crawler._get_file_path_from_url("https://example.com/page")
-        expected = os.path.join(self.output_dir, "example.com", "page.html")
+        expected = os.path.join(crawler.output_dir, "example.com", "page.html")
         assert path == expected
 
         # Test URL with query parameters
         path = crawler._get_file_path_from_url("https://example.com/page?param=value")
-        expected_start = os.path.join(self.output_dir, "example.com", "page_param_value")
+        expected_start = os.path.join(crawler.output_dir, "example.com", "page_param_value")
         assert path.startswith(expected_start)
         assert path.endswith(".html")
 
     def test_get_file_path_from_url_with_trailing_slash(self):
         """Test URL to file path conversion with trailing slash."""
-        crawler = BaseCrawler(
-            start_urls="https://example.com",
-            output_dir=self.output_dir,
-        )
+        site_config = create_test_site_config("https://example.com")
+        crawler = BaseCrawler("test_site", site_config)
 
         path = crawler._get_file_path_from_url("https://example.com/path/")
-        expected = os.path.join(self.output_dir, "example.com", "path.html")
+        expected = os.path.join(crawler.output_dir, "example.com", "path.html")
         assert path == expected
 
     def test_save_html_content(self):
         """Test saving HTML content to file."""
-        crawler = BaseCrawler(
-            start_urls="https://example.com",
-            output_dir=self.output_dir,
-        )
+        site_config = create_test_site_config("https://example.com")
+        crawler = BaseCrawler("test_site", site_config)
 
         url = "https://example.com/test"
         html_content = "<html><body><h1>Test Page</h1></body></html>"
@@ -102,22 +114,17 @@ class TestBaseCrawler:
 
     def test_is_allowed_domain(self):
         """Test domain filtering."""
-        crawler = BaseCrawler(
-            start_urls=["https://example.com"],
-            allowed_domains=["example.com", "test.com"],
-            output_dir=self.output_dir,
-        )
+        site_config = create_test_site_config("https://example.com")
+        crawler = BaseCrawler("test_site", site_config)
 
         assert crawler._is_allowed_domain("https://example.com/page")
-        assert crawler._is_allowed_domain("https://test.com/page")
+        assert not crawler._is_allowed_domain("https://test.com/page")
         assert not crawler._is_allowed_domain("https://other.com/page")
 
     def test_extract_links(self):
         """Test extracting links from BeautifulSoup."""
-        crawler = BaseCrawler(
-            start_urls=["https://example.com"],
-            output_dir=self.output_dir,
-        )
+        site_config = create_test_site_config("https://example.com")
+        crawler = BaseCrawler("test_site", site_config)
 
         html = """
         <html>
@@ -142,10 +149,8 @@ class TestBaseCrawler:
 
     def test_save_url_mappings(self):
         """Test saving URL mappings to a JSON file."""
-        crawler = BaseCrawler(
-            start_urls="https://example.com",
-            output_dir=self.output_dir,
-        )
+        site_config = create_test_site_config("https://example.com")
+        crawler = BaseCrawler("test_site", site_config)
 
         crawler.url_mappings = {
             "example.com/page1.html": {
@@ -157,15 +162,13 @@ class TestBaseCrawler:
 
         with patch("builtins.open", mock_open()) as mock_file:
             crawler._save_url_mappings()
-            expected_path = os.path.join(self.output_dir, "url_mappings.json")
+            expected_path = os.path.join(crawler.output_dir, "url_mappings.json")
             mock_file.assert_called_once_with(expected_path, "w", encoding="utf-8")
 
     def test_save_url_mappings_exception(self):
         """Test handling exceptions when saving URL mappings."""
-        crawler = BaseCrawler(
-            start_urls="https://example.com",
-            output_dir=self.output_dir,
-        )
+        site_config = create_test_site_config("https://example.com")
+        crawler = BaseCrawler("test_site", site_config)
 
         crawler.url_mappings = {
             "test.html": {
@@ -185,12 +188,14 @@ class TestBaseCrawler:
     @pytest.mark.asyncio
     async def test_crawl_url_success(self):
         """Test successful crawling of a single URL."""
-        crawler = BaseCrawler(
-            start_urls=["https://example.com"],
-            output_dir=self.output_dir,
+        site_config = create_test_site_config(
+            base_url="https://example.com",
+            depth=1,  # Minimum depth is 1
             max_concurrent=1,
-            depth=0,  # Don't follow links to avoid multiple calls
         )
+        crawler = BaseCrawler("test_site", site_config)
+        # Override max_depth to 0 for this test to prevent following links
+        crawler.max_depth = 0
 
         mock_response = MagicMock()
         mock_response.text = "<html><body><h1>Test</h1><a href='/page2'>Link</a></body></html>"
@@ -208,23 +213,21 @@ class TestBaseCrawler:
 
         with patch.object(crawler, "_save_html_content", return_value="/fake/path.html"):
             results = []
-            await crawler._crawl_url(mock_client, "https://example.com", 0, results)
+            await crawler._crawl_url(mock_client, "https://example.com/", 0, results)
 
-            mock_client.get.assert_called_once_with("https://example.com")
+            mock_client.get.assert_called_once_with("https://example.com/")
 
             assert len(results) == 1
             result = results[0]
-            assert result["url"] == "https://example.com"
+            assert result["url"] == "https://example.com/"
             assert result["depth"] == 0
             assert "Test" in result["html"]
 
     @pytest.mark.asyncio
     async def test_crawl_url_http_error(self):
         """Test handling HTTP errors during crawling."""
-        crawler = BaseCrawler(
-            start_urls=["https://example.com"],
-            output_dir=self.output_dir,
-        )
+        site_config = create_test_site_config("https://example.com")
+        crawler = BaseCrawler("test_site", site_config)
 
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(
@@ -251,10 +254,8 @@ class TestBaseCrawler:
     @pytest.mark.asyncio
     async def test_crawl_url_non_html_content(self):
         """Test handling non-HTML content."""
-        crawler = BaseCrawler(
-            start_urls=["https://example.com"],
-            output_dir=self.output_dir,
-        )
+        site_config = create_test_site_config("https://example.com")
+        crawler = BaseCrawler("test_site", site_config)
 
         mock_response = MagicMock()
         mock_response.headers = {"content-type": "application/pdf"}
@@ -276,12 +277,12 @@ class TestBaseCrawler:
     @pytest.mark.asyncio
     async def test_crawl_url_semaphore_deadlock_prevention(self):
         """Test that semaphore is properly released before processing child links to prevent deadlock."""
-        crawler = BaseCrawler(
-            start_urls=["https://example.com"],
-            output_dir=self.output_dir,
-            max_concurrent=2,  # Low limit to test semaphore behavior
+        site_config = create_test_site_config(
+            base_url="https://example.com",
             depth=2,
+            max_concurrent=2,  # Low limit to test semaphore behavior
         )
+        crawler = BaseCrawler("test_site", site_config)
 
         # Track semaphore acquire/release calls using patches
         semaphore_calls: list[str] = []
@@ -358,12 +359,12 @@ class TestBaseCrawler:
     async def test_crawl_concurrent_requests_respect_semaphore_limit(self):
         """Test that concurrent requests don't exceed the semaphore limit."""
         max_concurrent = 2
-        crawler = BaseCrawler(
-            start_urls=["https://example.com"],
-            output_dir=self.output_dir,
-            max_concurrent=max_concurrent,
+        site_config = create_test_site_config(
+            base_url="https://example.com",
             depth=1,
+            max_concurrent=max_concurrent,
         )
+        crawler = BaseCrawler("test_site", site_config)
 
         # Track concurrent requests
         concurrent_requests: list[str] = []
@@ -408,12 +409,12 @@ class TestBaseCrawler:
     @pytest.mark.asyncio
     async def test_crawl_multi_level_depth_without_deadlock(self):
         """Test crawling multiple levels deep without causing deadlock."""
-        crawler = BaseCrawler(
-            start_urls=["https://example.com"],
-            output_dir=self.output_dir,
-            max_concurrent=2,
+        site_config = create_test_site_config(
+            base_url="https://example.com",
             depth=2,  # Test 2 levels deep (reduced from 3)
+            max_concurrent=2,
         )
+        crawler = BaseCrawler("test_site", site_config)
 
         # Mock different HTML for each level with fewer links to avoid explosion
         def create_mock_response(url, depth):
@@ -493,12 +494,12 @@ class TestBaseCrawler:
     @pytest.mark.asyncio
     async def test_crawl_links_processed_outside_semaphore_context(self):
         """Test that child links are processed outside the semaphore context to prevent deadlock."""
-        crawler = BaseCrawler(
-            start_urls=["https://example.com"],
-            output_dir=self.output_dir,
-            max_concurrent=1,  # Force sequential processing
+        site_config = create_test_site_config(
+            base_url="https://example.com",
             depth=1,
+            max_concurrent=1,  # Force sequential processing
         )
+        crawler = BaseCrawler("test_site", site_config)
 
         # Track when HTTP requests are made vs when child links are processed
         processing_events: list[str] = []
@@ -556,12 +557,12 @@ class TestBaseCrawler:
     @pytest.mark.asyncio
     async def test_crawl_full_integration(self):
         """Test the full crawl method with mocked HTTP client."""
-        crawler = BaseCrawler(
-            start_urls=["https://example.com"],
-            output_dir=self.output_dir,
+        site_config = create_test_site_config(
+            base_url="https://example.com",
             depth=1,
             max_concurrent=1,
         )
+        crawler = BaseCrawler("test_site", site_config)
 
         html_content = """
         <html>
@@ -596,14 +597,12 @@ class TestBaseCrawler:
                 results = await crawler.crawl()
 
                 assert len(results) > 0
-                assert results[0]["url"] == "https://example.com"
+                assert results[0]["url"] == "https://example.com/"  # URLs are normalized
 
     def test_get_file_path_from_url_path_traversal_protection(self):
         """Test that path traversal attacks are prevented."""
-        crawler = BaseCrawler(
-            start_urls="https://example.com",
-            output_dir=self.output_dir,
-        )
+        site_config = create_test_site_config("https://example.com")
+        crawler = BaseCrawler("test_site", site_config)
 
         # Test path traversal attempts that should be blocked
         malicious_urls = [
@@ -620,5 +619,5 @@ class TestBaseCrawler:
         safe_encoded_url = "https://example.com/..%2F..%2F..%2Fetc%2Fpasswd"
         result = crawler._get_file_path_from_url(safe_encoded_url)
         # This should succeed because %2F is not decoded to / by urlparse
-        expected = os.path.join(self.output_dir, "example.com", "..%2F..%2F..%2Fetc%2Fpasswd.html")
+        expected = os.path.join(crawler.output_dir, "example.com", "..%2F..%2F..%2Fetc%2Fpasswd.html")
         assert result == expected

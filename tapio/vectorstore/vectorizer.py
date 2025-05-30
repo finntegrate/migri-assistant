@@ -63,7 +63,7 @@ class MarkdownVectorizer:
     def process_directory(
         self,
         input_dir: str,
-        domain_filter: str | None = None,
+        site_filter: str | None = None,
         batch_size: int = 20,
     ) -> int:
         """
@@ -71,14 +71,14 @@ class MarkdownVectorizer:
 
         Args:
             input_dir: Directory containing markdown files
-            domain_filter: Optional filter for domain
+            site_filter: Optional filter for specific site
             batch_size: Number of files to process in a batch
 
         Returns:
             Number of files successfully processed
         """
         # Find all markdown files
-        markdown_files = find_markdown_files(input_dir, domain_filter)
+        markdown_files = find_markdown_files(input_dir, site_filter)
         total_files = len(markdown_files)
 
         logger.info(f"Found {total_files} markdown files to process")

@@ -18,22 +18,33 @@ class TestParser(unittest.TestCase):
         """Set up test environment."""
         # Create temporary directories for testing
         self.temp_dir = tempfile.mkdtemp()
-        self.input_dir = os.path.join(self.temp_dir, "input")
-        self.output_dir = os.path.join(self.temp_dir, "output")
         self.config_dir = os.path.join(self.temp_dir, "config")
 
         # Create directories
-        os.makedirs(self.input_dir, exist_ok=True)
-        os.makedirs(self.output_dir, exist_ok=True)
         os.makedirs(self.config_dir, exist_ok=True)
 
-        # Create test domain directories
+        # Set up test site name
+        self.site_name = "example"
+        self.no_fallback_site_name = "no_fallback"
         self.domain = "example.com"
-        self.domain_dir = os.path.join(self.input_dir, self.domain)
-        os.makedirs(self.domain_dir, exist_ok=True)
 
-        # Create test HTML files
-        with open(os.path.join(self.domain_dir, "index.html"), "w") as f:
+        # Patch DEFAULT_CONTENT_DIR and DEFAULT_DIRS to use temp_dir for isolation
+        from tapio.config import settings as tapio_settings
+
+        self._orig_content_dir = tapio_settings.DEFAULT_CONTENT_DIR
+        tapio_settings.DEFAULT_CONTENT_DIR = self.temp_dir
+
+        # Prepare input/output dir paths as used by Parser
+        from tapio.config.settings import DEFAULT_DIRS
+
+        self.input_dir = os.path.join(self.temp_dir, self.site_name, DEFAULT_DIRS["CRAWLED_DIR"])
+        self.output_dir = os.path.join(self.temp_dir, self.site_name, DEFAULT_DIRS["PARSED_DIR"])
+        os.makedirs(self.input_dir, exist_ok=True)
+        os.makedirs(self.output_dir, exist_ok=True)
+
+        # Create test HTML files directly in the crawled directory
+        # Following site-based structure where files are organized by website paths
+        with open(os.path.join(self.input_dir, "index.html"), "w") as f:
             f.write("""
             <html>
                 <head><title>Example Website</title></head>
@@ -50,7 +61,7 @@ class TestParser(unittest.TestCase):
             </html>
             """)
 
-        with open(os.path.join(self.domain_dir, "about.html"), "w") as f:
+        with open(os.path.join(self.input_dir, "about.html"), "w") as f:
             f.write("""
             <html>
                 <head><title>About Example</title></head>
@@ -64,7 +75,7 @@ class TestParser(unittest.TestCase):
             """)
 
         # Create HTML file without main-content div to test fallback selectors
-        with open(os.path.join(self.domain_dir, "no-main-content.html"), "w") as f:
+        with open(os.path.join(self.input_dir, "no-main-content.html"), "w") as f:
             f.write("""
             <html>
                 <head><title>No Main Content</title></head>
@@ -77,12 +88,29 @@ class TestParser(unittest.TestCase):
             </html>
             """)
 
+        # Create test files in subdirectories to test path-based structure
+        # This simulates website paths like /en/about.html creating en/about.md
+        en_dir = os.path.join(self.input_dir, "en")
+        os.makedirs(en_dir, exist_ok=True)
+
+        with open(os.path.join(en_dir, "services.html"), "w") as f:
+            f.write("""
+            <html>
+                <head><title>Services</title></head>
+                <body>
+                    <div id="main-content">
+                        <h1>Our Services</h1>
+                        <p>We provide various services.</p>
+                    </div>
+                </body>
+            </html>
+            """)
+
         # Create custom test configuration
         self.test_config = {
             "sites": {
                 "example": {
                     "base_url": f"https://{self.domain}",
-                    "base_dir": self.domain,
                     "description": "Example Website for Testing",
                     "parser_config": {
                         "title_selector": "//title",
@@ -97,7 +125,6 @@ class TestParser(unittest.TestCase):
                 },
                 "no_fallback": {
                     "base_url": f"https://{self.domain}",
-                    "base_dir": self.domain,
                     "parser_config": {
                         "title_selector": "//h1",
                         "content_selectors": ['//div[@id="does-not-exist"]'],
@@ -112,11 +139,9 @@ class TestParser(unittest.TestCase):
         with open(self.config_path, "w") as f:
             yaml.dump(self.test_config, f)
 
-        # Create default parser
+        # Create default parser (do not pass input_dir/output_dir)
         self.parser = Parser(
-            site="example",
-            input_dir=self.input_dir,
-            output_dir=self.output_dir,
+            site_name=self.site_name,
             config_path=self.config_path,
         )
 
@@ -125,13 +150,26 @@ class TestParser(unittest.TestCase):
 
     def tearDown(self):
         """Clean up after tests."""
+        # Restore patched DEFAULT_CONTENT_DIR
+        from tapio.config import settings as tapio_settings
+
+        tapio_settings.DEFAULT_CONTENT_DIR = self._orig_content_dir
         shutil.rmtree(self.temp_dir)
 
     def test_init(self):
         """Test parser initialization."""
-        self.assertEqual(self.parser.site, "example")
-        self.assertEqual(self.parser.input_dir, self.input_dir)
-        self.assertEqual(self.parser.output_dir, os.path.join(self.output_dir, "example"))
+        self.assertEqual(self.parser.site, self.site_name)
+        # Accept both possible input_dir values for cross-platform compatibility
+        self.assertTrue(
+            self.parser.input_dir == self.input_dir
+            or os.path.abspath(self.parser.input_dir) == os.path.abspath(self.input_dir),
+            f"Expected input_dir {self.input_dir}, got {self.parser.input_dir}",
+        )
+        self.assertTrue(
+            self.parser.output_dir == self.output_dir
+            or os.path.abspath(self.parser.output_dir) == os.path.abspath(self.output_dir),
+            f"Expected output_dir {self.output_dir}, got {self.parser.output_dir}",
+        )
 
         # Test config loaded correctly
         self.assertEqual(self.parser.config.parser_config.title_selector, "//title")
@@ -143,15 +181,13 @@ class TestParser(unittest.TestCase):
         """Test initialization with invalid site."""
         with self.assertRaises(ValueError):
             Parser(
-                site="nonexistent",
-                input_dir=self.input_dir,
-                output_dir=self.output_dir,
+                site_name="nonexistent",
                 config_path=self.config_path,
             )
 
     def test_parse_html_with_main_content(self):
         """Test parsing HTML with main-content div."""
-        with open(os.path.join(self.domain_dir, "index.html")) as f:
+        with open(os.path.join(self.input_dir, "index.html")) as f:
             html_content = f.read()
 
         title, content = self.parser._parse_html(html_content)
@@ -164,7 +200,7 @@ class TestParser(unittest.TestCase):
 
     def test_parse_html_with_secondary_selector(self):
         """Test parsing HTML with secondary content selector."""
-        with open(os.path.join(self.domain_dir, "about.html")) as f:
+        with open(os.path.join(self.input_dir, "about.html")) as f:
             html_content = f.read()
 
         title, content = self.parser._parse_html(html_content)
@@ -175,7 +211,7 @@ class TestParser(unittest.TestCase):
 
     def test_parse_html_with_fallback(self):
         """Test fallback selector when primary selectors don't match."""
-        with open(os.path.join(self.domain_dir, "no-main-content.html")) as f:
+        with open(os.path.join(self.input_dir, "no-main-content.html")) as f:
             html_content = f.read()
 
         title, content = self.parser._parse_html(html_content)
@@ -188,14 +224,12 @@ class TestParser(unittest.TestCase):
         """Test behavior when no selectors match and fallback is disabled."""
         # Create parser with no fallback config
         no_fallback_parser = Parser(
-            site="no_fallback",
-            input_dir=self.input_dir,
-            output_dir=self.output_dir,
+            site_name=self.no_fallback_site_name,
             config_path=self.config_path,
         )
         no_fallback_parser.logger = MagicMock()
 
-        with open(os.path.join(self.domain_dir, "index.html")) as f:
+        with open(os.path.join(self.input_dir, "index.html")) as f:
             html_content = f.read()
 
         title, content = no_fallback_parser._parse_html(html_content)
@@ -234,22 +268,45 @@ class TestParser(unittest.TestCase):
         # Parse all files
         results = self.parser.parse_all()
 
-        # Check that we parsed 3 files
-        self.assertEqual(len(results), 3)
+        # Check that we parsed 4 files (3 in root + 1 in en/ subdirectory)
+        self.assertEqual(
+            len(results),
+            4,
+            f"Expected 4 parsed files, got {len(results)}. input_dir: {self.parser.input_dir}",
+        )
 
-        # Verify output directory structure
-        output_dir = os.path.join(self.output_dir, "example")
-        self.assertTrue(os.path.exists(output_dir))
+        # Verify output directory structure.
+        # With site-based structure, files placed directly in crawled directory
+        # should create corresponding MD files directly in the output directory
+        output_dir_contents = os.listdir(self.output_dir) if os.path.exists(self.output_dir) else "does not exist"
 
-        # Verify the index file was created
-        index_file = os.path.join(output_dir, "index.md")
-        self.assertTrue(os.path.exists(index_file))
+        # Verify the main index.html (parsed to index.md) file was created directly in output directory
+        parsed_index_file = os.path.join(self.output_dir, "index.md")
+        self.assertTrue(
+            os.path.exists(parsed_index_file),
+            f"Expected parsed index file {parsed_index_file} to exist. "
+            f"Contents of {self.output_dir}: {output_dir_contents}.",
+        )
+
+        # Verify the en/services.html file created en/services.md with path structure preserved
+        en_output_dir = os.path.join(self.output_dir, "en")
+        self.assertTrue(
+            os.path.exists(en_output_dir),
+            f"Expected en subdirectory {en_output_dir} to exist.",
+        )
+
+        parsed_services_file = os.path.join(en_output_dir, "services.md")
+        self.assertTrue(
+            os.path.exists(parsed_services_file),
+            f"Expected parsed services file {parsed_services_file} to exist.",
+        )
 
         # Validate the content of parsed files
         titles = [result["title"] for result in results]
         self.assertIn("Example Website", titles)
         self.assertIn("About Example", titles)
         self.assertIn("No Main Content", titles)
+        self.assertIn("Services", titles)
 
     def test_list_available_site_configs(self):
         """Test listing available site configurations."""

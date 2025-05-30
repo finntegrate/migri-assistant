@@ -1,12 +1,14 @@
 """Tests for the CLI module."""
 
+import os
+import tempfile
 from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
 
-from tapio.cli import app
-from tapio.config.settings import DEFAULT_CHROMA_COLLECTION, DEFAULT_DIRS
+from tapio.cli import app, find_sites_with_crawled_content
+from tapio.config.settings import DEFAULT_CHROMA_COLLECTION, DEFAULT_CONTENT_DIR, DEFAULT_DIRS
 
 
 @pytest.fixture
@@ -25,7 +27,7 @@ class TestCli:
         # Check that the command ran successfully
         assert result.exit_code == 0
 
-        # Check that expected text is in the output
+        # Check that expected output is present
         assert "Tapio Assistant" in result.stdout
         assert "Available commands:" in result.stdout
         assert "crawl" in result.stdout
@@ -46,10 +48,12 @@ class TestCli:
         mock_config_instance = MagicMock()
         mock_site_config = MagicMock()
         mock_site_config.base_url = "https://example.com"
+        mock_site_config.base_dir = "example.com"  # This should be just the domain
         # Mock the crawler_config with appropriate default values
         mock_crawler_config = MagicMock()
         mock_crawler_config.delay_between_requests = 1.0
         mock_crawler_config.max_concurrent = 5
+        mock_crawler_config.depth = 1  # Add depth attribute
         mock_site_config.crawler_config = mock_crawler_config
         mock_config_instance.get_site_config.return_value = mock_site_config
         mock_config_instance.list_available_sites.return_value = ["migri"]
@@ -78,17 +82,11 @@ class TestCli:
         # Check that the runner was initialized correctly
         mock_crawler_runner.assert_called_once()
 
-        # Check that run was called with the correct arguments
-        mock_runner_instance.run.assert_called_once_with(
-            start_urls=["https://example.com"],  # URL from site config
-            depth=2,
-            allowed_domains=["example.com"],  # Domain extracted from URL
-            output_dir=DEFAULT_DIRS["CRAWLED_DIR"],
-            custom_settings={
-                "delay_between_requests": 1.0,
-                "max_concurrent": 5,
-            },
-        )
+        # Check that run was called with the new interface
+        mock_runner_instance.run.assert_called_once_with("migri", mock_site_config)
+
+        # Check that depth was overridden
+        assert mock_site_config.crawler_config.max_depth == 2
 
         # Check expected output in stdout
         assert "Starting web crawler" in result.stdout
@@ -103,10 +101,12 @@ class TestCli:
         mock_config_instance = MagicMock()
         mock_site_config = MagicMock()
         mock_site_config.base_url = "https://example.com"
+        mock_site_config.base_dir = "example.com"
         # Mock the crawler_config
         mock_crawler_config = MagicMock()
         mock_crawler_config.delay_between_requests = 1.0
         mock_crawler_config.max_concurrent = 5
+        mock_crawler_config.depth = 1
         mock_site_config.crawler_config = mock_crawler_config
         mock_config_instance.get_site_config.return_value = mock_site_config
         mock_config_instance.list_available_sites.return_value = ["migri"]
@@ -136,10 +136,12 @@ class TestCli:
         mock_config_instance = MagicMock()
         mock_site_config = MagicMock()
         mock_site_config.base_url = "https://example.com"
+        mock_site_config.base_dir = "example.com"
         # Mock the crawler_config
         mock_crawler_config = MagicMock()
         mock_crawler_config.delay_between_requests = 1.0
         mock_crawler_config.max_concurrent = 5
+        mock_crawler_config.depth = 1
         mock_site_config.crawler_config = mock_crawler_config
         mock_config_instance.get_site_config.return_value = mock_site_config
         mock_config_instance.list_available_sites.return_value = ["migri"]
@@ -197,7 +199,6 @@ class TestCli:
             app,
             [
                 "parse",
-                "--site",
                 "migri",
             ],
         )
@@ -207,9 +208,7 @@ class TestCli:
 
         # Check that the parser was initialized correctly
         mock_parser.assert_called_once_with(
-            site="migri",
-            input_dir=DEFAULT_DIRS["CRAWLED_DIR"],
-            output_dir=DEFAULT_DIRS["PARSED_DIR"],
+            site_name="migri",
             config_path=None,
         )
 
@@ -226,36 +225,6 @@ class TestCli:
         assert "Processed 3 files" in result.stdout
 
     @patch("tapio.cli.ConfigManager")
-    @patch("tapio.cli.Parser")
-    def test_parse_command_with_domain(self, mock_parser, mock_config_manager, runner):
-        """Test the parse command with a domain filter."""
-        # Set up mock parser
-        mock_parser_instance = MagicMock()
-        mock_parser_instance.parse_all.return_value = ["file1", "file2"]
-        mock_parser.return_value = mock_parser_instance
-
-        # Set up mock config manager
-        mock_config_instance = MagicMock()
-        mock_config_instance.list_available_sites.return_value = ["migri"]
-        mock_config_manager.return_value = mock_config_instance
-
-        # Run the command with domain filter
-        result = runner.invoke(app, ["parse", "--domain", "example.com", "--site", "migri"])
-
-        # Check that the command ran successfully
-        assert result.exit_code == 0
-
-        # Check that parse_all was called correctly (domain is now handled internally)
-        mock_parser_instance.parse_all.assert_called_once_with()
-
-        # Check that list_available_sites was called
-        mock_config_instance.list_available_sites.assert_called_once()
-
-        # Check expected output in stdout
-        assert "Starting HTML parsing" in result.stdout
-        assert "Processed 2 files" in result.stdout
-
-    @patch("tapio.cli.ConfigManager")
     def test_parse_command_unsupported_site(self, mock_config_manager, runner):
         """Test the parse command with an unsupported site."""
         # Set up mock config manager
@@ -264,7 +233,7 @@ class TestCli:
         mock_config_manager.return_value = mock_config_instance
 
         # Run the command with an unsupported site
-        result = runner.invoke(app, ["parse", "--site", "unsupported"])
+        result = runner.invoke(app, ["parse", "unsupported"])
 
         # Check that the command exited with error code
         assert result.exit_code == 1
@@ -291,7 +260,7 @@ class TestCli:
         mock_config_manager.return_value = mock_config_instance
 
         # Run the command
-        result = runner.invoke(app, ["parse", "--site", "migri"])
+        result = runner.invoke(app, ["parse", "migri"])
 
         # Check that the command exited with error code
         assert result.exit_code == 1
@@ -326,7 +295,6 @@ class TestCli:
             app,
             [
                 "parse",
-                "--site",
                 "custom_site",
                 "--config",
                 "custom_configs.yaml",
@@ -344,9 +312,7 @@ class TestCli:
 
         # Check that the parser was initialized correctly with the custom config
         mock_parser.assert_called_once_with(
-            site="custom_site",
-            input_dir=DEFAULT_DIRS["CRAWLED_DIR"],
-            output_dir=DEFAULT_DIRS["PARSED_DIR"],
+            site_name="custom_site",
             config_path="custom_configs.yaml",
         )
 
@@ -383,8 +349,8 @@ class TestCli:
 
         # Check that process_directory was called correctly
         mock_vectorizer_instance.process_directory.assert_called_once_with(
-            input_dir=DEFAULT_DIRS["PARSED_DIR"],
-            domain_filter=None,
+            input_dir=DEFAULT_CONTENT_DIR,
+            site_filter=None,
             batch_size=20,
         )
 
@@ -396,23 +362,26 @@ class TestCli:
         assert "Processed 5 files" in result.stdout
 
     @patch("tapio.cli.MarkdownVectorizer")
-    def test_vectorize_command_with_domain(self, mock_vectorizer, runner):
-        """Test the vectorize command with domain filter."""
+    def test_vectorize_command_with_site(self, mock_vectorizer, runner):
+        """Test the vectorize command with site filter."""
         # Set up mock
         mock_vectorizer_instance = MagicMock()
         mock_vectorizer_instance.process_directory.return_value = 3
         mock_vectorizer.return_value = mock_vectorizer_instance
 
-        # Run the command with domain filter
-        result = runner.invoke(app, ["vectorize", "--domain", "example.com"])
+        # Mock os.path.exists to return True for the site directory
+        with patch("tapio.cli.os.path.exists", return_value=True):
+            # Run the command with site filter
+            result = runner.invoke(app, ["vectorize", "migri"])
 
         # Check that the command ran successfully
         assert result.exit_code == 0
 
-        # Check that process_directory was called with the domain filter
+        # Check that process_directory was called with the site filter
+        expected_input_dir = os.path.join(DEFAULT_CONTENT_DIR, "migri", DEFAULT_DIRS["PARSED_DIR"])
         mock_vectorizer_instance.process_directory.assert_called_once_with(
-            input_dir=DEFAULT_DIRS["PARSED_DIR"],
-            domain_filter="example.com",
+            input_dir=expected_input_dir,
+            site_filter=None,
             batch_size=20,
         )
 
@@ -609,19 +578,21 @@ class TestCli:
         runner,
     ):
         """Test the parse command when no site is specified - should parse all available sites with crawled content."""
-        # Setup mocks for directory structure
-        mock_exists.return_value = True
-        mock_listdir.return_value = ["migri.fi", "www.kela.fi", "www.vero.fi", "url_mappings.json"]
-        mock_isdir.side_effect = lambda path: not path.endswith("url_mappings.json")
+        # Setup mocks for directory structure - new structure uses content/site_name/crawled/
+        mock_exists.side_effect = lambda path: (
+            path == DEFAULT_CONTENT_DIR or "migri/crawled" in path or "kela/crawled" in path or "vero/crawled" in path
+        )
+        mock_listdir.return_value = ["migri", "kela", "vero", "parsed"]
+        mock_isdir.side_effect = lambda path: not path.endswith(".json")
 
-        # Mock os.walk to return HTML files for each domain
+        # Mock os.walk to return HTML files for each site's crawled directory
         def mock_walk_side_effect(path):
-            if "migri.fi" in path:
-                return [("/content/crawled/migri.fi", [], ["page1.html", "page2.html"])]
-            elif "www.kela.fi" in path:
-                return [("/content/crawled/www.kela.fi", [], ["page3.html"])]
-            elif "www.vero.fi" in path:
-                return [("/content/crawled/www.vero.fi", [], ["page4.html", "page5.html"])]
+            if "migri/crawled" in path:
+                return [("/content/migri/crawled", [], ["page1.html", "page2.html"])]
+            elif "kela/crawled" in path:
+                return [("/content/kela/crawled", [], ["page3.html"])]
+            elif "vero/crawled" in path:
+                return [("/content/vero/crawled", [], ["page4.html", "page5.html"])]
             return []
 
         mock_walk.side_effect = mock_walk_side_effect
@@ -635,18 +606,9 @@ class TestCli:
 
         mock_parser.side_effect = mock_parser_instances
 
-        # Set up mock config manager
+        # Set up mock config manager - sites match crawled site directories directly
         mock_config_instance = MagicMock()
         mock_config_instance.list_available_sites.return_value = ["migri", "kela", "vero"]
-
-        # Create mock site configs with base_dir property
-        mock_site_configs = {}
-        for site, domain in [("migri", "migri.fi"), ("kela", "www.kela.fi"), ("vero", "www.vero.fi")]:
-            config = MagicMock()
-            config.base_dir = domain
-            mock_site_configs[site] = config
-
-        mock_config_instance.get_site_config.side_effect = lambda site: mock_site_configs[site]
         mock_config_manager.return_value = mock_config_instance
 
         # Run the command without --site parameter
@@ -658,17 +620,15 @@ class TestCli:
         # Check that all three parsers were created
         assert mock_parser.call_count == 3
 
-        # Check expected calls to Parser constructor
+        # Check expected calls to Parser constructor - new format uses site_name only
         expected_calls = [
-            ("migri", DEFAULT_DIRS["CRAWLED_DIR"], DEFAULT_DIRS["PARSED_DIR"], None),
-            ("kela", DEFAULT_DIRS["CRAWLED_DIR"], DEFAULT_DIRS["PARSED_DIR"], None),
-            ("vero", DEFAULT_DIRS["CRAWLED_DIR"], DEFAULT_DIRS["PARSED_DIR"], None),
+            ("migri", None),
+            ("kela", None),
+            ("vero", None),
         ]
 
-        for i, (site, input_dir, output_dir, config_path) in enumerate(expected_calls):
-            assert mock_parser.call_args_list[i][1]["site"] == site
-            assert mock_parser.call_args_list[i][1]["input_dir"] == input_dir
-            assert mock_parser.call_args_list[i][1]["output_dir"] == output_dir
+        for i, (site_name, config_path) in enumerate(expected_calls):
+            assert mock_parser.call_args_list[i][1]["site_name"] == site_name
             assert mock_parser.call_args_list[i][1]["config_path"] == config_path
 
         # Check that parse_all was called for each parser
@@ -677,7 +637,7 @@ class TestCli:
 
         # Check expected output in stdout
         assert "No site specified, parsing all available sites with crawled content" in result.stdout
-        assert "Found crawled content for domains: migri.fi, www.kela.fi, www.vero.fi" in result.stdout
+        assert "Found crawled content for sites: migri, kela, vero" in result.stdout
         assert "Parsing sites: migri, kela, vero" in result.stdout
         assert "Parsing site: migri" in result.stdout
         assert "Parsing site: kela" in result.stdout
@@ -704,7 +664,7 @@ class TestCli:
 
         # Check expected output in stdout
         assert "No site specified, parsing all available sites with crawled content" in result.stdout
-        assert f"Crawled content directory not found: {DEFAULT_DIRS['CRAWLED_DIR']}" in result.stdout
+        assert f"Content directory not found: {DEFAULT_CONTENT_DIR}" in result.stdout
 
     @patch("tapio.cli.ConfigManager")
     @patch("os.path.exists")
@@ -758,28 +718,27 @@ class TestCli:
         runner,
     ):
         """Test the parse command when crawled content exists but no site configs match."""
-        # Setup mocks
-        mock_exists.return_value = True
-        mock_listdir.return_value = ["unknown.domain.com", "another.unknown.com"]
-        mock_isdir.return_value = True
+        # Setup mocks for new directory structure - content/site_name/crawled/
+        mock_exists.side_effect = lambda path: (
+            path == DEFAULT_CONTENT_DIR or "unknown_site/crawled" in path or "another_unknown/crawled" in path
+        )
+        mock_listdir.return_value = ["unknown_site", "another_unknown"]
+        mock_isdir.side_effect = lambda path: not path.endswith(".json")
 
-        # Mock os.walk to return HTML files for unknown domains
+        # Mock os.walk to return HTML files for unknown sites
         def mock_walk_side_effect(path):
-            return [("/content/crawled/unknown", [], ["page.html"])]
+            if "unknown_site/crawled" in path:
+                return [("/content/unknown_site/crawled", [], ["page1.html"])]
+            elif "another_unknown/crawled" in path:
+                return [("/content/another_unknown/crawled", [], ["page2.html"])]
+            return []
 
         mock_walk.side_effect = mock_walk_side_effect
 
-        # Set up mock config manager
+        # Set up mock config manager with sites that don't match the crawled sites
         mock_config_instance = MagicMock()
         mock_config_instance.list_available_sites.return_value = ["migri", "kela"]
 
-        # Create mock site configs that don't match crawled domains
-        mock_site_configs = {
-            "migri": MagicMock(base_dir="migri.fi"),
-            "kela": MagicMock(base_dir="www.kela.fi"),
-        }
-
-        mock_config_instance.get_site_config.side_effect = lambda site: mock_site_configs[site]
         mock_config_manager.return_value = mock_config_instance
 
         # Run the command without --site parameter
@@ -790,12 +749,10 @@ class TestCli:
 
         # Check expected output in stdout
         assert "No site specified, parsing all available sites with crawled content" in result.stdout
-        expected_domains = "Found crawled content for domains: unknown.domain.com, another.unknown.com"
-        assert expected_domains in result.stdout
+        expected_sites = "Crawled sites: unknown_site, another_unknown"
+        assert expected_sites in result.stdout
         assert "No site configurations found matching crawled content" in result.stdout
         assert "Available sites: migri, kela" in result.stdout
-        expected_crawled = "Crawled domains: unknown.domain.com, another.unknown.com"
-        assert expected_crawled in result.stdout
 
     @patch("tapio.cli.ConfigManager")
     @patch("tapio.cli.Parser")
@@ -813,15 +770,26 @@ class TestCli:
         mock_config_manager,
         runner,
     ):
-        """Test the parse command when only some crawled domains have matching site configs."""
-        # Setup mocks for directory structure
-        mock_exists.return_value = True
-        mock_listdir.return_value = ["migri.fi", "unknown.domain.com", "www.kela.fi"]
-        mock_isdir.return_value = True
+        """Test the parse command when only some crawled sites have matching site configs."""
+        # Setup mocks for directory structure - new structure uses content/site_name/crawled/
+        mock_exists.side_effect = lambda path: (
+            path == DEFAULT_CONTENT_DIR
+            or "migri/crawled" in path
+            or "unknown/crawled" in path
+            or "kela/crawled" in path
+        )
+        mock_listdir.return_value = ["migri", "unknown", "kela"]
+        mock_isdir.side_effect = lambda path: not path.endswith(".json")
 
         # Mock os.walk to return HTML files
         def mock_walk_side_effect(path):
-            return [("/content/crawled/test", [], ["page.html"])]
+            if "migri/crawled" in path:
+                return [("/content/migri/crawled", [], ["page1.html"])]
+            elif "kela/crawled" in path:
+                return [("/content/kela/crawled", [], ["page2.html"])]
+            elif "unknown/crawled" in path:
+                return [("/content/unknown/crawled", [], ["page3.html"])]
+            return []
 
         mock_walk.side_effect = mock_walk_side_effect
 
@@ -834,18 +802,10 @@ class TestCli:
 
         mock_parser.side_effect = mock_parser_instances
 
-        # Set up mock config manager
+        # Set up mock config manager - only migri and kela are available, unknown is not
         mock_config_instance = MagicMock()
         mock_config_instance.list_available_sites.return_value = ["migri", "kela", "vero"]
 
-        # Create mock site configs - only migri and kela match crawled domains
-        mock_site_configs = {
-            "migri": MagicMock(base_dir="migri.fi"),
-            "kela": MagicMock(base_dir="www.kela.fi"),
-            "vero": MagicMock(base_dir="www.vero.fi"),  # This won't match
-        }
-
-        mock_config_instance.get_site_config.side_effect = lambda site: mock_site_configs[site]
         mock_config_manager.return_value = mock_config_instance
 
         # Run the command without --site parameter
@@ -858,7 +818,7 @@ class TestCli:
         assert mock_parser.call_count == 2
 
         # Check expected output in stdout
-        assert "Found crawled content for domains: migri.fi, unknown.domain.com, www.kela.fi" in result.stdout
+        assert "Found crawled content for sites: migri, unknown, kela" in result.stdout
         assert "Parsing sites: migri, kela" in result.stdout
         assert "All parsing completed! Processed 2 files total." in result.stdout
         assert "Parsed 2 sites: migri, kela" in result.stdout
@@ -880,13 +840,15 @@ class TestCli:
         runner,
     ):
         """Test handling of exceptions in parse command when parsing all sites."""
-        # Setup mocks for directory structure
-        mock_exists.return_value = True
-        mock_listdir.return_value = ["migri.fi"]
-        mock_isdir.return_value = True
+        # Setup mocks for directory structure - new structure uses content/site_name/crawled/
+        mock_exists.side_effect = lambda path: (path == DEFAULT_CONTENT_DIR or "migri/crawled" in path)
+        mock_listdir.return_value = ["migri"]
+        mock_isdir.side_effect = lambda path: not path.endswith(".json")
 
         def mock_walk_side_effect(path):
-            return [("/content/crawled/migri.fi", [], ["page.html"])]
+            if "migri/crawled" in path:
+                return [("/content/migri/crawled", [], ["page.html"])]
+            return []
 
         mock_walk.side_effect = mock_walk_side_effect
 
@@ -899,9 +861,6 @@ class TestCli:
         mock_config_instance = MagicMock()
         mock_config_instance.list_available_sites.return_value = ["migri"]
 
-        mock_site_config = MagicMock()
-        mock_site_config.base_dir = "migri.fi"
-        mock_config_instance.get_site_config.return_value = mock_site_config
         mock_config_manager.return_value = mock_config_instance
 
         # Run the command without --site parameter
@@ -913,3 +872,80 @@ class TestCli:
         # Check expected output in stdout
         assert "No site specified, parsing all available sites with crawled content" in result.stdout
         assert "Error during parsing: Test parsing error" in result.stdout
+
+    @patch("tapio.cli.MarkdownVectorizer")
+    def test_vectorize_command_with_nonexistent_site(self, mock_vectorizer, runner):
+        """Test the vectorize command with a non-existent site."""
+        # Mock os.path.exists to return False for the site directory
+        with patch("tapio.cli.os.path.exists", return_value=False):
+            # Run the command with non-existent site
+            result = runner.invoke(app, ["vectorize", "nonexistent"])
+
+        # Check that the command exited with error code
+        assert result.exit_code == 1
+
+        # Check expected output in stdout
+        assert "No parsed content found for site: nonexistent" in result.stdout
+        assert "content/nonexistent/parsed" in result.stdout
+
+        # Verify that vectorizer was not called
+        mock_vectorizer.assert_not_called()
+
+    def test_find_sites_with_crawled_content_empty_directory(self) -> None:
+        """Test find_sites_with_crawled_content with an empty directory."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            result = find_sites_with_crawled_content(temp_dir, "crawled")
+            assert result == []
+
+    def test_find_sites_with_crawled_content_nonexistent_directory(self) -> None:
+        """Test find_sites_with_crawled_content with a nonexistent directory."""
+        result = find_sites_with_crawled_content("/nonexistent/path", "crawled")
+        assert result == []
+
+    def test_find_sites_with_crawled_content_with_html_files(self) -> None:
+        """Test find_sites_with_crawled_content with sites containing HTML files."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create a site directory structure with HTML files
+            site1_dir = os.path.join(temp_dir, "site1")
+            site1_crawled = os.path.join(site1_dir, "crawled")
+            os.makedirs(site1_crawled)
+
+            # Create an HTML file
+            with open(os.path.join(site1_crawled, "page1.html"), "w") as f:
+                f.write("<html><body>Test content</body></html>")
+
+            # Create another site without HTML files
+            site2_dir = os.path.join(temp_dir, "site2")
+            site2_crawled = os.path.join(site2_dir, "crawled")
+            os.makedirs(site2_crawled)
+
+            # Create a non-HTML file
+            with open(os.path.join(site2_crawled, "data.txt"), "w") as f:
+                f.write("Not HTML content")
+
+            # Create a site without crawled directory
+            site3_dir = os.path.join(temp_dir, "site3")
+            os.makedirs(site3_dir)
+
+            result = find_sites_with_crawled_content(temp_dir, "crawled")
+
+            # Only site1 should be returned since it has HTML files
+            assert result == ["site1"]
+
+    def test_find_sites_with_crawled_content_nested_html_files(self) -> None:
+        """Test find_sites_with_crawled_content with HTML files in subdirectories."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create a site directory structure with nested HTML files
+            site_dir = os.path.join(temp_dir, "test_site")
+            crawled_dir = os.path.join(site_dir, "crawled")
+            nested_dir = os.path.join(crawled_dir, "subdomain")
+            os.makedirs(nested_dir)
+
+            # Create an HTML file in a subdirectory
+            with open(os.path.join(nested_dir, "nested_page.html"), "w") as f:
+                f.write("<html><body>Nested content</body></html>")
+
+            result = find_sites_with_crawled_content(temp_dir, "crawled")
+
+            # The site should be found even with nested HTML files
+            assert result == ["test_site"]
