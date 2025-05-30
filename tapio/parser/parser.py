@@ -415,12 +415,9 @@ class Parser:
         except ValueError:
             return "unknown"
 
-    def _create_directory_scope(self, base_dir: str | None = None) -> DirectoryScope:
+    def _create_directory_scope(self) -> DirectoryScope:
         """
-        Create a directory scope for temporarily scoping operations to the input directory.
-
-        Args:
-            base_dir: Optional base directory (kept for compatibility, but ignored)
+        Create a directory scope for operations on the input directory.
 
         Returns:
             A DirectoryScope context manager that can be used in a with statement
@@ -434,18 +431,12 @@ class Parser:
     def _parse_file_with_context(
         self,
         html_file: str | Path,
-        scoped_dir: str,
     ) -> dict[str, Any] | None:
         """
-        Parse a single file with the provided directory context.
-
-        This method handles parsing a file with awareness of the scoped directory
-        to correctly resolve relative paths.
+        Parse a single file with URL context preservation.
 
         Args:
             html_file: Path to the HTML file to parse
-            scoped_dir: The scoped directory being used for this parse operation
-                        (kept for API compatibility, but no longer used)
 
         Returns:
             Dictionary containing information about the parsed file or None if parsing failed
@@ -656,10 +647,10 @@ class Parser:
 
             self.logger.info(f"Found {len(html_files)} HTML files to parse")
 
-            # Parse each file with the original input_dir context
+            # Parse each file with URL context preservation
             for html_file in html_files:
                 try:
-                    result = self._parse_file_with_context(html_file, scoped_dir)
+                    result = self._parse_file_with_context(html_file)
                     if result:
                         results.append(result)
                 except Exception as e:
