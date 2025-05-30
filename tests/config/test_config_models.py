@@ -132,11 +132,11 @@ class TestParserConfig:
         assert element is None
 
 
-class TestSiteParserConfig:
-    """Test the SiteParserConfig model."""
+class TestSiteConfig:
+    """Test the SiteConfig model."""
 
     def test_default_values(self):
-        """Test default values for SiteParserConfig."""
+        """Test default values for SiteConfig."""
         config = SiteConfig(
             base_url=HttpUrl("https://example.com"),
         )
@@ -146,7 +146,7 @@ class TestSiteParserConfig:
         assert isinstance(config.crawler_config, CrawlerConfig)
 
     def test_custom_values(self):
-        """Test SiteParserConfig with custom values."""
+        """Test SiteConfig with custom values."""
         parser_config = ParserConfig(
             title_selector="//h1",
             content_selectors=['//div[@id="main"]'],
