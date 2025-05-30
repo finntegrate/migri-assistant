@@ -439,7 +439,7 @@ class TestCli:
         assert "Starting vectorization" in result.stdout
         assert "Error during vectorization: Test error" in result.stdout
 
-    @patch("tapio.gradio_app.main")
+    @patch("tapio.app.main")
     def test_tapio_app_command(self, mock_launch_gradio, runner):
         """Test the tapio-app command."""
         # Run the command
@@ -452,12 +452,12 @@ class TestCli:
         mock_launch_gradio.assert_called_once_with(
             collection_name=DEFAULT_CHROMA_COLLECTION,
             persist_directory=DEFAULT_DIRS["CHROMA_DIR"],
-            model_name="llama3.2",
+            model_name="llama3.2:latest",
             max_tokens=1024,
             share=False,
         )
 
-    @patch("tapio.gradio_app.main")
+    @patch("tapio.app.main")
     def test_tapio_app_command_with_options(self, mock_launch_gradio, runner):
         """Test the tapio-app command with custom options."""
         # Run the command with options

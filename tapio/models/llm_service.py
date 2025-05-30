@@ -48,12 +48,26 @@ class LLMService:
             # Log available models
             logger.info(f"Available Ollama models: {', '.join(available_models)}")
 
-            # Check for exact match or name:latest pattern
+            # Check for exact match or base name match (handle :tag variations)
             for model_name in available_models:
-                if model_name == self.model_name or model_name.startswith(f"{self.model_name}:"):
+                # Exact match
+                if model_name == self.model_name:
                     model_exists = True
-                    logger.info(f"Found matching model: {model_name}")
+                    logger.info(f"Found exact matching model: {model_name}")
                     break
+                # If user provided base name (no tag), match any variant with tags
+                elif ":" not in self.model_name and model_name.startswith(f"{self.model_name}:"):
+                    model_exists = True
+                    logger.info(f"Found matching model: {model_name} for base name {self.model_name}")
+                    break
+                # If user provided name with tag, check if base names match
+                elif ":" in self.model_name and ":" in model_name:
+                    user_base = self.model_name.split(":")[0]
+                    model_base = model_name.split(":")[0]
+                    if user_base == model_base:
+                        model_exists = True
+                        logger.info(f"Found matching model: {model_name} for requested {self.model_name}")
+                        break
 
             if not model_exists:
                 logger.warning(
