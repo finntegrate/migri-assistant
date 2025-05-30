@@ -93,7 +93,6 @@ class Parser:
 
         self.current_base_url: str | None = None  # Will store the base URL of the current document
 
-        # Use the new directory structure: DEFAULT_CONTENT_DIR / site_name / subdir
         # When explicit directories are provided, append site_name for organization
         if input_dir is not None:
             self.input_dir = input_dir
