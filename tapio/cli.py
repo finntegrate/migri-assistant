@@ -84,9 +84,9 @@ def crawl(
 
     # Override depth if provided via CLI (update the site_config's crawler_config)
     if depth != 1:  # Only override if user provided a non-default value
-        site_config.crawler_config.depth = depth
+        site_config.crawler_config.max_depth = depth
 
-    typer.echo(f"🕸️ Starting web crawler for {site} ({url}) with depth {site_config.crawler_config.depth}")
+    typer.echo(f"🕸️ Starting web crawler for {site} ({url}) with depth {site_config.crawler_config.max_depth}")
     typer.echo(f"💾 Saving HTML content to: {site_config.base_dir}")
     typer.echo(
         f"⏱️ Using {site_config.crawler_config.delay_between_requests}s delay between requests "

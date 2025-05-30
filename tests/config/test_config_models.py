@@ -20,18 +20,18 @@ class TestCrawlerConfig:
         config = CrawlerConfig()
         assert config.delay_between_requests == 1.0
         assert config.max_concurrent == 5
-        assert config.depth == 1
+        assert config.max_depth == 1
 
     def test_custom_values(self):
         """Test CrawlerConfig with custom values."""
         config = CrawlerConfig(
             delay_between_requests=2.5,
             max_concurrent=10,
-            depth=3,
+            max_depth=3,
         )
         assert config.delay_between_requests == 2.5
         assert config.max_concurrent == 10
-        assert config.depth == 3
+        assert config.max_depth == 3
 
     def test_delay_validation(self):
         """Test that delay_between_requests must be non-negative."""
@@ -63,19 +63,19 @@ class TestCrawlerConfig:
     def test_depth_validation(self):
         """Test that depth must be within valid range."""
         # Valid values
-        config = CrawlerConfig(depth=1)
-        assert config.depth == 1
+        config = CrawlerConfig(max_depth=1)
+        assert config.max_depth == 1
 
-        config = CrawlerConfig(depth=10)
-        assert config.depth == 10
+        config = CrawlerConfig(max_depth=10)
+        assert config.max_depth == 10
 
         # Invalid values - too low
         with pytest.raises(ValidationError):
-            CrawlerConfig(depth=0)
+            CrawlerConfig(max_depth=0)
 
         # Invalid values - too high
         with pytest.raises(ValidationError):
-            CrawlerConfig(depth=11)
+            CrawlerConfig(max_depth=11)
 
 
 class TestParserConfig:

@@ -62,7 +62,7 @@ class BaseCrawler:
         self.allowed_domains = [parsed_url.netloc] if parsed_url.netloc else []
 
         # Use crawler config values
-        self.max_depth = site_config.crawler_config.depth
+        self.max_depth = site_config.crawler_config.max_depth
         self.delay_between_requests = site_config.crawler_config.delay_between_requests
         self.max_concurrent = site_config.crawler_config.max_concurrent
 

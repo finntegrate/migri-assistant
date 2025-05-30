@@ -84,7 +84,7 @@ class TestCli:
         mock_runner_instance.run.assert_called_once_with("migri", mock_site_config)
 
         # Check that depth was overridden
-        assert mock_site_config.crawler_config.depth == 2
+        assert mock_site_config.crawler_config.max_depth == 2
 
         # Check expected output in stdout
         assert "Starting web crawler" in result.stdout

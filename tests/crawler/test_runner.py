@@ -20,7 +20,7 @@ def create_test_site_config(
         base_url=HttpUrl(base_url),
         description=description,
         crawler_config=CrawlerConfig(
-            depth=depth,
+            max_depth=depth,
             delay_between_requests=delay_between_requests,
             max_concurrent=max_concurrent,
         ),
