@@ -4,7 +4,7 @@ import os
 import typer
 
 from tapio.config import ConfigManager
-from tapio.config.settings import DEFAULT_CHROMA_COLLECTION, DEFAULT_DIRS
+from tapio.config.settings import DEFAULT_CHROMA_COLLECTION, DEFAULT_CONTENT_DIR, DEFAULT_DIRS
 from tapio.crawler.runner import CrawlerRunner
 from tapio.parser import Parser
 from tapio.vectorstore.vectorizer import MarkdownVectorizer
@@ -86,8 +86,11 @@ def crawl(
     if depth != 1:  # Only override if user provided a non-default value
         site_config.crawler_config.max_depth = depth
 
+    # Construct the actual output directory path
+    crawled_dir = os.path.join(DEFAULT_CONTENT_DIR, site, DEFAULT_DIRS["CRAWLED_DIR"])
+
     typer.echo(f"🕸️ Starting web crawler for {site} ({url}) with depth {site_config.crawler_config.max_depth}")
-    typer.echo(f"💾 Saving HTML content to: {site_config.base_dir}")
+    typer.echo(f"💾 Saving HTML content to: {crawled_dir}")
     typer.echo(
         f"⏱️ Using {site_config.crawler_config.delay_between_requests}s delay between requests "
         f"and max {site_config.crawler_config.max_concurrent} concurrent requests",
@@ -104,12 +107,12 @@ def crawl(
 
         # Output information
         typer.echo(f"✅ Crawling completed! Processed {len(results)} pages.")
-        typer.echo(f"💾 Content saved as HTML files in {site_config.base_dir}")
+        typer.echo(f"💾 Content saved as HTML files in {crawled_dir}")
 
     except KeyboardInterrupt:
         typer.echo("\n🛑 Crawling interrupted by user")
         typer.echo("✅ Partial results have been saved")
-        typer.echo(f"💾 Crawled content saved to {site_config.base_dir}")
+        typer.echo(f"💾 Crawled content saved to {crawled_dir}")
     except Exception as e:
         typer.echo(f"❌ Error during crawling: {str(e)}", err=True)
         raise typer.Exit(code=1)
@@ -176,17 +179,16 @@ def parse(
             if site in available_sites:
                 typer.echo(f"🔧 Using configuration for site: {site}")
                 parser = Parser(
-                    site=site,
-                    input_dir=DEFAULT_DIRS["CRAWLED_DIR"],
-                    output_dir=DEFAULT_DIRS["PARSED_DIR"],
+                    site_name=site,
                     config_path=config_path,
                 )
                 results = parser.parse_all()
 
                 # Output information
                 typer.echo(f"✅ Parsing completed! Processed {len(results)} files.")
-                typer.echo(f"📝 Content saved as Markdown files in {DEFAULT_DIRS['PARSED_DIR']}")
-                typer.echo(f"📝 Index created at {DEFAULT_DIRS['PARSED_DIR']}/{parser.site}/index.md")
+                parsed_dir = os.path.join(DEFAULT_CONTENT_DIR, site, DEFAULT_DIRS["PARSED_DIR"])
+                typer.echo(f"📝 Content saved as Markdown files in {parsed_dir}")
+                typer.echo(f"📝 Index created at {parsed_dir}/index.md")
             else:
                 typer.echo(f"❌ Unsupported site: {site}")
                 typer.echo(f"Available sites: {', '.join(available_sites)}")
@@ -195,57 +197,46 @@ def parse(
             # Parse all sites that have crawled content
             typer.echo("🔧 No site specified, parsing all available sites with crawled content")
 
-            # Find which sites have crawled content by checking directories
-            crawled_dir = DEFAULT_DIRS["CRAWLED_DIR"]
-            if not os.path.exists(crawled_dir):
-                typer.echo(f"❌ Crawled content directory not found: {crawled_dir}")
+            # Find which sites have crawled content by checking the content directory structure
+            content_dir = DEFAULT_CONTENT_DIR
+            if not os.path.exists(content_dir):
+                typer.echo(f"❌ Content directory not found: {content_dir}")
                 raise typer.Exit(code=1)
 
-            # Get directories that contain HTML files (exclude non-directory files like url_mappings.json)
-            crawled_domains = []
-            for item in os.listdir(crawled_dir):
-                item_path = os.path.join(crawled_dir, item)
+            # Get site directories that contain crawled content
+            crawled_sites = []
+            for item in os.listdir(content_dir):
+                item_path = os.path.join(content_dir, item)
                 if os.path.isdir(item_path):
-                    # Check if this directory contains any HTML files
-                    has_html = False
-
-                    # First, check the immediate directory for HTML files (most common case)
-                    try:
-                        immediate_files = os.listdir(item_path)
-                        if any(f.endswith(".html") for f in immediate_files):
-                            has_html = True
-                    except OSError:
-                        # Directory might be inaccessible, continue with full walk
-                        pass
-
-                    # If not found in immediate directory, do a full recursive search
-                    if not has_html:
-                        for root, _, files in os.walk(item_path):
+                    # Check if this site directory has a crawled subdirectory with HTML files
+                    crawled_path = os.path.join(item_path, DEFAULT_DIRS["CRAWLED_DIR"])
+                    if os.path.exists(crawled_path) and os.path.isdir(crawled_path):
+                        # Check if the crawled directory contains any HTML files
+                        has_html = False
+                        for root, _, files in os.walk(crawled_path):
                             if any(f.endswith(".html") for f in files):
                                 has_html = True
                                 break
 
-                    if has_html:
-                        crawled_domains.append(item)
+                        if has_html:
+                            crawled_sites.append(item)
 
-            if not crawled_domains:
+            if not crawled_sites:
                 typer.echo("❌ No crawled content found to parse")
                 raise typer.Exit(code=1)
 
-            typer.echo(f"📂 Found crawled content for domains: {', '.join(crawled_domains)}")
+            typer.echo(f"📂 Found crawled content for sites: {', '.join(crawled_sites)}")
 
-            # Match crawled domains to site configurations
+            # Match crawled sites to available site configurations
             sites_to_parse: list[str] = []
             for site_name in available_sites:
-                site_config = config_manager.get_site_config(site_name)
-                # The base_dir property derives the domain from base_url
-                if site_config.base_dir in crawled_domains:
+                if site_name in crawled_sites:
                     sites_to_parse.append(site_name)
 
             if not sites_to_parse:
                 typer.echo("❌ No site configurations found matching crawled content")
                 typer.echo(f"Available sites: {', '.join(available_sites)}")
-                typer.echo(f"Crawled domains: {', '.join(crawled_domains)}")
+                typer.echo(f"Crawled sites: {', '.join(crawled_sites)}")
                 raise typer.Exit(code=1)
 
             typer.echo(f"🎯 Parsing sites: {', '.join(sites_to_parse)}")
@@ -255,9 +246,7 @@ def parse(
             for site_name in sites_to_parse:
                 typer.echo(f"🔧 Parsing site: {site_name}")
                 parser = Parser(
-                    site=site_name,
-                    input_dir=DEFAULT_DIRS["CRAWLED_DIR"],
-                    output_dir=DEFAULT_DIRS["PARSED_DIR"],
+                    site_name=site_name,
                     config_path=config_path,
                 )
 
@@ -267,7 +256,7 @@ def parse(
 
             # Output summary information
             typer.echo(f"✅ All parsing completed! Processed {len(total_results)} files total.")
-            typer.echo(f"📝 Content saved as Markdown files in {DEFAULT_DIRS['PARSED_DIR']}")
+            typer.echo(f"📝 Content saved as Markdown files in {DEFAULT_CONTENT_DIR}")
             typer.echo(f"📊 Parsed {len(sites_to_parse)} sites: {', '.join(sites_to_parse)}")
 
     except Exception as e:
@@ -315,7 +304,7 @@ def vectorize(
     if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    input_dir = DEFAULT_DIRS["PARSED_DIR"]
+    input_dir = DEFAULT_CONTENT_DIR
     db_dir = DEFAULT_DIRS["CHROMA_DIR"]
     collection_name = DEFAULT_CHROMA_COLLECTION
 

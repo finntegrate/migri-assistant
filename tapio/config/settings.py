@@ -10,7 +10,7 @@ DEFAULT_CONTENT_DIR = "content"
 # Default directory paths
 DEFAULT_DIRS = {
     "CRAWLED_DIR": "crawled",
-    "PARSED_DIR": "content/parsed",
+    "PARSED_DIR": "parsed",
     "CHROMA_DIR": "chroma_db",
 }
 

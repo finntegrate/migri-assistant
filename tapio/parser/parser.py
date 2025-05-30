@@ -18,7 +18,7 @@ from lxml import html
 
 from tapio.config import ConfigManager
 from tapio.config.config_models import SiteConfig
-from tapio.config.settings import DEFAULT_DIRS
+from tapio.config.settings import DEFAULT_CONTENT_DIR, DEFAULT_DIRS
 
 
 class DirectoryScope:
@@ -71,30 +71,39 @@ class Parser:
 
     def __init__(
         self,
-        site: str,
-        input_dir: str = DEFAULT_DIRS["CRAWLED_DIR"],
-        output_dir: str = DEFAULT_DIRS["PARSED_DIR"],
+        site_name: str,
+        input_dir: str | None = None,
+        output_dir: str | None = None,
         config_path: str | None = None,
     ):
         """
         Initialize the parser.
 
         Args:
-            site: Site to parse (must match a key in config)
-            input_dir: Directory containing HTML files to parse
-            output_dir: Directory to save parsed content
+            site_name: Site to parse (must match a key in config)
+            input_dir: Directory containing HTML files to parse (optional, uses default structure)
+            output_dir: Directory to save parsed content (optional, uses default structure)
             config_path: Optional path to custom config file
         """
-        self.site = site
+        self.site = site_name
 
         # Use ConfigManager to load site configuration
         config_manager = ConfigManager(config_path)
-        self.config = config_manager.get_site_config(site)
+        self.config = config_manager.get_site_config(site_name)
 
         self.current_base_url: str | None = None  # Will store the base URL of the current document
 
-        self.input_dir = input_dir
-        self.output_dir = os.path.join(output_dir, self.site or "default")
+        # Use the new directory structure: DEFAULT_CONTENT_DIR / site_name / subdir
+        # When explicit directories are provided, append site_name for organization
+        if input_dir is not None:
+            self.input_dir = input_dir
+        else:
+            self.input_dir = os.path.join(DEFAULT_CONTENT_DIR, site_name, DEFAULT_DIRS["CRAWLED_DIR"])
+
+        if output_dir is not None:
+            self.output_dir = os.path.join(output_dir, site_name)
+        else:
+            self.output_dir = os.path.join(DEFAULT_CONTENT_DIR, site_name, DEFAULT_DIRS["PARSED_DIR"])
 
         self.setup_logging()
         self.logger = logging.getLogger(__name__)
@@ -377,13 +386,12 @@ class Parser:
         effective_input_dir = input_dir if input_dir is not None else self.input_dir
 
         try:
-            # Create the domain directory using the effective input directory
-            domain_dir = os.path.join(effective_input_dir, self.config.base_dir)
-            rel_path = os.path.relpath(file_path, domain_dir)
+            # Calculate relative path directly from the input directory (no domain subdirectory)
+            rel_path = os.path.relpath(file_path, effective_input_dir)
 
             if rel_path.startswith(".."):
-                # File is outside domain directory
-                self.logger.info(f"File outside domain dir, using base URL: {self.config.base_url}")
+                # File is outside input directory
+                self.logger.info(f"File outside input dir, using base URL: {self.config.base_url}")
                 return str(self.config.base_url)
 
             # Normalize path and construct URL
@@ -429,20 +437,16 @@ class Parser:
 
     def _create_directory_scope(self, base_dir: str | None = None) -> DirectoryScope:
         """
-        Create a directory scope for temporarily scoping operations to a subdirectory.
+        Create a directory scope for temporarily scoping operations to the input directory.
 
         Args:
-            base_dir: Optional base directory to scope to, defaults to the site's
-                      configured base_dir
+            base_dir: Optional base directory (kept for compatibility, but ignored)
 
         Returns:
             A DirectoryScope context manager that can be used in a with statement
         """
-        if base_dir is None:
-            base_dir = self.config.base_dir
-
-        scoped_path = os.path.join(self.input_dir, base_dir)
-        return DirectoryScope(self.input_dir, scoped_path)
+        # Since we no longer use domain subdirectories, just return the input directory
+        return DirectoryScope(self.input_dir, self.input_dir)
 
     def _parse_file_with_context(
         self,
@@ -652,7 +656,7 @@ class Parser:
 
     def _is_file_in_domain_dir(self, file_path: str | Path, input_dir: str | None = None) -> bool:
         """
-        Check if a file is within the specified domain directory.
+        Check if a file is within the input directory.
 
         This is a utility method used internally to verify file locations.
 
@@ -662,16 +666,15 @@ class Parser:
                       defaults to self.input_dir if not provided
 
         Returns:
-            True if the file is within the domain directory, False otherwise
+            True if the file is within the input directory, False otherwise
         """
         # Use provided input_dir or default to instance's input_dir
         effective_input_dir = input_dir if input_dir is not None else self.input_dir
 
-        domain_dir = os.path.join(effective_input_dir, self.config.base_dir)
         file_path_str = str(file_path)
 
         try:
-            rel_path = os.path.relpath(file_path_str, domain_dir)
+            rel_path = os.path.relpath(file_path_str, effective_input_dir)
             return not rel_path.startswith("..")
         except ValueError:
             return False
@@ -687,7 +690,7 @@ class Parser:
             List of dictionaries containing information about parsed files
         """
         self.logger.info(
-            f"Parsing HTML files for site '{self.site}' from directory '{self.config.base_dir}'",
+            f"Parsing HTML files for site '{self.site}' from directory '{self.input_dir}'",
         )
 
         # Create a directory scope for processing only files in the site's directory

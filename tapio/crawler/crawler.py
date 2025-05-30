@@ -305,8 +305,10 @@ class BaseCrawler:
             else:
                 path = path + "_" + safe_query + ".html"
 
-        # Create full path without domain subdirectory
-        full_path = os.path.join(self.output_dir, path.lstrip("/"))
+        # Create full path with domain subdirectory for organization
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc
+        full_path = os.path.join(self.output_dir, domain, path.lstrip("/"))
 
         # Ensure the path stays within output_dir (security check for path traversal)
         abs_full_path = os.path.abspath(full_path)

@@ -114,7 +114,7 @@ class TestParser(unittest.TestCase):
 
         # Create default parser
         self.parser = Parser(
-            site="example",
+            site_name="example",
             input_dir=self.input_dir,
             output_dir=self.output_dir,
             config_path=self.config_path,
@@ -143,7 +143,7 @@ class TestParser(unittest.TestCase):
         """Test initialization with invalid site."""
         with self.assertRaises(ValueError):
             Parser(
-                site="nonexistent",
+                site_name="nonexistent",
                 input_dir=self.input_dir,
                 output_dir=self.output_dir,
                 config_path=self.config_path,
@@ -188,7 +188,7 @@ class TestParser(unittest.TestCase):
         """Test behavior when no selectors match and fallback is disabled."""
         # Create parser with no fallback config
         no_fallback_parser = Parser(
-            site="no_fallback",
+            site_name="no_fallback",
             input_dir=self.input_dir,
             output_dir=self.output_dir,
             config_path=self.config_path,
