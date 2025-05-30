@@ -28,6 +28,16 @@
         "review",
         "code"
       ]
+    },
+    {
+      "login": "AkiKurvinen",
+      "name": "AkiKurvinen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/74042688?v=4",
+      "profile": "https://akikurvinen.fi/",
+      "contributions": [
+        "data",
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
