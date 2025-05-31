@@ -27,16 +27,6 @@ dependencies = [
     "beautifulsoup4>=4.13.4",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest",
-    "pytest-cov",
-    "ruff",
-    "mypy",
-    "types-lxml",
-    "types-pyyaml",
-]
-
 [project.scripts]
 tapio = "tapio.cli:app"
 
@@ -65,6 +55,7 @@ dev = [
     "pytest>=8.3.5",
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.1.1",
+    "ruff>=0.11.5",
     "types-lxml>=2025.3.30",
     "types-pyyaml>=6.0.12.20250402",
 ]
