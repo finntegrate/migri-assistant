@@ -72,10 +72,39 @@ The architecture follows a pipeline design with three main components:
 
 ## Development Environment Setup
 
-1. Clone the repository:
+### Prerequisites
+
+First, clone the repository:
 ```bash
 git clone https://github.com/Finntegrate/migri-assistant.git
 cd migri-assistant
+```
+
+### Using Dev Container (Recommended)
+
+This project includes a preconfigured development container that provides all necessary tools and dependencies. If you're using VS Code:
+
+1. Open the project in VS Code:
+```bash
+code .
+```
+
+2. VS Code will automatically detect the dev container configuration and prompt you to "Reopen in Container". Click this button to set up the development environment automatically.
+
+The dev container includes:
+- Python 3.12
+- `uv` package manager
+- Ollama for local LLM inference
+- All required VS Code extensions (Python, Ruff, GitHub Copilot, etc.)
+- Automatic dependency installation via `uv sync --dev`
+
+### Manual Setup (Alternative)
+
+If you prefer not to use the dev container or are using a different editor:
+
+1. Install `uv` package manager:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 2. Create and activate a virtual environment with uv:
@@ -90,6 +119,10 @@ source .venv/bin/activate  # On Unix/macOS
 ```bash
 uv sync --dev
 ```
+
+4. Install Ollama for local LLM inference:
+   - Follow the installation instructions at [ollama.ai](https://ollama.ai)
+   - Pull the required model: `ollama pull llama3.2`
 
 ## Package Management
 
