@@ -122,7 +122,33 @@ uv sync --dev
 
 4. Install Ollama for local LLM inference:
    - Follow the installation instructions at [ollama.ai](https://ollama.ai)
-   - Pull the required model: `ollama pull llama3.2`
+
+### Installing Required Models
+
+Regardless of which setup method you chose, you'll need to install the required Ollama models:
+
+```bash
+ollama pull llama3.2
+```
+
+**Note on Model Sizes**: Some Ollama models can be quite large (several GB) and may require significant computational resources. If you have limited disk space or computational power, consider experimenting with smaller parameter versions of models:
+
+- `llama3.2:1b` - Lightweight 1 billion parameter version
+- `llama3.2:3b` - Medium 3 billion parameter version
+- `deepseek-r1:1.5b` - Efficient reasoning model
+- `gemma3:1b` - Google's compact model
+- `qwen3:1.7b` - Alibaba's efficient model
+
+You can install any of these alternatives with:
+```bash
+ollama pull <model-name>
+```
+
+You can verify the model is installed by listing available models:
+
+```bash
+ollama list
+```
 
 ## Package Management
 
