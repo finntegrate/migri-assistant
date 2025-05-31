@@ -9,6 +9,7 @@ Thank you for considering contributing to Tapio Assistant! This document provide
   - [Development Environment Setup](#development-environment-setup)
     - [Prerequisites](#prerequisites)
     - [Using Dev Container (Recommended)](#using-dev-container-recommended)
+    - [Using GitHub Codespaces (Cloud Alternative)](#using-github-codespaces-cloud-alternative)
     - [Manual Setup (Alternative)](#manual-setup-alternative)
     - [Installing Required Models](#installing-required-models)
   - [Package Management](#package-management)
@@ -111,6 +112,31 @@ The dev container includes:
 - Ollama for local LLM inference
 - All required VS Code extensions (Python, Ruff, GitHub Copilot, etc.)
 - Automatic dependency installation via `uv sync --dev`
+
+### Using GitHub Codespaces (Cloud Alternative)
+
+For a completely cloud-based development environment that requires no local setup:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/finntegrate/tapio?quickstart=1)
+
+> [!WARNING]
+> **Critical: Always stop your Codespace when not in use!**
+>
+> GitHub provides free Codespaces hours per month (typically 60-120 hours, subject to change). To avoid wasting your free hours:
+> - **Manually stop your Codespace** every time you finish working
+> - You can resume a stopped Codespace later, preserving all your work and changes
+> - [Resume your most recent Codespace](https://codespaces.new/finntegrate/tapio?quickstart=1) for this repository
+
+> [!TIP]
+> **How to stop your Codespace:**
+> 1. Go to [github.com/codespaces](https://github.com/codespaces)
+> 2. Find your active Codespace for this repository
+> 3. Click the "..." menu and select "Stop codespace"
+
+The Codespace includes the same development environment as the local dev container:
+- Python 3.12, `uv` package manager, and Ollama
+- All required VS Code extensions pre-installed
+- Automatic dependency installation
 
 ### Manual Setup (Alternative)
 
