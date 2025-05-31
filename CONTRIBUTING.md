@@ -7,6 +7,11 @@ Thank you for considering contributing to Tapio Assistant! This document provide
   - [Table of Contents](#table-of-contents)
   - [Technical Architecture](#technical-architecture)
   - [Development Environment Setup](#development-environment-setup)
+    - [Prerequisites](#prerequisites)
+    - [Using Dev Container (Recommended)](#using-dev-container-recommended)
+    - [Using GitHub Codespaces (Cloud Alternative)](#using-github-codespaces-cloud-alternative)
+    - [Manual Setup (Alternative)](#manual-setup-alternative)
+    - [Installing Required Models](#installing-required-models)
   - [Package Management](#package-management)
   - [Code Quality](#code-quality)
     - [Ruff](#ruff)
@@ -72,10 +77,74 @@ The architecture follows a pipeline design with three main components:
 
 ## Development Environment Setup
 
-1. Clone the repository:
+### Prerequisites
+
+Before starting development, ensure you have the following system tools installed:
+
+- **Git**: For version control
+- **Docker**: Required for dev container support (Docker Desktop recommended)
+- **VS Code**: With the Dev Containers extension for dev container development
+
+First, clone the repository:
 ```bash
-git clone https://github.com/Finntegrate/migri-assistant.git
-cd migri-assistant
+git clone https://github.com/finntegrate/tapio.git
+cd tapio
+```
+
+### Using Dev Container (Recommended)
+
+This project includes a preconfigured development container that provides all necessary tools and dependencies.
+
+**Requirements**: Docker must be installed on your system (Docker Desktop is recommended for ease of use).
+
+If you're using VS Code:
+
+1. Open the project in VS Code:
+```bash
+code .
+```
+
+2. VS Code will automatically detect the dev container configuration and prompt you to "Reopen in Container". Click this button to set up the development environment automatically.
+
+The dev container includes:
+- Python 3.12
+- `uv` package manager
+- Ollama for local LLM inference
+- All required VS Code extensions (Python, Ruff, GitHub Copilot, etc.)
+- Automatic dependency installation via `uv sync --dev`
+
+### Using GitHub Codespaces (Cloud Alternative)
+
+For a completely cloud-based development environment that requires no local setup:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/finntegrate/tapio?quickstart=1)
+
+> [!WARNING]
+> **Critical: Always stop your Codespace when not in use!**
+>
+> GitHub provides free Codespaces hours per month (typically 60-120 hours, subject to change). To avoid wasting your free hours:
+> - **Manually stop your Codespace** every time you finish working
+> - You can resume a stopped Codespace later, preserving all your work and changes
+> - [Resume your most recent Codespace](https://codespaces.new/finntegrate/tapio?quickstart=1) for this repository
+
+> [!TIP]
+> **How to stop your Codespace:**
+> 1. Go to [github.com/codespaces](https://github.com/codespaces)
+> 2. Find your active Codespace for this repository
+> 3. Click the "..." menu and select "Stop codespace"
+
+The Codespace includes the same development environment as the local dev container:
+- Python 3.12, `uv` package manager, and Ollama
+- All required VS Code extensions pre-installed
+- Automatic dependency installation
+
+### Manual Setup (Alternative)
+
+If you prefer not to use the dev container or are using a different editor:
+
+1. Install `uv` package manager:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 2. Create and activate a virtual environment with uv:
@@ -90,6 +159,40 @@ source .venv/bin/activate  # On Unix/macOS
 ```bash
 uv sync --dev
 ```
+
+4. Install Ollama for local LLM inference:
+   - Follow the installation instructions at [ollama.ai](https://ollama.ai)
+
+### Installing Required Models
+
+Regardless of which setup method you chose, you'll need to install the required Ollama models for LLM text generation:
+
+```bash
+ollama pull llama3.2
+```
+
+**Note on Model Sizes**: Some Ollama models are substantially large (several GB) and may require significant computational resources. If you have limited disk space or computational power, consider experimenting with smaller parameter versions of models:
+
+- `llama3.2:1b` - Lightweight 1 billion parameter version
+- `llama3.2:3b` - Medium 3 billion parameter version
+- `deepseek-r1:1.5b` - Efficient reasoning model
+- `gemma3:1b` - Google's compact model
+- `qwen3:1.7b` - Alibaba's efficient model
+
+You can install any of these alternatives with:
+```bash
+ollama pull <model-name>
+```
+
+You can verify the model is installed by listing available models:
+
+```bash
+ollama list
+```
+
+**Embedding Models**: The vectorization process uses sentence-transformers models for generating embeddings (default: `all-MiniLM-L6-v2`). These models are automatically downloaded by the HuggingFace library when first used, so no manual installation is required.
+
+*Note: While Ollama also provides embedding models (like `all-minilm`), the current implementation uses HuggingFace sentence-transformers models. If you've installed Ollama embedding models, they won't be used by the current vectorization process unless the code is modified to use Ollama embeddings instead.*
 
 ## Package Management
 
