@@ -125,7 +125,7 @@ uv sync --dev
 
 ### Installing Required Models
 
-Regardless of which setup method you chose, you'll need to install the required Ollama models:
+Regardless of which setup method you chose, you'll need to install the required Ollama models for LLM text generation:
 
 ```bash
 ollama pull llama3.2
@@ -149,6 +149,10 @@ You can verify the model is installed by listing available models:
 ```bash
 ollama list
 ```
+
+**Embedding Models**: The vectorization process uses sentence-transformers models for generating embeddings (default: `all-MiniLM-L6-v2`). These models are automatically downloaded by the HuggingFace library when first used, so no manual installation is required.
+
+*Note: While Ollama also provides embedding models (like `all-minilm`), the current implementation uses HuggingFace sentence-transformers models. If you've installed Ollama embedding models, they won't be used by the current vectorization process unless the code is modified to use Ollama embeddings instead.*
 
 ## Package Management
 
