@@ -5,7 +5,7 @@
 		"ghcr.io/va-h/devcontainers-features/uv:1": {},
 		"ghcr.io/prulloac/devcontainer-features/ollama:1": {}
 	},
-	"postCreateCommand": "uv sync --dev && pre-commit install",
+	"postCreateCommand": "uv sync --dev && uv run pre-commit install",
 	"customizations": {
 		"vscode": {
 			"extensions": [
