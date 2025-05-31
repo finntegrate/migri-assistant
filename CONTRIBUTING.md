@@ -78,6 +78,12 @@ The architecture follows a pipeline design with three main components:
 
 ### Prerequisites
 
+Before starting development, ensure you have the following system tools installed:
+
+- **Git**: For version control
+- **Docker**: Required for dev container support (Docker Desktop recommended)
+- **VS Code**: With the Dev Containers extension for dev container development
+
 First, clone the repository:
 ```bash
 git clone https://github.com/finntegrate/tapio.git
@@ -86,7 +92,11 @@ cd tapio
 
 ### Using Dev Container (Recommended)
 
-This project includes a preconfigured development container that provides all necessary tools and dependencies. If you're using VS Code:
+This project includes a preconfigured development container that provides all necessary tools and dependencies.
+
+**Requirements**: Docker must be installed on your system (Docker Desktop is recommended for ease of use).
+
+If you're using VS Code:
 
 1. Open the project in VS Code:
 ```bash
@@ -135,7 +145,7 @@ Regardless of which setup method you chose, you'll need to install the required 
 ollama pull llama3.2
 ```
 
-**Note on Model Sizes**: Some Ollama models can be quite large (several GB) and may require significant computational resources. If you have limited disk space or computational power, consider experimenting with smaller parameter versions of models:
+**Note on Model Sizes**: Some Ollama models are substantially large (several GB) and may require significant computational resources. If you have limited disk space or computational power, consider experimenting with smaller parameter versions of models:
 
 - `llama3.2:1b` - Lightweight 1 billion parameter version
 - `llama3.2:3b` - Medium 3 billion parameter version
