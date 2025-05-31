@@ -14,7 +14,30 @@
 				"GitHub.copilot",
 				"GitHub.vscode-pull-request-github",
 				"charliermarsh.ruff"
-			]
+			],
+			"settings": {
+				"python.defaultInterpreter": "/workspaces/tapio/.venv/bin/python",
+				"python.terminal.activateEnvironment": true,
+				"python.terminal.activateEnvInCurrentTerminal": true,
+				"ruff.interpreter": [
+					"/workspaces/tapio/.venv/bin/python"
+				],
+				"ruff.path": [
+					"/workspaces/tapio/.venv/bin/ruff"
+				],
+				"python.testing.pytestEnabled": true,
+				"python.testing.pytestPath": "/workspaces/tapio/.venv/bin/pytest",
+				"python.linting.enabled": true,
+				"python.linting.pylintEnabled": false,
+				"python.linting.ruffEnabled": true,
+				"python.linting.ruffPath": "/workspaces/tapio/.venv/bin/ruff",
+				"python.formatting.provider": "none",
+				"editor.formatOnSave": true,
+				"editor.codeActionsOnSave": {
+					"source.organizeImports": "explicit",
+					"source.fixAll.ruff": "explicit"
+				}
+			}
 		}
 	}
 }
