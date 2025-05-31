@@ -7,6 +7,10 @@ Thank you for considering contributing to Tapio Assistant! This document provide
   - [Table of Contents](#table-of-contents)
   - [Technical Architecture](#technical-architecture)
   - [Development Environment Setup](#development-environment-setup)
+    - [Prerequisites](#prerequisites)
+    - [Using Dev Container (Recommended)](#using-dev-container-recommended)
+    - [Manual Setup (Alternative)](#manual-setup-alternative)
+    - [Installing Required Models](#installing-required-models)
   - [Package Management](#package-management)
   - [Code Quality](#code-quality)
     - [Ruff](#ruff)
@@ -76,8 +80,8 @@ The architecture follows a pipeline design with three main components:
 
 First, clone the repository:
 ```bash
-git clone https://github.com/Finntegrate/migri-assistant.git
-cd migri-assistant
+git clone https://github.com/finntegrate/tapio.git
+cd tapio
 ```
 
 ### Using Dev Container (Recommended)
