@@ -1,6 +1,7 @@
 """Gradio interface for the Tapio Assistant RAG chatbot."""
 
 import logging
+from collections.abc import Generator
 from typing import Any
 
 import gradio as gr
@@ -97,6 +98,64 @@ class TapioAssistantApp:
                 "Error retrieving documents.",
             )
 
+    def respond_stream(
+        self,
+        message: str,
+        chat_history: list[dict[str, str]],
+    ) -> Generator[tuple[str, list[dict[str, str]], str], None, None]:
+        """Process user message and stream the response.
+
+        Args:
+            message: User's message
+            chat_history: Current chat history
+
+        Yields:
+            Tuple containing empty message (to clear input), updated chat history,
+            and document display content
+        """
+        # Initialize chat history if empty
+        if not chat_history:
+            chat_history = []
+
+        # Add user message immediately
+        chat_history.append({"role": "user", "content": message})
+
+        # Clear input and show user message
+        yield "", chat_history, "Retrieving relevant documents..."
+
+        try:
+            # Initialize RAG service if not already done
+            service = self._init_rag_service()
+
+            # Get streaming response and retrieved docs from the RAG service
+            response_stream, retrieved_docs = service.query_stream(query_text=message, history=chat_history)
+
+            # Format documents for display
+            formatted_docs = service.format_retrieved_documents(retrieved_docs)
+
+            # Start building the assistant response
+            assistant_response = ""
+
+            # Stream the response
+            for chunk in response_stream:
+                assistant_response += chunk
+
+                # Update chat history with current response
+                current_history = chat_history.copy()
+                current_history.append({"role": "assistant", "content": assistant_response})
+
+                yield "", current_history, formatted_docs
+
+            # Final update with complete response
+            chat_history.append({"role": "assistant", "content": assistant_response})
+            yield "", chat_history, formatted_docs
+
+        except Exception as e:
+            logger.error(f"Error in streaming response: {e}")
+            error_message = "I encountered an error while processing your query. Please try again."
+            chat_history.append({"role": "assistant", "content": error_message})
+            yield "", chat_history, "Error retrieving documents."
+
     def respond(
         self,
         message: str,
@@ -168,9 +227,9 @@ class TapioAssistantApp:
                         height=500,
                     )
 
-            # Define app logic
-            msg.submit(self.respond, [msg, chatbot], [msg, chatbot, docs_display])
-            submit.click(self.respond, [msg, chatbot], [msg, chatbot, docs_display])
+            # Define app logic - use streaming for better user experience
+            msg.submit(self.respond_stream, [msg, chatbot], [msg, chatbot, docs_display])
+            submit.click(self.respond_stream, [msg, chatbot], [msg, chatbot, docs_display])
             clear.click(lambda: ([], None), None, [chatbot, docs_display])
 
             # Add some example queries

@@ -1,6 +1,7 @@
 """Service for interacting with LLM models through Ollama."""
 
 import logging
+from collections.abc import Generator
 
 import ollama
 
@@ -120,6 +121,48 @@ class LLMService:
         except Exception as e:
             logger.error(f"Error generating response: {e}")
             return (
+                f"Error: Could not generate a response. "
+                f"Please check if Ollama is running with the {self.model_name} model."
+            )
+
+    def generate_response_stream(self, prompt: str, system_prompt: str | None = None) -> Generator[str, None, None]:
+        """Generate a streaming response from the LLM model.
+
+        Args:
+            prompt: The prompt to generate a response for
+            system_prompt: Optional system prompt to set context
+
+        Yields:
+            str: Chunks of the generated response
+        """
+        try:
+            messages = []
+
+            # Add system message if provided
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+
+            # Add user message
+            messages.append({"role": "user", "content": prompt})
+
+            # Use streaming chat
+            stream = ollama.chat(
+                model=self.model_name,
+                messages=messages,
+                options={
+                    "temperature": self.temperature,
+                    "num_predict": self.max_tokens,
+                },
+                stream=True,
+            )
+
+            for chunk in stream:
+                if "message" in chunk and "content" in chunk["message"]:
+                    yield chunk["message"]["content"]
+
+        except Exception as e:
+            logger.error(f"Error generating streaming response: {e}")
+            yield (
                 f"Error: Could not generate a response. "
                 f"Please check if Ollama is running with the {self.model_name} model."
             )
