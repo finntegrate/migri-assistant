@@ -11,19 +11,13 @@ from tapio.services.document_retrieval_service import DocumentRetrievalService
 def doc_retrieval_service():
     """Create a document retrieval service with mocked dependencies for testing."""
     # Mock the ChromaStore
-    with mock.patch("tapio.services.document_retrieval_service.ChromaStore") as mock_chroma:
-        # Configure mock instance behavior
-        mock_chroma_instance = mock_chroma.return_value
-
+    with mock.patch("tapio.services.document_retrieval_service.ChromaStore"):
         # Create DocumentRetrievalService with mocked dependencies
         service = DocumentRetrievalService(
             collection_name="test_collection",
             persist_directory="test_db",
             num_results=3,
         )
-
-        # Set mocked properties for access in tests
-        service.mock_vector_store = mock_chroma_instance
 
         yield service
 
@@ -45,7 +39,7 @@ def test_document_retrieval_service_retrieves_documents(doc_retrieval_service):
         "source_url": "http://example.com/2",
     }
 
-    doc_retrieval_service.mock_vector_store.query.return_value = [
+    doc_retrieval_service.vector_store.query.return_value = [
         mock_doc1,
         mock_doc2,
     ]
@@ -54,7 +48,7 @@ def test_document_retrieval_service_retrieves_documents(doc_retrieval_service):
     result = doc_retrieval_service.retrieve_documents("Test query")
 
     # Verify the vector store was called correctly
-    doc_retrieval_service.mock_vector_store.query.assert_called_once_with(
+    doc_retrieval_service.vector_store.query.assert_called_once_with(
         query_text="Test query",
         n_results=3,
     )
