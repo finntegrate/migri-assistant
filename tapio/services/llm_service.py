@@ -174,7 +174,9 @@ class LLMService:
             for chunk in stream:
                 if "message" in chunk and "content" in chunk["message"]:
                     content = chunk["message"]["content"]
-                    logger.debug(f"LLM yielding chunk: '{content}'")
+                    logger.debug(
+                        f"LLM yielding chunk of {len(content)} characters",
+                    )
                     yield content
 
         except Exception as e:
