@@ -120,7 +120,7 @@ def test_rag_orchestrator_query_stream(rag_orchestrator):
         # Call the method under test
         response_stream, docs = rag_orchestrator.query_stream("Test query")
 
-        # Verify document retrieval was called
+        # Verify document retrieval was called (this happens immediately)
         rag_orchestrator.mock_doc_service.retrieve_documents.assert_called_once_with(
             "Test query",
         )
@@ -130,15 +130,15 @@ def test_rag_orchestrator_query_stream(rag_orchestrator):
             ],
         )
 
-        # Verify the LLM was called with streaming
-        rag_orchestrator.mock_llm_service.generate_response_stream.assert_called_once()
-
         # Verify the results
         assert docs == [mock_doc]
 
-        # Collect all chunks from the stream
+        # Collect all chunks from the stream (this triggers the LLM call)
         chunks = list(response_stream)
         assert chunks == ["Test ", "streaming ", "response"]
+
+        # Verify the LLM was called with streaming (check after consuming the generator)
+        rag_orchestrator.mock_llm_service.generate_response_stream.assert_called_once()
 
 
 def test_rag_orchestrator_check_model_availability(rag_orchestrator):
