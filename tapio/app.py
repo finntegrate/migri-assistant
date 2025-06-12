@@ -140,17 +140,35 @@ class TapioAssistantApp:
                 history=chat_history,
             )
 
-            # Format documents for display
-            formatted_docs = rag_orchestrator.format_documents_for_display(
-                retrieved_docs,
+            # Start building the assistant response and immediately start streaming
+            assistant_response = "..."  # Start with ellipsis for immediate feedback
+            formatted_docs = "Retrieving relevant documents..."
+            first_chunk = True
+
+            # Update chat history immediately with ellipsis to show activity
+            current_history = chat_history.copy()
+            current_history.append(
+                {"role": "assistant", "content": assistant_response},
             )
+            yield "", current_history, formatted_docs
 
-            # Start building the assistant response
-            assistant_response = ""
+            # Immediately start consuming the generator to trigger LLM processing
+            logger.info("Starting to consume response stream")
 
-            # Stream the response
+            # Stream the response - start consuming immediately
             for chunk in response_stream:
-                assistant_response += chunk
+                logger.debug(f"App received chunk: '{chunk}'")
+                # Replace the ellipsis with actual content on first meaningful chunk
+                if first_chunk and chunk.strip():  # Only replace if chunk has content
+                    logger.info(
+                        "Replacing ellipsis with first meaningful chunk",
+                    )
+                    assistant_response = chunk
+                    first_chunk = False
+                elif not first_chunk:
+                    # Normal streaming - append chunks
+                    assistant_response += chunk
+                # If first_chunk is True but chunk is empty/whitespace, keep the ellipsis
 
                 # Update chat history with current response
                 current_history = chat_history.copy()
@@ -158,12 +176,25 @@ class TapioAssistantApp:
                     {"role": "assistant", "content": assistant_response},
                 )
 
+                # Format documents for display once we have them
+                if retrieved_docs and formatted_docs == "Retrieving relevant documents...":
+                    formatted_docs = rag_orchestrator.format_documents_for_display(
+                        retrieved_docs,
+                    )
+
                 yield "", current_history, formatted_docs
 
             # Final update with complete response
             chat_history.append(
                 {"role": "assistant", "content": assistant_response},
             )
+
+            # Ensure documents are formatted for final display
+            if retrieved_docs:
+                formatted_docs = rag_orchestrator.format_documents_for_display(
+                    retrieved_docs,
+                )
+
             yield "", chat_history, formatted_docs
 
         except Exception as e:
@@ -173,6 +204,14 @@ class TapioAssistantApp:
                 {"role": "assistant", "content": error_message},
             )
             yield "", chat_history, "Error retrieving documents."
+
+    def clear_chat(self) -> tuple[list, str]:
+        """Clear the chat history and documents display.
+
+        Returns:
+            Empty chat history and empty string for documents display
+        """
+        return [], ""
 
     def respond(
         self,
@@ -246,6 +285,7 @@ class TapioAssistantApp:
                     )
 
             # Define app logic - use streaming for better user experience
+            # Single event handler for both submit button and Enter key
             msg.submit(
                 self.respond_stream,
                 [msg, chatbot],
@@ -255,6 +295,7 @@ class TapioAssistantApp:
                     docs_display,
                 ],
             )
+            # Make submit button trigger the same behavior as Enter key
             submit.click(
                 self.respond_stream,
                 [msg, chatbot],
@@ -264,7 +305,7 @@ class TapioAssistantApp:
                     docs_display,
                 ],
             )
-            clear.click(lambda: ([], None), None, [chatbot, docs_display])
+            clear.click(self.clear_chat, None, [chatbot, docs_display])
 
             # Add some example queries
             gr.Examples(

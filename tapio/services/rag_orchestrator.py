@@ -112,7 +112,8 @@ class RAGOrchestrator:
             Tuple containing the response generator and the retrieved documents
         """
         try:
-            # Step 1: Retrieve relevant documents
+            # Step 1: Retrieve relevant documents up front
+            logger.info("Retrieving relevant documents")
             retrieved_docs = self.doc_retrieval_service.retrieve_documents(
                 query_text,
             )
@@ -130,16 +131,31 @@ class RAGOrchestrator:
                 question=query_text,
             )
 
-            # Step 4: Generate streaming response using LLM service
+            # Step 4: Create the streaming generator
             logger.info("Generating streaming response with LLM")
-            response_stream = self.llm_service.generate_response_stream(
-                prompt=user_prompt,
-                system_prompt=system_prompt,
-            )
 
-            return response_stream, retrieved_docs
-        except Exception as e:
-            logger.error(f"Error generating streaming RAG response: {e}")
+            def stream_generator() -> Generator[str, None, None]:
+                llm_response_stream = self.llm_service.generate_response_stream(
+                    prompt=user_prompt,
+                    system_prompt=system_prompt,
+                )
+                try:
+                    logger.info("Starting to consume LLM response stream")
+                    # Stream the LLM response directly using yield from
+                    yield from llm_response_stream
+
+                except Exception:
+                    logger.exception("Error in stream generator")
+                    yield "I encountered an error while processing your query. Please try again."
+                finally:
+                    # Ensure proper cleanup of upstream generator
+                    if hasattr(llm_response_stream, "close"):
+                        llm_response_stream.close()
+
+            return stream_generator(), retrieved_docs
+
+        except Exception:
+            logger.exception("Error in query_stream setup")
 
             def error_generator() -> Generator[str, None, None]:
                 yield "I encountered an error while processing your query. Please try again."

@@ -55,7 +55,9 @@ class LLMService:
                     available_models.append(model_name)
 
             # Log available models
-            logger.info(f"Available Ollama models: {', '.join(available_models)}")
+            logger.info(
+                f"Available Ollama models: {', '.join(available_models)}",
+            )
 
             # Check for exact match or base name match (handle :tag variations)
             for model_name in available_models:
@@ -67,7 +69,9 @@ class LLMService:
                 # If user provided base name (no tag), match any variant with tags
                 elif ":" not in self.model_name and model_name.startswith(f"{self.model_name}:"):
                     model_exists = True
-                    logger.info(f"Found matching model: {model_name} for base name {self.model_name}")
+                    logger.info(
+                        f"Found matching model: {model_name} for base name {self.model_name}",
+                    )
                     break
                 # If user provided name with tag, check if base names match
                 elif ":" in self.model_name and ":" in model_name:
@@ -75,7 +79,9 @@ class LLMService:
                     model_base = model_name.split(":")[0]
                     if user_base == model_base:
                         model_exists = True
-                        logger.info(f"Found matching model: {model_name} for requested {self.model_name}")
+                        logger.info(
+                            f"Found matching model: {model_name} for requested {self.model_name}",
+                        )
                         break
 
             if not model_exists:
@@ -145,20 +151,33 @@ class LLMService:
             # Add user message
             messages.append({"role": "user", "content": prompt})
 
-            # Use streaming chat
+            # Use streaming chat with optimized options for faster response
+            logger.info("About to call ollama.chat with streaming")
             stream = ollama.chat(
                 model=self.model_name,
                 messages=messages,
                 options={
                     "temperature": self.temperature,
                     "num_predict": self.max_tokens,
+                    "num_ctx": 2048,  # Reduce context window for faster processing
+                    "top_k": 40,
+                    "top_p": 0.9,
+                    "repeat_penalty": 1.1,
+                    "seed": -1,
+                    "num_thread": 0,  # Use all available threads
                 },
                 stream=True,
+                keep_alive="5m",  # Keep model loaded for faster subsequent requests
             )
 
+            logger.info("Starting to iterate over ollama stream")
             for chunk in stream:
                 if "message" in chunk and "content" in chunk["message"]:
-                    yield chunk["message"]["content"]
+                    content = chunk["message"]["content"]
+                    logger.debug(
+                        f"LLM yielding chunk of {len(content)} characters",
+                    )
+                    yield content
 
         except Exception as e:
             logger.error(f"Error generating streaming response: {e}")
