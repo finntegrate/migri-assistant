@@ -17,69 +17,80 @@ from tapio.app import (
 
 
 @pytest.fixture
-def mock_rag_service():
-    """Create a mock RAG service."""
-    mock_service = Mock()
-    mock_service.query.return_value = ("Test response", ["doc1", "doc2"])
-    mock_service.format_retrieved_documents.return_value = "Formatted docs"
-    mock_service.check_model_availability.return_value = True
-    return mock_service
+def mock_rag_orchestrator():
+    """Create a mock RAG orchestrator."""
+    mock_orchestrator = Mock()
+    mock_orchestrator.query.return_value = ("Test response", ["doc1", "doc2"])
+    mock_orchestrator.format_documents_for_display.return_value = "Formatted docs"
+    mock_orchestrator.check_model_availability.return_value = True
+    return mock_orchestrator
 
 
 class TestGradioApp(unittest.TestCase):
     """Tests for the Gradio app module."""
 
-    @patch("tapio.app.RAGService")
-    def test_init_rag_service(self, mock_rag_service_class):
-        """Test that the RAG service is initialized correctly."""
+    @patch("tapio.app.RAGOrchestrator")
+    def test_init_rag_orchestrator(self, mock_rag_orchestrator_class):
+        """Test that the RAG orchestrator is initialized correctly."""
         # Setup
         mock_instance = Mock()
-        mock_rag_service_class.return_value = mock_instance
+        mock_rag_orchestrator_class.return_value = mock_instance
 
-        # Create app and initialize RAG service
+        # Create app and initialize RAG orchestrator
         app = TapioAssistantApp()
-        service = app._init_rag_service()
+        orchestrator = app._init_rag_orchestrator()
 
         # Assertions
-        mock_rag_service_class.assert_called_once_with(
+        mock_rag_orchestrator_class.assert_called_once_with(
             collection_name=DEFAULT_COLLECTION_NAME,
             persist_directory=DEFAULT_CHROMA_DB_PATH,
             model_name=DEFAULT_MODEL_NAME,
             max_tokens=DEFAULT_MAX_TOKENS,
             num_results=DEFAULT_NUM_RESULTS,
         )
-        assert service == mock_instance
+        assert orchestrator == mock_instance
 
         # Test the singleton behavior - calling again should not create a new instance
-        _ = app._init_rag_service()
-        assert mock_rag_service_class.call_count == 1
+        _ = app._init_rag_orchestrator()
+        assert mock_rag_orchestrator_class.call_count == 1
 
     def test_generate_rag_response(self):
         """Test generating a RAG response."""
         # Setup
         app = TapioAssistantApp()
-        app.rag_service = Mock()
-        app.rag_service.query.return_value = ("Test response", ["doc1", "doc2"])
-        app.rag_service.format_retrieved_documents.return_value = "Formatted docs"
+        app.rag_orchestrator = Mock()
+        app.rag_orchestrator.query.return_value = (
+            "Test response",
+            ["doc1", "doc2"],
+        )
+        app.rag_orchestrator.format_documents_for_display.return_value = "Formatted docs"
 
         # Call the method
         response, formatted_docs = app.generate_rag_response("test query")
 
         # Assertions
-        app.rag_service.query.assert_called_once_with(query_text="test query", history=None)
-        app.rag_service.format_retrieved_documents.assert_called_once_with(["doc1", "doc2"])
+        app.rag_orchestrator.query.assert_called_once_with(
+            query_text="test query",
+            history=None,
+        )
+        app.rag_orchestrator.format_documents_for_display.assert_called_once_with(
+            [
+                "doc1",
+                "doc2",
+            ],
+        )
         assert response == "Test response"
         assert formatted_docs == "Formatted docs"
 
-    @patch("tapio.app.RAGService")
-    def test_generate_rag_response_with_error(self, mock_rag_service_class):
+    @patch("tapio.app.RAGOrchestrator")
+    def test_generate_rag_response_with_error(self, mock_rag_orchestrator_class):
         """Test error handling in generate_rag_response."""
         # Setup
-        mock_rag_service_class.side_effect = Exception("Test error")
+        mock_rag_orchestrator_class.side_effect = Exception("Test error")
         app = TapioAssistantApp()
 
-        # Call the method - need to patch _init_rag_service first
-        with patch.object(app, "_init_rag_service", side_effect=Exception("Test error")):
+        # Call the method - need to patch _init_rag_orchestrator first
+        with patch.object(app, "_init_rag_orchestrator", side_effect=Exception("Test error")):
             response, formatted_docs = app.generate_rag_response("test query")
 
         # Assertions
