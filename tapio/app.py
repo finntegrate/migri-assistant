@@ -205,6 +205,14 @@ class TapioAssistantApp:
             )
             yield "", chat_history, "Error retrieving documents."
 
+    def clear_chat(self) -> tuple[list, None]:
+        """Clear the chat history and documents display.
+
+        Returns:
+            Empty chat history and None for documents display
+        """
+        return [], None
+
     def respond(
         self,
         message: str,
@@ -277,6 +285,7 @@ class TapioAssistantApp:
                     )
 
             # Define app logic - use streaming for better user experience
+            # Single event handler for both submit button and Enter key
             msg.submit(
                 self.respond_stream,
                 [msg, chatbot],
@@ -286,6 +295,7 @@ class TapioAssistantApp:
                     docs_display,
                 ],
             )
+            # Make submit button trigger the same behavior as Enter key
             submit.click(
                 self.respond_stream,
                 [msg, chatbot],
@@ -295,7 +305,7 @@ class TapioAssistantApp:
                     docs_display,
                 ],
             )
-            clear.click(lambda: ([], None), None, [chatbot, docs_display])
+            clear.click(self.clear_chat, None, [chatbot, docs_display])
 
             # Add some example queries
             gr.Examples(
