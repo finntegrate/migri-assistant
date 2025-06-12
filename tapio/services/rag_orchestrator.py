@@ -147,8 +147,9 @@ class RAGOrchestrator:
                         yield chunk
 
                 except Exception as e:
-                    logger.error(f"Error in stream generator: {e}")
+                    logger.error("Error in stream generator: %s", e)
                     yield "I encountered an error while processing your query. Please try again."
+                    return
 
             return stream_generator(), retrieved_docs
 
