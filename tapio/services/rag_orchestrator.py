@@ -146,10 +146,13 @@ class RAGOrchestrator:
                         logger.debug(f"Got chunk from LLM: '{chunk}'")
                         yield chunk
 
-                except Exception as e:
-                    logger.error("Error in stream generator: %s", e)
+                except Exception:
+                    logger.exception("Error in stream generator")
                     yield "I encountered an error while processing your query. Please try again."
-                    return
+                finally:
+                    # Ensure proper cleanup of upstream generator
+                    if hasattr(llm_response_stream, "close"):
+                        llm_response_stream.close()
 
             return stream_generator(), retrieved_docs
 
