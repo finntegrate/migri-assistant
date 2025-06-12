@@ -1,70 +1,122 @@
-"""Tests for the RAG service."""
+"""Tests for the document retrieval service."""
 
 from unittest import mock
 
 import pytest
 
-from tapio.services.rag_service import RAGService
+from tapio.services.rag_service import DocumentRetrievalService, RAGService
 
 
 @pytest.fixture
-def rag_service():
-    """Create a RAG service with mocked dependencies for testing."""
-    # Mock the ChromaStore and LLMService
+def doc_retrieval_service():
+    """Create a document retrieval service with mocked dependencies for testing."""
+    # Mock the ChromaStore
     with mock.patch("tapio.services.rag_service.ChromaStore") as mock_chroma:
-        with mock.patch("tapio.services.rag_service.LLMService") as mock_llm:
-            # Configure mock instance behavior
-            mock_chroma_instance = mock_chroma.return_value
-            mock_llm_instance = mock_llm.return_value
+        # Configure mock instance behavior
+        mock_chroma_instance = mock_chroma.return_value
 
-            # Create RAGService with mocked dependencies
-            service = RAGService(
-                collection_name="test_collection",
-                persist_directory="test_db",
-                model_name="test_model",
-            )
+        # Create DocumentRetrievalService with mocked dependencies
+        service = DocumentRetrievalService(
+            collection_name="test_collection",
+            persist_directory="test_db",
+            num_results=3,
+        )
 
-            # Set mocked properties for access in tests
-            service.mock_vector_store = mock_chroma_instance
-            service.mock_llm_service = mock_llm_instance
+        # Set mocked properties for access in tests
+        service.mock_vector_store = mock_chroma_instance
 
-            yield service
+        yield service
 
 
-def test_rag_service_loads_prompts(rag_service):
-    """Test that RAG service correctly loads prompt templates."""
-    # Mock the prompt loading functions
-    with mock.patch("tapio.services.rag_service.load_prompt") as mock_load_prompt:
-        # Configure mock return values
-        mock_load_prompt.side_effect = [
-            "Mocked system prompt",  # For system_prompt
-            "Mocked user prompt with context",  # For user_query
-        ]
+def test_document_retrieval_service_retrieves_documents(doc_retrieval_service):
+    """Test that document retrieval service correctly retrieves documents."""
+    # Mock vector store query to return some documents
+    mock_doc1 = mock.MagicMock()
+    mock_doc1.page_content = "First test document content"
+    mock_doc1.metadata = {
+        "title": "Doc 1",
+        "source_url": "http://example.com/1",
+    }
 
-        # Mock vector store query to return some document
-        mock_doc = mock.MagicMock()
-        mock_doc.page_content = "Test document content"
-        rag_service.mock_vector_store.query.return_value = [mock_doc]
+    mock_doc2 = mock.MagicMock()
+    mock_doc2.page_content = "Second test document content"
+    mock_doc2.metadata = {
+        "title": "Doc 2",
+        "source_url": "http://example.com/2",
+    }
 
-        # Call the method under test
-        rag_service.query("Test query")
+    doc_retrieval_service.mock_vector_store.query.return_value = [
+        mock_doc1,
+        mock_doc2,
+    ]
 
-        # Check that the prompts were loaded
-        assert mock_load_prompt.call_count == 2
-        mock_load_prompt.assert_any_call("system_prompt")
+    # Call the method under test
+    result = doc_retrieval_service.retrieve_documents("Test query")
 
-        # Check that the user prompt was loaded with the correct variables
-        user_prompt_calls = [call for call in mock_load_prompt.call_args_list if call[0][0] == "user_query"]
-        assert len(user_prompt_calls) == 1
+    # Verify the vector store was called correctly
+    doc_retrieval_service.mock_vector_store.query.assert_called_once_with(
+        query_text="Test query",
+        n_results=3,
+    )
 
-        # Get the kwargs passed to load_prompt for user_query
-        user_prompt_kwargs = user_prompt_calls[0][1]
-        assert "context" in user_prompt_kwargs
-        assert "question" in user_prompt_kwargs
-        assert user_prompt_kwargs["question"] == "Test query"
+    # Verify the results
+    assert len(result) == 2
+    assert result[0] == mock_doc1
+    assert result[1] == mock_doc2
 
-        # Verify the LLM was called with the correct prompts
-        rag_service.mock_llm_service.generate_response.assert_called_once()
-        call_args = rag_service.mock_llm_service.generate_response.call_args[1]
-        assert call_args["system_prompt"] == "Mocked system prompt"
-        assert call_args["prompt"] == "Mocked user prompt with context"
+
+def test_document_retrieval_service_formats_context(doc_retrieval_service):
+    """Test that document retrieval service correctly formats documents as context."""
+    # Create mock documents
+    mock_doc1 = mock.MagicMock()
+    mock_doc1.page_content = "First document content"
+
+    mock_doc2 = mock.MagicMock()
+    mock_doc2.page_content = "Second document content"
+
+    documents = [mock_doc1, mock_doc2]
+
+    # Call the method under test
+    context = doc_retrieval_service.format_documents_as_context(documents)
+
+    # Verify the context is formatted correctly
+    expected_context = "First document content\n\nSecond document content"
+    assert context == expected_context
+
+
+def test_document_retrieval_service_formats_display(doc_retrieval_service):
+    """Test that document retrieval service correctly formats documents for display."""
+    # Create mock documents
+    mock_doc1 = mock.MagicMock()
+    mock_doc1.page_content = "First document content"
+    mock_doc1.metadata = {
+        "title": "Document 1",
+        "source_url": "http://example.com/1",
+    }
+
+    mock_doc2 = mock.MagicMock()
+    mock_doc2.page_content = "Second document content"
+    mock_doc2.metadata = {
+        "title": "Document 2",
+        "source_url": "http://example.com/2",
+    }
+
+    documents = [mock_doc1, mock_doc2]
+
+    # Call the method under test
+    display_text = doc_retrieval_service.format_documents_for_display(
+        documents,
+    )
+
+    # Verify the display text includes titles, sources, and content
+    assert "### Document 1" in display_text
+    assert "**Source**: http://example.com/1" in display_text
+    assert "First document content" in display_text
+    assert "### Document 2" in display_text
+    assert "**Source**: http://example.com/2" in display_text
+    assert "Second document content" in display_text
+
+
+def test_rag_service_alias():
+    """Test that RAGService is properly aliased to DocumentRetrievalService."""
+    assert RAGService is DocumentRetrievalService

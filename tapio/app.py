@@ -6,7 +6,7 @@ from typing import Any
 
 import gradio as gr
 
-from tapio.services.rag_service import RAGService
+from tapio.services.rag_orchestrator import RAGOrchestrator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -45,18 +45,20 @@ class TapioAssistantApp:
         self.model_name = model_name
         self.max_tokens = max_tokens
         self.num_results = num_results
-        self.rag_service: RAGService | None = None
+        self.rag_orchestrator: RAGOrchestrator | None = None
         self.demo = self._build_interface()
 
-    def _init_rag_service(self) -> RAGService:
-        """Initialize the RAG service if not already done.
+    def _init_rag_orchestrator(self) -> RAGOrchestrator:
+        """Initialize the RAG orchestrator if not already done.
 
         Returns:
-            Initialized RAGService instance
+            Initialized RAGOrchestrator instance
         """
-        if self.rag_service is None:
-            logger.info(f"Initializing RAG service with {self.model_name} model")
-            self.rag_service = RAGService(
+        if self.rag_orchestrator is None:
+            logger.info(
+                f"Initializing RAG orchestrator with {self.model_name} model",
+            )
+            self.rag_orchestrator = RAGOrchestrator(
                 collection_name=self.collection_name,
                 persist_directory=self.persist_directory,
                 model_name=self.model_name,
@@ -64,7 +66,7 @@ class TapioAssistantApp:
                 num_results=self.num_results,
             )
 
-        return self.rag_service
+        return self.rag_orchestrator
 
     def generate_rag_response(
         self,
@@ -81,14 +83,19 @@ class TapioAssistantApp:
             Tuple containing the response and formatted documents for display
         """
         try:
-            # Initialize RAG service if not already done
-            service = self._init_rag_service()
+            # Initialize RAG orchestrator if not already done
+            orchestrator = self._init_rag_orchestrator()
 
-            # Get response and retrieved docs from the RAG service
-            response, retrieved_docs = service.query(query_text=query, history=history)
+            # Get response and retrieved docs from the RAG orchestrator
+            response, retrieved_docs = orchestrator.query(
+                query_text=query,
+                history=history,
+            )
 
             # Format documents for display
-            formatted_docs = service.format_retrieved_documents(retrieved_docs)
+            formatted_docs = orchestrator.format_documents_for_display(
+                retrieved_docs,
+            )
 
             return response, formatted_docs
         except Exception as e:
@@ -124,14 +131,19 @@ class TapioAssistantApp:
         yield "", chat_history, "Retrieving relevant documents..."
 
         try:
-            # Initialize RAG service if not already done
-            service = self._init_rag_service()
+            # Initialize RAG orchestrator if not already done
+            rag_orchestrator = self._init_rag_orchestrator()
 
-            # Get streaming response and retrieved docs from the RAG service
-            response_stream, retrieved_docs = service.query_stream(query_text=message, history=chat_history)
+            # Get streaming response and retrieved docs from the RAG orchestrator
+            response_stream, retrieved_docs = rag_orchestrator.query_stream(
+                query_text=message,
+                history=chat_history,
+            )
 
             # Format documents for display
-            formatted_docs = service.format_retrieved_documents(retrieved_docs)
+            formatted_docs = rag_orchestrator.format_documents_for_display(
+                retrieved_docs,
+            )
 
             # Start building the assistant response
             assistant_response = ""
@@ -142,18 +154,24 @@ class TapioAssistantApp:
 
                 # Update chat history with current response
                 current_history = chat_history.copy()
-                current_history.append({"role": "assistant", "content": assistant_response})
+                current_history.append(
+                    {"role": "assistant", "content": assistant_response},
+                )
 
                 yield "", current_history, formatted_docs
 
             # Final update with complete response
-            chat_history.append({"role": "assistant", "content": assistant_response})
+            chat_history.append(
+                {"role": "assistant", "content": assistant_response},
+            )
             yield "", chat_history, formatted_docs
 
         except Exception as e:
             logger.error(f"Error in streaming response: {e}")
             error_message = "I encountered an error while processing your query. Please try again."
-            chat_history.append({"role": "assistant", "content": error_message})
+            chat_history.append(
+                {"role": "assistant", "content": error_message},
+            )
             yield "", chat_history, "Error retrieving documents."
 
     def respond(
@@ -228,8 +246,24 @@ class TapioAssistantApp:
                     )
 
             # Define app logic - use streaming for better user experience
-            msg.submit(self.respond_stream, [msg, chatbot], [msg, chatbot, docs_display])
-            submit.click(self.respond_stream, [msg, chatbot], [msg, chatbot, docs_display])
+            msg.submit(
+                self.respond_stream,
+                [msg, chatbot],
+                [
+                    msg,
+                    chatbot,
+                    docs_display,
+                ],
+            )
+            submit.click(
+                self.respond_stream,
+                [msg, chatbot],
+                [
+                    msg,
+                    chatbot,
+                    docs_display,
+                ],
+            )
             clear.click(lambda: ([], None), None, [chatbot, docs_display])
 
             # Add some example queries
@@ -251,8 +285,8 @@ class TapioAssistantApp:
         Returns:
             True if the model is available, False otherwise
         """
-        service = self._init_rag_service()
-        return service.check_model_availability()
+        orchestrator = self._init_rag_orchestrator()
+        return orchestrator.check_model_availability()
 
     def launch(self, share: bool = False) -> None:
         """Launch the Gradio app.
