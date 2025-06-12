@@ -131,20 +131,18 @@ class RAGOrchestrator:
                 question=query_text,
             )
 
-            # Step 4: Get the LLM response stream (this calls the LLM service)
+            # Step 4: Create the streaming generator
             logger.info("Generating streaming response with LLM")
-            llm_response_stream = self.llm_service.generate_response_stream(
-                prompt=user_prompt,
-                system_prompt=system_prompt,
-            )
 
             def stream_generator() -> Generator[str, None, None]:
+                llm_response_stream = self.llm_service.generate_response_stream(
+                    prompt=user_prompt,
+                    system_prompt=system_prompt,
+                )
                 try:
                     logger.info("Starting to consume LLM response stream")
-                    # Stream the LLM response directly
-                    for chunk in llm_response_stream:
-                        logger.debug(f"Got chunk from LLM: '{chunk}'")
-                        yield chunk
+                    # Stream the LLM response directly using yield from
+                    yield from llm_response_stream
 
                 except Exception:
                     logger.exception("Error in stream generator")
