@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 
-from tapio.services.document_retrieval_service import DocumentRetrievalService, RAGService
+from tapio.services.document_retrieval_service import DocumentRetrievalService
 
 
 @pytest.fixture
@@ -115,8 +115,3 @@ def test_document_retrieval_service_formats_display(doc_retrieval_service):
     assert "### Document 2" in display_text
     assert "**Source**: http://example.com/2" in display_text
     assert "Second document content" in display_text
-
-
-def test_rag_service_alias():
-    """Test that RAGService is properly aliased to DocumentRetrievalService."""
-    assert RAGService is DocumentRetrievalService

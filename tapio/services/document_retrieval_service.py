@@ -113,7 +113,3 @@ class DocumentRetrievalService:
             formatted_docs.append(formatted_doc)
 
         return "\n".join(formatted_docs)
-
-
-# Keep RAGService as an alias for backward compatibility
-RAGService = DocumentRetrievalService
