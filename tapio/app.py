@@ -140,17 +140,28 @@ class TapioAssistantApp:
                 history=chat_history,
             )
 
-            # Format documents for display
-            formatted_docs = rag_orchestrator.format_documents_for_display(
-                retrieved_docs,
-            )
-
             # Start building the assistant response
-            assistant_response = ""
+            assistant_response = "..."  # Start with ellipsis for immediate feedback
+            formatted_docs = "Retrieving relevant documents..."
+            first_chunk = True
+
+            # Update chat history immediately with ellipsis to show activity
+            current_history = chat_history.copy()
+            current_history.append(
+                {"role": "assistant", "content": assistant_response},
+            )
+            yield "", current_history, formatted_docs
 
             # Stream the response
             for chunk in response_stream:
-                assistant_response += chunk
+                # Replace the ellipsis with actual content on first meaningful chunk
+                if first_chunk and chunk.strip():  # Only replace if chunk has content
+                    assistant_response = chunk
+                    first_chunk = False
+                elif not first_chunk:
+                    # Normal streaming - append chunks
+                    assistant_response += chunk
+                # If first_chunk is True but chunk is empty/whitespace, keep the ellipsis
 
                 # Update chat history with current response
                 current_history = chat_history.copy()
@@ -158,12 +169,25 @@ class TapioAssistantApp:
                     {"role": "assistant", "content": assistant_response},
                 )
 
+                # Format documents for display once we have them
+                if retrieved_docs and formatted_docs == "Retrieving relevant documents...":
+                    formatted_docs = rag_orchestrator.format_documents_for_display(
+                        retrieved_docs,
+                    )
+
                 yield "", current_history, formatted_docs
 
             # Final update with complete response
             chat_history.append(
                 {"role": "assistant", "content": assistant_response},
             )
+
+            # Ensure documents are formatted for final display
+            if retrieved_docs:
+                formatted_docs = rag_orchestrator.format_documents_for_display(
+                    retrieved_docs,
+                )
+
             yield "", chat_history, formatted_docs
 
         except Exception as e:

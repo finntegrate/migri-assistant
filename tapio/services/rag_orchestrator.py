@@ -112,7 +112,8 @@ class RAGOrchestrator:
             Tuple containing the response generator and the retrieved documents
         """
         try:
-            # Step 1: Retrieve relevant documents
+            # Step 1: Retrieve relevant documents up front
+            logger.info("Retrieving relevant documents")
             retrieved_docs = self.doc_retrieval_service.retrieve_documents(
                 query_text,
             )
@@ -130,16 +131,26 @@ class RAGOrchestrator:
                 question=query_text,
             )
 
-            # Step 4: Generate streaming response using LLM service
+            # Step 4: Get the LLM response stream (this calls the LLM service)
             logger.info("Generating streaming response with LLM")
-            response_stream = self.llm_service.generate_response_stream(
+            llm_response_stream = self.llm_service.generate_response_stream(
                 prompt=user_prompt,
                 system_prompt=system_prompt,
             )
 
-            return response_stream, retrieved_docs
+            def stream_generator() -> Generator[str, None, None]:
+                try:
+                    # Stream the LLM response directly
+                    yield from llm_response_stream
+
+                except Exception as e:
+                    logger.error(f"Error in stream generator: {e}")
+                    yield "I encountered an error while processing your query. Please try again."
+
+            return stream_generator(), retrieved_docs
+
         except Exception as e:
-            logger.error(f"Error generating streaming RAG response: {e}")
+            logger.error(f"Error in query_stream setup: {e}")
 
             def error_generator() -> Generator[str, None, None]:
                 yield "I encountered an error while processing your query. Please try again."
