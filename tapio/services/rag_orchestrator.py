@@ -5,8 +5,8 @@ from collections.abc import Generator
 from typing import Any
 
 from tapio.prompts import load_prompt
+from tapio.services.document_retrieval_service import DocumentRetrievalService
 from tapio.services.llm_service import LLMService
-from tapio.services.rag_service import DocumentRetrievalService
 
 # Configure logging
 logger = logging.getLogger(__name__)

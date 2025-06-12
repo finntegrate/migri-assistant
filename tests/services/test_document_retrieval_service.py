@@ -4,14 +4,14 @@ from unittest import mock
 
 import pytest
 
-from tapio.services.rag_service import DocumentRetrievalService, RAGService
+from tapio.services.document_retrieval_service import DocumentRetrievalService, RAGService
 
 
 @pytest.fixture
 def doc_retrieval_service():
     """Create a document retrieval service with mocked dependencies for testing."""
     # Mock the ChromaStore
-    with mock.patch("tapio.services.rag_service.ChromaStore") as mock_chroma:
+    with mock.patch("tapio.services.document_retrieval_service.ChromaStore") as mock_chroma:
         # Configure mock instance behavior
         mock_chroma_instance = mock_chroma.return_value
 
