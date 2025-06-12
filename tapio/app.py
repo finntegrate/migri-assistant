@@ -140,7 +140,7 @@ class TapioAssistantApp:
                 history=chat_history,
             )
 
-            # Start building the assistant response
+            # Start building the assistant response and immediately start streaming
             assistant_response = "..."  # Start with ellipsis for immediate feedback
             formatted_docs = "Retrieving relevant documents..."
             first_chunk = True
@@ -152,10 +152,17 @@ class TapioAssistantApp:
             )
             yield "", current_history, formatted_docs
 
-            # Stream the response
+            # Immediately start consuming the generator to trigger LLM processing
+            logger.info("Starting to consume response stream")
+
+            # Stream the response - start consuming immediately
             for chunk in response_stream:
+                logger.debug(f"App received chunk: '{chunk}'")
                 # Replace the ellipsis with actual content on first meaningful chunk
                 if first_chunk and chunk.strip():  # Only replace if chunk has content
+                    logger.info(
+                        "Replacing ellipsis with first meaningful chunk",
+                    )
                     assistant_response = chunk
                     first_chunk = False
                 elif not first_chunk:

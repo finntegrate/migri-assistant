@@ -140,8 +140,11 @@ class RAGOrchestrator:
 
             def stream_generator() -> Generator[str, None, None]:
                 try:
+                    logger.info("Starting to consume LLM response stream")
                     # Stream the LLM response directly
-                    yield from llm_response_stream
+                    for chunk in llm_response_stream:
+                        logger.debug(f"Got chunk from LLM: '{chunk}'")
+                        yield chunk
 
                 except Exception as e:
                     logger.error(f"Error in stream generator: {e}")
