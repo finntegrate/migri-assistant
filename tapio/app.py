@@ -205,13 +205,13 @@ class TapioAssistantApp:
             )
             yield "", chat_history, "Error retrieving documents."
 
-    def clear_chat(self) -> tuple[list, None]:
+    def clear_chat(self) -> tuple[list, str]:
         """Clear the chat history and documents display.
 
         Returns:
-            Empty chat history and None for documents display
+            Empty chat history and empty string for documents display
         """
-        return [], None
+        return [], ""
 
     def respond(
         self,
