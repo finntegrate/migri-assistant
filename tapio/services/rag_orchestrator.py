@@ -154,8 +154,8 @@ class RAGOrchestrator:
 
             return stream_generator(), retrieved_docs
 
-        except Exception as e:
-            logger.error(f"Error in query_stream setup: {e}")
+        except Exception:
+            logger.exception("Error in query_stream setup")
 
             def error_generator() -> Generator[str, None, None]:
                 yield "I encountered an error while processing your query. Please try again."
