@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tapio.models.llm_service import LLMService
+from tapio.services.llm_service import LLMService
 
 
 class TestLLMService:
@@ -35,7 +35,7 @@ class TestLLMService:
         service = LLMService(model_name="test-model")
         assert service.get_model_name() == "test-model"
 
-    @patch("tapio.models.llm_service.ollama.list")
+    @patch("tapio.services.llm_service.ollama.list")
     def test_check_model_availability_no_models(self, mock_list):
         """Test model availability check when no models are available."""
         # Mock empty response
@@ -49,7 +49,7 @@ class TestLLMService:
         assert result is False
         mock_list.assert_called_once()
 
-    @patch("tapio.models.llm_service.ollama.list")
+    @patch("tapio.services.llm_service.ollama.list")
     def test_check_model_availability_ollama_not_running(self, mock_list):
         """Test model availability check when Ollama is not running."""
         # Mock connection error
@@ -131,7 +131,7 @@ class TestLLMService:
             ),
         ],
     )
-    @patch("tapio.models.llm_service.ollama.list")
+    @patch("tapio.services.llm_service.ollama.list")
     def test_check_model_availability_parameterized(
         self,
         mock_list,
@@ -145,7 +145,7 @@ class TestLLMService:
         # Configure logging for the test
         import logging
 
-        caplog.set_level(logging.INFO, logger="tapio.models.llm_service")
+        caplog.set_level(logging.INFO, logger="tapio.services.llm_service")
 
         # Create mock model objects
         mock_models = []
@@ -168,13 +168,13 @@ class TestLLMService:
         # Check that the expected log message appears
         assert expected_log_message in caplog.text
 
-    @patch("tapio.models.llm_service.ollama.list")
+    @patch("tapio.services.llm_service.ollama.list")
     def test_check_model_availability_logs_available_models(self, mock_list, caplog):
         """Test that available models are logged correctly."""
         # Configure logging for the test
         import logging
 
-        caplog.set_level(logging.INFO, logger="tapio.models.llm_service")
+        caplog.set_level(logging.INFO, logger="tapio.services.llm_service")
 
         # Create mock model objects
         mock_models = []
@@ -196,7 +196,7 @@ class TestLLMService:
         expected_log = "Available Ollama models: llama3.2:latest, all-minilm:22m, codellama:7b"
         assert expected_log in caplog.text
 
-    @patch("tapio.models.llm_service.ollama.list")
+    @patch("tapio.services.llm_service.ollama.list")
     def test_check_model_availability_handles_none_model_names(self, mock_list):
         """Test that the service handles model objects with None names gracefully."""
         # Create mock model objects with some None names
@@ -228,7 +228,7 @@ class TestLLMService:
         assert result is True
         mock_list.assert_called_once()
 
-    @patch("tapio.models.llm_service.ollama.chat")
+    @patch("tapio.services.llm_service.ollama.chat")
     def test_generate_response_success(self, mock_chat):
         """Test successful response generation."""
         # Mock successful response
@@ -252,7 +252,7 @@ class TestLLMService:
             },
         )
 
-    @patch("tapio.models.llm_service.ollama.chat")
+    @patch("tapio.services.llm_service.ollama.chat")
     def test_generate_response_with_system_prompt(self, mock_chat):
         """Test response generation with system prompt."""
         # Mock successful response
@@ -282,7 +282,7 @@ class TestLLMService:
             },
         )
 
-    @patch("tapio.models.llm_service.ollama.chat")
+    @patch("tapio.services.llm_service.ollama.chat")
     def test_generate_response_error(self, mock_chat):
         """Test response generation when an error occurs."""
         # Mock error

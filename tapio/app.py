@@ -6,7 +6,7 @@ from typing import Any
 
 import gradio as gr
 
-from tapio.models.rag_service import RAGService
+from tapio.services.rag_service import RAGService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -4,8 +4,8 @@ import logging
 from collections.abc import Generator
 from typing import Any
 
-from tapio.models.llm_service import LLMService
 from tapio.prompts import load_prompt
+from tapio.services.llm_service import LLMService
 from tapio.vectorstore.chroma_store import ChromaStore
 
 # Configure logging
